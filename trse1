@@ -210,59 +210,79 @@ local PlayerFlags = {
 }
 
 ----------------------------------------------------
--- SISTEMA AVANÇADO DE SPEED
+-- SISTEMA ULTRA-AGRESSIVO DE SPEED
 ----------------------------------------------------
--- Ideia: manter um loop contínuo que força WalkSpeed/Running conforme flags,
--- ignorando mudanças do jogo (scripts da PlayerModule, Settings GUI etc).
-
 local DEFAULT_WALKSPEED = 16
 
-local function applySpeed(rawValue)
+local BaseSpeed = DEFAULT_WALKSPEED
+local SpeedOverrideFactor = 1
+
+local function captureBaseSpeed()
     local hum = getHumanoid()
     if not hum then return end
 
-    -- clamp global (16–1000)
-    local value = math.clamp(rawValue, 16, 1000)
-    PlayerFlags.SpeedValue = value
-
-    -- Força em propriedades base
-    hum.WalkSpeed = value
-    -- Se mudar para humanoid.State/MoveDirection, o loop abaixo garagem fixa.
+    local current = hum.WalkSpeed
+    if current <= 0 then
+        current = DEFAULT_WALKSPEED
+    end
+    BaseSpeed = current
 end
 
--- Loop que sobrescreve qualquer alteração de speed
-RunService.Heartbeat:Connect(function()
+local function recalcSpeedFactor()
+    local hum = getHumanoid()
+    if not hum then return end
+
+    captureBaseSpeed()
+
+    local target = math.clamp(PlayerFlags.SpeedValue, 16, 1000)
+    if BaseSpeed <= 0 then
+        BaseSpeed = DEFAULT_WALKSPEED
+    end
+
+    SpeedOverrideFactor = target / BaseSpeed
+end
+
+local function hardApplySpeed()
     local hum = getHumanoid()
     if not hum then return end
 
     if PlayerFlags.SpeedEnabled then
-        if hum.WalkSpeed ~= PlayerFlags.SpeedValue then
-            hum.WalkSpeed = PlayerFlags.SpeedValue
+        local currentBase = BaseSpeed
+
+        if math.abs(hum.WalkSpeed - (currentBase * SpeedOverrideFactor)) > 1 then
+            captureBaseSpeed()
+            currentBase = BaseSpeed
+            if currentBase <= 0 then
+                currentBase = DEFAULT_WALKSPEED
+            end
         end
+
+        local targetSpeed = math.clamp(currentBase * SpeedOverrideFactor, 16, 1000)
+        hum.WalkSpeed = targetSpeed
     else
-        if hum.WalkSpeed ~= DEFAULT_WALKSPEED then
-            hum.WalkSpeed = DEFAULT_WALKSPEED
-        end
+        captureBaseSpeed()
+        hum.WalkSpeed = BaseSpeed
     end
+end
+
+RunService.Heartbeat:Connect(function()
+    local hum = getHumanoid()
+    if not hum then return end
+    hardApplySpeed()
 end)
 
 ----------------------------------------------------
 -- SISTEMA AVANÇADO DE JUMP POWER
 ----------------------------------------------------
--- O jogo pode tentar setar JumpHeight / JumpPower via PlayerModule/Settings,
--- então fazemos um loop que força o valor desejado.
-
 local DEFAULT_JUMPPOWER = 50
 
 local function applyJump(rawValue)
     local hum = getHumanoid()
     if not hum then return end
 
-    -- clamp 50–300
     local value = math.clamp(rawValue, 50, 300)
     PlayerFlags.JumpValue = value
 
-    -- Reseta tipo de uso e força JumpPower
     pcall(function()
         hum.UseJumpPower = true
     end)
@@ -291,11 +311,8 @@ end)
 ----------------------------------------------------
 -- SISTEMA DE FLY
 ----------------------------------------------------
--- Fly baseado no HumanoidRootPart com controle WASD + espaço/shift.
--- Compatível com Speed: usamos SpeedValue como base horizontal.
-
-local FlyVelocity -- BodyVelocity para controle
-local FlyGyro     -- BodyGyro para suavizar rotação
+local FlyVelocity
+local FlyGyro
 
 local function startFly()
     if PlayerFlags.FlyEnabled then return end
@@ -337,7 +354,6 @@ local function stopFly()
     end
 end
 
--- Loop de movimento do Fly
 RunService.RenderStepped:Connect(function(dt)
     if not PlayerFlags.FlyEnabled then return end
 
@@ -356,7 +372,6 @@ RunService.RenderStepped:Connect(function(dt)
     local forward = cameraCF.LookVector
     local right = cameraCF.RightVector
 
-    -- WASD
     if UserInputService:IsKeyDown(Enum.KeyCode.W) then
         moveDir += forward
     end
@@ -370,7 +385,6 @@ RunService.RenderStepped:Connect(function(dt)
         moveDir -= right
     end
 
-    -- Up/Down (Espaço / Shift)
     if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
         moveDir += Vector3.new(0, 1, 0)
     end
@@ -393,7 +407,6 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
--- Keybind para ativar/desativar Fly
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == PlayerFlags.FlyKey then
@@ -408,11 +421,6 @@ end)
 ----------------------------------------------------
 -- SISTEMA DE NOCLIP
 ----------------------------------------------------
--- Atravessar paredes/objetos, mas não o chão.
--- Estratégia: setar CanCollide = false em Parts/Meshes do char,
--- exceto partes que estão abaixo de uma certa distância vertical do HRP
--- (tratando como "pés").
-
 local function setCharacterNoClipState(enabled)
     local char = getCharacter()
     if not char then return end
@@ -421,13 +429,11 @@ local function setCharacterNoClipState(enabled)
 
     for _, part in ipairs(char:GetDescendants()) do
         if part:IsA("BasePart") and part ~= hrp then
-            -- Se estiver muito abaixo do HRP, consideramos como pé/suporte
             local relativeY = hrp.Position.Y - part.Position.Y
             local isFootPart = relativeY > 1.5
 
             if enabled then
                 if isFootPart then
-                    -- Mantém colisão com chão
                     part.CanCollide = true
                 else
                     part.CanCollide = false
@@ -458,9 +464,14 @@ local SpeedToggle = PlayerSection:Toggle({
     Callback = function(state)
         PlayerFlags.SpeedEnabled = state
         if state then
-            applySpeed(PlayerFlags.SpeedValue)
+            recalcSpeedFactor()
+            hardApplySpeed()
         else
-            applySpeed(DEFAULT_WALKSPEED)
+            captureBaseSpeed()
+            local hum = getHumanoid()
+            if hum then
+                hum.WalkSpeed = BaseSpeed
+            end
         end
     end
 })
@@ -477,7 +488,8 @@ local SpeedSlider = PlayerSection:Slider({
     Callback = function(value)
         PlayerFlags.SpeedValue = value
         if PlayerFlags.SpeedEnabled then
-            applySpeed(value)
+            recalcSpeedFactor()
+            hardApplySpeed()
         end
     end
 })
@@ -606,7 +618,6 @@ local AutoFarmToggle = FarmSection:Toggle({
     Value = false,
     Callback = function(state)
         FarmFlags.AutoFarmEnabled = state
-        -- futuro: loop baseado no jogo atual
     end
 })
 
@@ -706,7 +717,6 @@ local SettingsWindowSection = Tabs.Settings:Section({
     Opened = true,
 })
 
--- Transparência da janela
 local ToggleTransparency = SettingsWindowSection:Toggle({
     Title = "Window Transparency",
     Desc  = "Liga/desliga transparência global.",
@@ -716,7 +726,6 @@ local ToggleTransparency = SettingsWindowSection:Toggle({
     end
 })
 
--- Keybind para abrir fechar UI
 local KeybindElement = SettingsWindowSection:Keybind({
     Title = "Toggle UI Key",
     Desc  = "Tecla para mostrar/ocultar a UI.",
@@ -729,13 +738,12 @@ local KeybindElement = SettingsWindowSection:Keybind({
 SettingsWindowSection:Button({
     Title = "Center Window",
     Callback = function()
-        Window:Toggle() -- fecha
+        Window:Toggle()
         task.wait(0.05)
-        Window:Toggle() -- reabre (WindUI já centraliza bem)
+        Window:Toggle()
     end
 })
 
--- Fundo da janela
 local BackgroundSection = Tabs.Settings:Section({
     Title = "Background",
     Box = true,
@@ -776,7 +784,6 @@ local ThemesSection = Tabs.Settings:Section({
     Opened = true,
 })
 
--- Pré-definição de alguns temas (facilita troca na UI)
 WindUI:AddTheme({
     Name = "Dark",
     Accent = Color3.fromHex("#18181b"),
@@ -810,7 +817,7 @@ WindUI:AddTheme({
     PopupBackgroundTransparency = 0,
     PopupTitle = Color3.fromHex("#FFFFFF"),
     PopupContent = Color3.fromHex("#FFFFFF"),
-    PopupIcon = Color3.fromHex("#a1a1aa"),
+    PopupIcon = Color3.fromHex("a1a1aa"),
     Toggle = Color3.fromHex("#52525b"),
     ToggleBar = Color3.fromHex("#FFFFFF"),
     Checkbox = Color3.fromHex("#52525b"),
@@ -900,9 +907,8 @@ local ConfigSection = Tabs.Settings:Section({
 })
 
 local ConfigManager = Window.ConfigManager
-local CurrentConfig = ConfigManager:CreateConfig("Default") -- default.json
+local CurrentConfig = ConfigManager:CreateConfig("Default")
 
--- Registro de elementos na config
 CurrentConfig:Register("PlayerSpeedToggle", SpeedToggle)
 CurrentConfig:Register("PlayerSpeedSlider", SpeedSlider)
 CurrentConfig:Register("PlayerJumpToggle", JumpToggle)

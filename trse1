@@ -5,17 +5,16 @@
 ]]
 
 -- // Carregar WindUI (última versão)
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))() -- [web:18]
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 -- // Configuração básica da library
-WindUI:SetNotificationLower(true) -- notificações embaixo [web:18]
-WindUI:SetFont("rbxassetid://12187371879") -- fonte clean (pode trocar o id)
+WindUI:SetNotificationLower(true)
+WindUI:SetFont("rbxassetid://12187371879")
 
 ----------------------------------------------------------------
 --                      TEMAS REGISTRADOS
 ----------------------------------------------------------------
 
--- Tema principal do KLS HUB
 WindUI:AddTheme({
     Name = "KLS Midnight",
     Accent = Color3.fromHex("#3B82F6"),
@@ -68,7 +67,6 @@ WindUI:AddTheme({
     SliderThumb = Color3.fromHex("#3B82F6"),
 })
 
--- Tema alternativo mais claro
 WindUI:AddTheme({
     Name = "KLS Frost",
     Accent = Color3.fromHex("#22D3EE"),
@@ -121,10 +119,8 @@ WindUI:AddTheme({
     SliderThumb = Color3.fromHex("#22D3EE"),
 })
 
--- Pode aproveitar também temas nativos da lib (Dark/Light etc.) [web:18]
 WindUI:SetTheme("KLS Midnight")
 
--- Gradiente de fundo suave
 WindUI:Gradient({
     ["0"]   = { Color = Color3.fromHex("#020617"), Transparency = 0 },
     ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
@@ -136,7 +132,7 @@ WindUI:Gradient({
 --                      JANELA PRINCIPAL
 ----------------------------------------------------------------
 
-local Window = WindUI:CreateWindow({ -- [web:18]
+local Window = WindUI:CreateWindow({
     Title = "KLS HUB",
     Icon = "lucide:radar",
     Author = "by Khalexis Team",
@@ -189,7 +185,7 @@ Window:Tag({
 ----------------------------------------------------------------
 
 local Tabs = {
-    Player   = Window:Tab({ Title = "Player",   Icon = "lucide:user" }),        -- [web:18]
+    Player   = Window:Tab({ Title = "Player",   Icon = "lucide:user" }),
     Farm     = Window:Tab({ Title = "Farm",     Icon = "lucide:wheat" }),
     Auto     = Window:Tab({ Title = "Auto",     Icon = "lucide:bot" }),
     Teleport = Window:Tab({ Title = "Teleport", Icon = "lucide:map-pin" }),
@@ -201,7 +197,7 @@ local Tabs = {
 Tabs.Player:Select()
 
 ----------------------------------------------------------------
---                      PLAYER (placeholder)
+--                      PLAYER
 ----------------------------------------------------------------
 
 do
@@ -216,28 +212,105 @@ do
         Color = "Blue",
         Icon  = "lucide:info",
     })
+
+    -- Exemplo prático
+    SectionInfo:Slider({
+        Title = "WalkSpeed",
+        Desc  = "Adjust player WalkSpeed.",
+        Step  = 1,
+        Value = { Min = 8, Max = 40, Default = 16 },
+        Callback = function(v)
+            local players = game:GetService("Players")
+            local lp = players.LocalPlayer
+            local char = lp and lp.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = v
+            end
+        end
+    })
+
+    SectionInfo:Slider({
+        Title = "JumpPower",
+        Desc  = "Adjust player JumpPower.",
+        Step  = 5,
+        Value = { Min = 25, Max = 120, Default = 50 },
+        Callback = function(v)
+            local players = game:GetService("Players")
+            local lp = players.LocalPlayer
+            local char = lp and lp.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.JumpPower = v
+            end
+        end
+    })
 end
 
 ----------------------------------------------------------------
---                      FARM (placeholder)
+--                      FARM (com features)
 ----------------------------------------------------------------
 
+local FarmConfig = {
+    AutoFarm = false,
+    TargetMob = "Default",
+    Radius = 35,
+}
+
 do
-    local SectionInfo = Tabs.Farm:Section({
+    local SectionMain = Tabs.Farm:Section({
         Title = "Farming System",
         Opened = true,
     })
 
-    SectionInfo:Paragraph({
+    SectionMain:Paragraph({
         Title = "Farming suite",
         Desc  = "Auto farm paths, target selectors and smart loops will be configured here.",
         Color = "Green",
         Icon  = "lucide:leaf",
     })
+
+    SectionMain:Toggle({
+        Title = "Enable Auto Farm",
+        Desc  = "Automatically moves to and farms selected targets.",
+        Icon  = "lucide:play-circle",
+        Value = false,
+        Callback = function(state)
+            FarmConfig.AutoFarm = state
+        end
+    })
+
+    SectionMain:Dropdown({
+        Title = "Farm Target",
+        Values = { "Default", "Nearest Mob", "Boss", "Chest" },
+        Value = "Default",
+        Callback = function(value)
+            FarmConfig.TargetMob = value
+        end
+    })
+
+    SectionMain:Slider({
+        Title = "Farm Radius",
+        Desc  = "Max distance to search farm targets.",
+        Step  = 5,
+        Value = { Min = 10, Max = 150, Default = FarmConfig.Radius },
+        Callback = function(v)
+            FarmConfig.Radius = v
+        end
+    })
+
+    SectionMain:Button({
+        Title = "Force Re-scan",
+        Desc  = "Force update of current farm target.",
+        Icon  = "lucide:refresh-ccw",
+        Callback = function()
+            print("[KLS HUB][FARM] Force rescan with radius:", FarmConfig.Radius, "target:", FarmConfig.TargetMob)
+        end
+    })
 end
 
 ----------------------------------------------------------------
---                      AUTO (placeholder)
+--                      AUTO
 ----------------------------------------------------------------
 
 do
@@ -252,10 +325,30 @@ do
         Color = "Orange",
         Icon  = "lucide:cpu",
     })
+
+    SectionInfo:Toggle({
+        Title = "Auto Rejoin",
+        Desc  = "Rejoins the game when you get kicked or disconnected (executor dependent).",
+        Icon  = "lucide:rotate-ccw",
+        Value = false,
+        Callback = function(state)
+            print("[KLS HUB][AUTO] Auto Rejoin:", state)
+        end
+    })
+
+    SectionInfo:Toggle({
+        Title = "Auto Buy Upgrades",
+        Desc  = "Automatically buys upgrades when you have enough currency.",
+        Icon  = "lucide:shopping-cart",
+        Value = false,
+        Callback = function(state)
+            print("[KLS HUB][AUTO] Auto Buy:", state)
+        end
+    })
 end
 
 ----------------------------------------------------------------
---                      TELEPORT (placeholder)
+--                      TELEPORT
 ----------------------------------------------------------------
 
 do
@@ -270,10 +363,20 @@ do
         Color = "Purple",
         Icon  = "lucide:map",
     })
+
+    SectionInfo:Dropdown({
+        Title = "Teleport Preset",
+        Values = { "Spawn", "Safe Zone", "Boss Room" },
+        Value = "Spawn",
+        Callback = function(place)
+            print("[KLS HUB][TP] Teleport to:", place)
+            -- aqui você encaixa o TP real do seu jogo
+        end
+    })
 end
 
 ----------------------------------------------------------------
---                      EVENTS (placeholder)
+--                      EVENTS
 ----------------------------------------------------------------
 
 do
@@ -291,8 +394,8 @@ do
 end
 
 ----------------------------------------------------------------
---                      SELLING (placeholder)
-----------------------------------------------------------------
+--                      SELLING
+---------------------------------------------------------------->
 
 do
     local SectionInfo = Tabs.Selling:Section({
@@ -305,6 +408,16 @@ do
         Desc  = "Auto-sell filters, price rules and rarity protection will be configured here.",
         Color = "Yellow",
         Icon  = "lucide:coins",
+    })
+
+    SectionInfo:Toggle({
+        Title = "Enable Auto-Sell",
+        Desc  = "Automatically sells trash items based on your filters.",
+        Icon  = "lucide:banknote",
+        Value = false,
+        Callback = function(state)
+            print("[KLS HUB][SELL] Auto-Sell:", state)
+        end
     })
 end
 
@@ -325,16 +438,11 @@ do
         Icon  = "lucide:radar",
     })
 
-    ----------------------------------------------------------------
-    --          THEME MANAGER (tudo centralizado aqui)
-    ----------------------------------------------------------------
-
     local ThemesSection = Tabs.Configs:Section({
         Title = "Theme Manager",
         Opened = true,
     })
 
-    -- Monta lista de temas disponíveis dinamicamente [web:18][web:21]
     local themeValues = {}
     for name, _ in pairs(WindUI:GetThemes()) do
         table.insert(themeValues, name)
@@ -355,10 +463,9 @@ do
         end
     })
 
-    -- Garante que o dropdown comece no tema atual [web:21]
     themeDropdown:Select(WindUI:GetCurrentTheme())
 
-    -- Transparência da janela
+    -- Transparência da janela (usar o valor no callback, não só boolean)
     ThemesSection:Slider({
         Title = "Background Transparency",
         Desc  = "Adjust the hub transparency in real-time.",
@@ -366,24 +473,21 @@ do
         Value = { Min = 0, Max = 1, Default = 0.2 },
         Callback = function(value)
             local v = tonumber(string.format("%.1f", value))
-            Window:ToggleTransparency(v > 0)
+            Window:ToggleTransparency(v) -- WindUI aceita bool ou number conforme versão; se for só bool, use (v > 0)
         end
     })
 
-    -- Toggle de resizable
     ThemesSection:Toggle({
         Title = "Resizable Window",
         Desc  = "Enable or disable window resizing.",
         Icon  = "lucide:stretch-horizontal",
         Value = true,
         Callback = function(state)
-            Window:IsResizable(state)
+            if Window.IsResizable then
+                Window:IsResizable(state)
+            end
         end
     })
-
-    ----------------------------------------------------------------
-    --          HOTKEYS / KEYBIND
-    ----------------------------------------------------------------
 
     local KeybindSection = Tabs.Configs:Section({
         Title = "Hotkeys",
@@ -406,10 +510,6 @@ do
             end
         end
     })
-
-    ----------------------------------------------------------------
-    --          ABOUT / LOADSTRING
-    ----------------------------------------------------------------
 
     local AboutSection = Tabs.Configs:Section({
         Title = "About & Info",
@@ -471,7 +571,6 @@ Window:Open()
 
 ----------------------------------------------------------------
 --        SISTEMA DE AUTO AVOID (GAPS + WAVES)
---        (NÃO ALTERA NADA DO HUB, SÓ ADICIONA)
 ----------------------------------------------------------------
 
 local Players = game:GetService("Players")
@@ -481,28 +580,23 @@ local LocalPlayer = Players.LocalPlayer
 
 local AutoAvoid = {
     Enabled = false,
-    GapOrder = {}, -- ordem dos gaps definida pelo usuário
+    GapOrder = {},
 }
-
---========================
--- CONFIGS
---========================
 
 local FLOAT_HEIGHT_OFFSET = 2
 local SAFETY_MARGIN       = 0.35
 local RECHECK_INTERVAL    = 0.15
 local LERP_SPEED_FACTOR   = 1.0
 
---========================
--- UTILITÁRIOS
---========================
-
 local function getCharacter()
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("Humanoid") or not char:FindFirstChild("HumanoidRootPart") then
+    local char = LocalPlayer and LocalPlayer.Character
+    if not char then return nil, nil, nil end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then
         return nil, nil, nil
     end
-    return char, char:FindFirstChild("Humanoid"), char:FindFirstChild("HumanoidRootPart")
+    return char, hum, hrp
 end
 
 local function getWalkSpeed(hum)
@@ -534,10 +628,6 @@ local function getGapRadius(partOrModel)
     return 6
 end
 
---========================
--- REGISTRO DE GAPS
---========================
-
 local AllGaps = {}
 
 local function registerGap(name, instance)
@@ -551,7 +641,6 @@ local function registerGap(name, instance)
     })
 end
 
--- Gaps em workspace.Misc.Gaps (centro Uncommon etc.) [file:32]
 do
     local misc = workspace:FindFirstChild("Misc")
     if misc and misc:FindFirstChild("Gaps") then
@@ -565,7 +654,6 @@ do
     end
 end
 
--- Gaps no mapa RadioactiveMap.OG [file:32]
 do
     local radio = workspace:FindFirstChild("RadioactiveMap")
     if radio and radio:FindFirstChild("OG") then
@@ -596,13 +684,8 @@ function AutoAvoid:SetGapOrder(orderTable)
     self.GapOrder = newOrder
 end
 
---========================
--- INFORMAÇÕES DA WAVE
---========================
-
--- Timer de Radioactive em PlayerGui.RadioactiveTimeLeft [file:33]
 local function getTimeUntilWaveImpact()
-    local gui = LocalPlayer:FindFirstChild("PlayerGui")
+    local gui = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
     if not gui then return nil end
 
     local timeGui = gui:FindFirstChild("RadioactiveTimeLeft")
@@ -616,7 +699,6 @@ local function getTimeUntilWaveImpact()
     return 1
 end
 
--- Hitboxes em workspace.ActiveTsunamis [file:32]
 local function getActiveWaveHitboxes()
     local result = {}
     local active = workspace:FindFirstChild("ActiveTsunamis")
@@ -654,10 +736,6 @@ local function isPathBlockedByWave(startPos, endPos, travelTime)
     return false
 end
 
---========================
--- GAP ATUAL / PRÓXIMO
---========================
-
 local function getCurrentGap(root)
     if not root or #AutoAvoid.GapOrder == 0 then return nil, nil end
     local pos = root.Position
@@ -665,11 +743,13 @@ local function getCurrentGap(root)
 
     for i, gap in ipairs(AutoAvoid.GapOrder) do
         local center = getGapCenter(gap.Object) or gap.Center
-        local dist = (center.Position - pos).Magnitude
-        if dist < bestDist then
-            bestDist = dist
-            bestGap  = gap
-            bestIdx  = i
+        if center then
+            local dist = (center.Position - pos).Magnitude
+            if dist < bestDist then
+                bestDist = dist
+                bestGap  = gap
+                bestIdx  = i
+            end
         end
     end
 
@@ -684,10 +764,6 @@ local function getNextGap(idx)
     return AutoAvoid.GapOrder[idx + 1]
 end
 
---========================
--- MOVIMENTO SUAVE
---========================
-
 local movingConnection = nil
 
 local function stopCurrentMovement()
@@ -699,6 +775,7 @@ end
 
 local function moveSmoothTo(root, targetCFrame, speed)
     stopCurrentMovement()
+    if not root or not targetCFrame then return end
 
     local startPos = root.Position
     local targetPos = targetCFrame.Position + Vector3.new(0, FLOAT_HEIGHT_OFFSET, 0)
@@ -710,7 +787,7 @@ local function moveSmoothTo(root, targetCFrame, speed)
     local elapsed     = 0
 
     movingConnection = RunService.Heartbeat:Connect(function(dt)
-        if not AutoAvoid.Enabled then
+        if not AutoAvoid.Enabled or not root.Parent then
             stopCurrentMovement()
             return
         end
@@ -726,10 +803,6 @@ local function moveSmoothTo(root, targetCFrame, speed)
         end
     end)
 end
-
---========================
--- DECISÃO DE TROCA DE GAP
---========================
 
 local function canSafelyReachGap(hum, root, currentGap, nextGap)
     if not hum or not root or not currentGap or not nextGap then
@@ -763,10 +836,6 @@ local function canSafelyReachGap(hum, root, currentGap, nextGap)
     return true
 end
 
---========================
--- LOOP PRINCIPAL
---========================
-
 local mainLoopConnection = nil
 local lastCheck = 0
 
@@ -795,11 +864,13 @@ local function mainLoop(dt)
 
     if not movingConnection then
         local center = getGapCenter(currentGap.Object) or currentGap.Center
-        local targetPos = center.Position + Vector3.new(0, FLOAT_HEIGHT_OFFSET, 0)
-        local currentPos = root.Position
-        local delta = (targetPos - currentPos)
-        if delta.Magnitude > 0.3 then
-            root.CFrame = root.CFrame + delta * 0.15
+        if center then
+            local targetPos = center.Position + Vector3.new(0, FLOAT_HEIGHT_OFFSET, 0)
+            local currentPos = root.Position
+            local delta = (targetPos - currentPos)
+            if delta.Magnitude > 0.3 then
+                root.CFrame = root.CFrame + delta * 0.15
+            end
         end
     end
 
@@ -848,13 +919,11 @@ do
         Icon  = "lucide:shield",
     })
 
-    -- Lista de gaps registrados para o dropdown
     local gapNames = {}
     for _, g in ipairs(AutoAvoid:GetRegisteredGaps()) do
         table.insert(gapNames, g.Name)
     end
 
-    -- Ordem interna (string) que o usuário vai construir
     local selectedOrder = {}
 
     local function rebuildOrderLabel()
@@ -864,7 +933,6 @@ do
         return table.concat(selectedOrder, " -> ")
     end
 
-    -- Dropdown para adicionar gaps na ordem
     EventsAutoSection:Dropdown({
         Title = "Add Gap to Route",
         Values = gapNames,
@@ -881,7 +949,6 @@ do
         end
     })
 
-    -- Botão para limpar a rota
     EventsAutoSection:Button({
         Title = "Clear Gap Route",
         Icon  = "lucide:eraser",
@@ -897,7 +964,6 @@ do
         end
     })
 
-    -- Toggle principal do sistema de avoid
     EventsAutoSection:Toggle({
         Title = "Enable Radioactive Auto Avoid",
         Desc  = "Automatically moves between safe gaps when a wave is active.",
@@ -914,7 +980,6 @@ do
         end
     })
 
-    -- Slider para ajustar a “flutuação” (velocidade de interpolação)
     EventsAutoSection:Slider({
         Title = "Float Smoothness",
         Desc  = "Higher = faster transitions between gaps.",
@@ -925,7 +990,6 @@ do
         end
     })
 
-    -- Slider para margem de segurança em relação ao tempo da wave
     EventsAutoSection:Slider({
         Title = "Safety Margin (s)",
         Desc  = "Extra time required before leaving current gap.",

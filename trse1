@@ -1,934 +1,173 @@
---[[ 
+--[[
     KLS HUB - Roblox Script Hub
     Desenvolvido por: Khalexis Team
     UI Library: WindUI (Footagesus)
 ]]
 
--- // Carregar WindUI (última versão)
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+-- // Carregar WindUI (última versão recomendada)
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))() --[web:11]
 
 -- // Configuração básica da library
-WindUI:SetNotificationLower(true)
-WindUI:SetFont("rbxassetid://12187371879")
+WindUI:SetNotificationLower(true) --[web:11]
 
-----------------------------------------------------------------
---                      TEMAS REGISTRADOS
-----------------------------------------------------------------
+-- Fonte custom (troque o id se quiser)
+WindUI:SetFont("rbxassetid://12187371879") --[cite:4]
 
+-- // Tema personalizado de exemplo (pode editar depois)
 WindUI:AddTheme({
-    Name = "KLS Midnight",
-    Accent = Color3.fromHex("#3B82F6"),
-    Background = Color3.fromHex("#050816"),
+    Name = "KLS Dark",
+    Accent = Color3.fromHex("#18181b"),
+    Background = Color3.fromHex("#101010"),
     BackgroundTransparency = 0,
-
     Outline = Color3.fromHex("#FFFFFF"),
     Text = Color3.fromHex("#FFFFFF"),
-    Placeholder = Color3.fromHex("#6B7280"),
-    Button = Color3.fromHex("#111827"),
-    Icon = Color3.fromHex("#E5E7EB"),
+    Placeholder = Color3.fromHex("#7a7a7a"),
+    Button = Color3.fromHex("#52525b"),
+    Icon = Color3.fromHex("#a1a1aa"),
 
-    Hover = Color3.fromHex("#60A5FA"),
-    WindowBackground = Color3.fromHex("#020617"),
+    Hover = Color3.fromHex("#FFFFFF"),
+    WindowBackground = Color3.fromHex("#101010"),
     WindowShadow = Color3.fromHex("#000000"),
 
-    DialogBackground = Color3.fromHex("#020617"),
+    DialogBackground = Color3.fromHex("#101010"),
     DialogBackgroundTransparency = 0,
     DialogTitle = Color3.fromHex("#FFFFFF"),
-    DialogContent = Color3.fromHex("#E5E7EB"),
-    DialogIcon = Color3.fromHex("#E5E7EB"),
+    DialogContent = Color3.fromHex("#FFFFFF"),
+    DialogIcon = Color3.fromHex("#a1a1aa"),
 
-    WindowTopbarButtonIcon = Color3.fromHex("#E5E7EB"),
+    WindowTopbarButtonIcon = Color3.fromHex("#a1a1aa"),
     WindowTopbarTitle = Color3.fromHex("#FFFFFF"),
-    WindowTopbarAuthor = Color3.fromHex("#9CA3AF"),
+    WindowTopbarAuthor = Color3.fromHex("#FFFFFF"),
     WindowTopbarIcon = Color3.fromHex("#FFFFFF"),
 
-    TabBackground = Color3.fromHex("#020617"),
+    TabBackground = Color3.fromHex("#101010"),
     TabTitle = Color3.fromHex("#FFFFFF"),
-    TabIcon = Color3.fromHex("#E5E7EB"),
+    TabIcon = Color3.fromHex("#a1a1aa"),
 
-    ElementBackground = Color3.fromHex("#020617"),
+    ElementBackground = Color3.fromHex("#18181b"),
     ElementTitle = Color3.fromHex("#FFFFFF"),
-    ElementDesc = Color3.fromHex("#9CA3AF"),
-    ElementIcon = Color3.fromHex("#E5E7EB"),
+    ElementDesc = Color3.fromHex("#FFFFFF"),
+    ElementIcon = Color3.fromHex("#a1a1aa"),
 
-    PopupBackground = Color3.fromHex("#020617"),
+    PopupBackground = Color3.fromHex("#101010"),
     PopupBackgroundTransparency = 0,
     PopupTitle = Color3.fromHex("#FFFFFF"),
-    PopupContent = Color3.fromHex("#E5E7EB"),
-    PopupIcon = Color3.fromHex("#E5E7EB"),
+    PopupContent = Color3.fromHex("#FFFFFF"),
+    PopupIcon = Color3.fromHex("#a1a1aa"),
 
-    Toggle = Color3.fromHex("#3B82F6"),
+    Toggle = Color3.fromHex("#52525b"),
     ToggleBar = Color3.fromHex("#FFFFFF"),
 
-    Checkbox = Color3.fromHex("#111827"),
-    CheckboxIcon = Color3.fromHex("#3B82F6"),
+    Checkbox = Color3.fromHex("#52525b"),
+    CheckboxIcon = Color3.fromHex("#FFFFFF"),
 
-    Slider = Color3.fromHex("#111827"),
-    SliderThumb = Color3.fromHex("#3B82F6"),
-})
+    Slider = Color3.fromHex("#52525b"),
+    SliderThumb = Color3.fromHex("#FFFFFF"),
+}) --[cite:4]
 
-WindUI:AddTheme({
-    Name = "KLS Frost",
-    Accent = Color3.fromHex("#22D3EE"),
-    Background = Color3.fromHex("#020617"),
-    BackgroundTransparency = 0,
+-- Definir tema inicial
+WindUI:SetTheme("KLS Dark") --[cite:4]
 
-    Outline = Color3.fromHex("#E5E7EB"),
-    Text = Color3.fromHex("#F9FAFB"),
-    Placeholder = Color3.fromHex("#6B7280"),
-    Button = Color3.fromHex("#111827"),
-    Icon = Color3.fromHex("#E5E7EB"),
-
-    Hover = Color3.fromHex("#38BDF8"),
-    WindowBackground = Color3.fromHex("#020617"),
-    WindowShadow = Color3.fromHex("#000000"),
-
-    DialogBackground = Color3.fromHex("#020617"),
-    DialogBackgroundTransparency = 0,
-    DialogTitle = Color3.fromHex("#F9FAFB"),
-    DialogContent = Color3.fromHex("#E5E7EB"),
-    DialogIcon = Color3.fromHex("#E5E7EB"),
-
-    WindowTopbarButtonIcon = Color3.fromHex("#E5E7EB"),
-    WindowTopbarTitle = Color3.fromHex("#F9FAFB"),
-    WindowTopbarAuthor = Color3.fromHex("#9CA3AF"),
-    WindowTopbarIcon = Color3.fromHex("#E5E7EB"),
-
-    TabBackground = Color3.fromHex("#020617"),
-    TabTitle = Color3.fromHex("#F9FAFB"),
-    TabIcon = Color3.fromHex("#E5E7EB"),
-
-    ElementBackground = Color3.fromHex("#020617"),
-    ElementTitle = Color3.fromHex("#F9FAFB"),
-    ElementDesc = Color3.fromHex("#9CA3AF"),
-    ElementIcon = Color3.fromHex("#E5E7EB"),
-
-    PopupBackground = Color3.fromHex("#020617"),
-    PopupBackgroundTransparency = 0,
-    PopupTitle = Color3.fromHex("#F9FAFB"),
-    PopupContent = Color3.fromHex("#E5E7EB"),
-    PopupIcon = Color3.fromHex("#E5E7EB"),
-
-    Toggle = Color3.fromHex("#22D3EE"),
-    ToggleBar = Color3.fromHex("#FFFFFF"),
-
-    Checkbox = Color3.fromHex("#0F172A"),
-    CheckboxIcon = Color3.fromHex("#22D3EE"),
-
-    Slider = Color3.fromHex("#0F172A"),
-    SliderThumb = Color3.fromHex("#22D3EE"),
-})
-
-WindUI:SetTheme("KLS Midnight")
-
-WindUI:Gradient({
-    ["0"]   = { Color = Color3.fromHex("#020617"), Transparency = 0 },
-    ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
-}, {
-    Rotation = 90,
-})
-
-----------------------------------------------------------------
---                      JANELA PRINCIPAL
-----------------------------------------------------------------
-
+-- // Criar janela principal do hub (sem KeySystem, sem user badge)
 local Window = WindUI:CreateWindow({
     Title = "KLS HUB",
-    Icon = "lucide:radar",
+    Icon = "craft:macbook-stroke", -- ícone mais premium do pack do Footagesus[web:20]
     Author = "by Khalexis Team",
     Folder = "KLS_HUB",
-
-    Size = UDim2.fromOffset(600, 470),
+    Size = UDim2.fromOffset(580, 460),
     MinSize = Vector2.new(560, 350),
-    MaxSize = Vector2.new(860, 580),
-    Transparent = false,
-    Theme = "KLS Midnight",
+    MaxSize = Vector2.new(850, 560),
+    Transparent = true,
+    Theme = "KLS Dark",
     Resizable = true,
-    SideBarWidth = 210,
-    BackgroundImageTransparency = 0.45,
+    SideBarWidth = 200,
+    BackgroundImageTransparency = 0.42,
     HideSearchBar = false,
     ScrollBarEnabled = true,
-    HidePanelBackground = false,
 
+    -- Sem user card pra não aparecer letra no topo
     User = {
         Enabled = false,
         Anonymous = true,
     },
-})
 
-Window:SetToggleKey(Enum.KeyCode.G)
-Window:SetIconSize(26)
+    -- KeySystem completamente removido aqui
+}) --[web:11]
 
-Window:EditOpenButton({
-    Title = "Open KLS HUB",
-    Icon = "lucide:menu",
-    CornerRadius = UDim.new(0, 14),
-    StrokeThickness = 2,
-    Color = ColorSequence.new(
-        Color3.fromHex("6366F1"),
-        Color3.fromHex("22D3EE")
-    ),
-    OnlyMobile = false,
-    Enabled = true,
-    Draggable = true,
-})
+-- Opcional: tecla para abrir/fechar o hub
+Window:SetToggleKey(Enum.KeyCode.RightShift) --[web:11]
 
-Window:Tag({
-    Title = "v1.0.0",
-    Icon = "lucide:github",
-    Color = Color3.fromHex("#22C55E"),
-    Radius = 10,
-})
-
-----------------------------------------------------------------
---                      TABS PRINCIPAIS
-----------------------------------------------------------------
+---------------------------------------------------------------------
+--                              TABS
+---------------------------------------------------------------------
 
 local Tabs = {
-    Player   = Window:Tab({ Title = "Player",   Icon = "lucide:user" }),
+    Player   = Window:Tab({ Title = "Player",   Icon = "lucide:person-standing" }),
     Farm     = Window:Tab({ Title = "Farm",     Icon = "lucide:wheat" }),
-    Auto     = Window:Tab({ Title = "Auto",     Icon = "lucide:bot" }),
-    Teleport = Window:Tab({ Title = "Teleport", Icon = "lucide:map-pin" }),
-    Events   = Window:Tab({ Title = "Events",   Icon = "lucide:sparkles" }),
     Selling  = Window:Tab({ Title = "Selling",  Icon = "lucide:shopping-bag" }),
-    Configs  = Window:Tab({ Title = "Configs",  Icon = "lucide:settings-2" }),
-}
+    Settings = Window:Tab({ Title = "Settings", Icon = "lucide:settings" }),
+} --[web:11]
 
-Tabs.Player:Select()
-
-----------------------------------------------------------------
---                      PLAYER
-----------------------------------------------------------------
-
+---------------------------------------------------------------------
+--                          PLAYER TAB
+---------------------------------------------------------------------
 do
-    local SectionInfo = Tabs.Player:Section({
-        Title = "Player Utilities",
-        Opened = true,
-    })
-
-    SectionInfo:Paragraph({
-        Title = "Player controls",
-        Desc  = "Configure movement speed and jump power.",
-        Color = "Blue",
-        Icon  = "lucide:info",
-    })
-
-    -- WalkSpeed 16 - 1000
-    SectionInfo:Slider({
-        Title = "WalkSpeed",
-        Desc  = "Adjust player WalkSpeed (16 - 1000).",
-        Step  = 1,
-        Value = { Min = 16, Max = 1000, Default = 16 },
-        Callback = function(v)
-            local players = game:GetService("Players")
-            local lp = players.LocalPlayer
-            local char = lp and lp.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.WalkSpeed = v
-            end
-        end
-    })
-
-    -- JumpPower
-    SectionInfo:Slider({
-        Title = "Jump Power",
-        Desc  = "Adjust player JumpPower.",
-        Step  = 5,
-        Value = { Min = 25, Max = 500, Default = 50 },
-        Callback = function(v)
-            local players = game:GetService("Players")
-            local lp = players.LocalPlayer
-            local char = lp and lp.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                hum.JumpPower = v
-            end
-        end
-    })
+    -- Não adicionar nada ainda aqui, será preenchido depois
+    -- Exemplo de estrutura pronta:
+    -- local InfoSection = Tabs.Player:Section({ Title = "Player", Opened = true })
+    -- (vazio por enquanto)
 end
 
-----------------------------------------------------------------
---                      FARM (placeholder – aqui você pluga seu farm)
-----------------------------------------------------------------
-
+---------------------------------------------------------------------
+--                           FARM TAB
+---------------------------------------------------------------------
 do
-    local SectionInfo = Tabs.Farm:Section({
-        Title = "Farming System",
-        Opened = true,
-    })
-
-    SectionInfo:Paragraph({
-        Title = "Farming suite",
-        Desc  = "Auto farm paths, target selectors and smart loops will be configured here.",
-        Color = "Green",
-        Icon  = "lucide:leaf",
-    })
-
-    -- Exemplo de placeholder real (não deixa aba vazia)
-    SectionInfo:Toggle({
-        Title = "Enable Auto Farm",
-        Desc  = "Example toggle, plug your farm logic here.",
-        Icon  = "lucide:play-circle",
-        Value = false,
-        Callback = function(state)
-            print("[KLS HUB][FARM] Auto Farm:", state)
-        end
-    })
+    -- Estrutura reservada para futuro auto-farm
+    -- local FarmSection = Tabs.Farm:Section({ Title = "Farm", Opened = true })
+    -- (vazio por enquanto)
 end
 
-----------------------------------------------------------------
---                      AUTO (placeholder)
-----------------------------------------------------------------
-
+---------------------------------------------------------------------
+--                          SELLING TAB
+---------------------------------------------------------------------
 do
-    local SectionInfo = Tabs.Auto:Section({
-        Title = "Automation Core",
-        Opened = true,
-    })
-
-    SectionInfo:Paragraph({
-        Title = "Automation center",
-        Desc  = "Global auto systems like auto-rejoin, auto-buy and auto-upgrade will stay here.",
-        Color = "Orange",
-        Icon  = "lucide:cpu",
-    })
+    -- Estrutura reservada para sistema de selling
+    -- local SellingSection = Tabs.Selling:Section({ Title = "Selling", Opened = true })
+    -- (vazio por enquanto)
 end
 
-----------------------------------------------------------------
---                      TELEPORT (placeholder)
-----------------------------------------------------------------
-
+---------------------------------------------------------------------
+--                         SETTINGS TAB
+-- (aqui depois a gente pluga Themes / Config System / etc.)
+---------------------------------------------------------------------
 do
-    local SectionInfo = Tabs.Teleport:Section({
-        Title = "Teleport Hub",
+    local SettingsSection = Tabs.Settings:Section({
+        Title = "Interface",
         Opened = true,
-    })
+    }) --[web:11]
 
-    SectionInfo:Paragraph({
-        Title = "Teleport presets",
-        Desc  = "Map waypoints, safe spots and grind zones will be added in this section.",
-        Color = "Purple",
-        Icon  = "lucide:map",
-    })
-end
-
-----------------------------------------------------------------
---                      EVENTS (placeholder + Auto Avoid)
-----------------------------------------------------------------
-
-do
-    local SectionInfo = Tabs.Events:Section({
-        Title = "Events & Waves",
-        Opened = true,
-    })
-
-    SectionInfo:Paragraph({
-        Title = "Dynamic events",
-        Desc  = "Boss timers, wave handlers and special events automations will live here.",
-        Color = "Red",
-        Icon  = "lucide:alarm-clock",
-    })
-end
-
-----------------------------------------------------------------
---                      SELLING (placeholder)
-----------------------------------------------------------------
-
-do
-    local SectionInfo = Tabs.Selling:Section({
-        Title = "Selling & Economy",
-        Opened = true,
-    })
-
-    SectionInfo:Paragraph({
-        Title = "Smart selling",
-        Desc  = "Auto-sell filters, price rules and rarity protection will be configured here.",
-        Color = "Yellow",
-        Icon  = "lucide:coins",
-    })
-end
-
-----------------------------------------------------------------
---                      CONFIGS (TEMAS AQUI)
-----------------------------------------------------------------
-
-do
-    local GeneralSection = Tabs.Configs:Section({
-        Title = "General Settings",
-        Opened = true,
-    })
-
-    GeneralSection:Paragraph({
+    SettingsSection:Paragraph({
         Title = "KLS HUB",
-        Desc  = "Universal script hub crafted by Khalexis Team.",
-        Color = "White",
-        Icon  = "lucide:radar",
-    })
+        Desc  = "Base pronta, categorias criadas. Próximo passo: preencher Player, Farm e Selling.",
+        Color = "Blue",
+    }) --[cite:6]
 
-    local ThemesSection = Tabs.Configs:Section({
-        Title = "Theme Manager",
-        Opened = true,
-    })
-
-    local themeValues = {}
-    for name, _ in pairs(WindUI:GetThemes()) do
-        table.insert(themeValues, name)
-    end
-
-    local themeDropdown = ThemesSection:Dropdown({
-        Title = "Select Theme",
-        Values = themeValues,
-        Value = WindUI:GetCurrentTheme(),
-        Callback = function(theme)
-            WindUI:SetTheme(theme)
-            WindUI:Notify({
-                Title = "Theme applied",
-                Content = "Current theme: " .. tostring(theme),
-                Duration = 3,
-                Icon = "lucide:palette",
-            })
-        end
-    })
-
-    themeDropdown:Select(WindUI:GetCurrentTheme())
-
-    ThemesSection:Slider({
-        Title = "Background Transparency",
-        Desc  = "Adjust the hub transparency in real-time.",
-        Step  = 0.1,
-        Value = { Min = 0, Max = 1, Default = 0.2 },
-        Callback = function(value)
-            local v = tonumber(string.format("%.1f", value))
-            -- se sua versão do WindUI só aceitar bool, troque para Window:ToggleTransparency(v > 0)
-            Window:ToggleTransparency(v)
-        end
-    })
-
-    ThemesSection:Toggle({
-        Title = "Resizable Window",
-        Desc  = "Enable or disable window resizing.",
-        Icon  = "lucide:stretch-horizontal",
-        Value = true,
-        Callback = function(state)
-            if Window.IsResizable then
-                Window:IsResizable(state)
-            end
-        end
-    })
-
-    local KeybindSection = Tabs.Configs:Section({
-        Title = "Hotkeys",
-        Opened = true,
-    })
-
-    KeybindSection:Keybind({
-        Title = "Toggle Hub Key",
-        Desc  = "Press a key to set a new toggle key for KLS HUB.",
-        Value = "G",
-        Callback = function(key)
-            if Enum.KeyCode[key] then
-                Window:SetToggleKey(Enum.KeyCode[key])
-                WindUI:Notify({
-                    Title = "Keybind updated",
-                    Content = "New toggle key: " .. key,
-                    Duration = 3,
-                    Icon = "lucide:keyboard",
-                })
-            end
-        end
-    })
-
-    local AboutSection = Tabs.Configs:Section({
-        Title = "About & Info",
-        Opened = true,
-    })
-
-    AboutSection:Paragraph({
-        Title = "KLS HUB Identity",
-        Desc  = "Built for flexibility: plug your game-specific logic inside Player, Farm, Auto, Teleport, Events and Selling tabs.",
-        Color = "Grey",
-        Icon  = "lucide:info",
-    })
-
-    AboutSection:Button({
-        Title = "Copy Loadstring",
-        Icon  = "lucide:copy",
-        Callback = function()
-            if setclipboard then
-                setclipboard('loadstring(game:HttpGet("YOUR_RAW_KLS_HUB_URL_HERE"))()')
-                WindUI:Notify({
-                    Title = "Copied!",
-                    Content = "Loadstring copied to clipboard.",
-                    Duration = 3,
-                    Icon = "lucide:check-circle-2",
-                })
-            else
-                WindUI:Notify({
-                    Title = "Clipboard not available",
-                    Content = "Executor does not support setclipboard.",
-                    Duration = 4,
-                    Icon = "lucide:alert-triangle",
-                })
-            end
-        end
-    })
+    -- Exemplo de placeholder para Theme Manager (pode ser preenchido depois)
+    -- local ThemeDropdown = SettingsSection:Dropdown({ ... })
 end
 
-----------------------------------------------------------------
---                      EVENTOS DA JANELA
-----------------------------------------------------------------
-
-Window:OnOpen(function()
-    print("[KLS HUB] Window opened.")
-end)
-
-Window:OnClose(function()
-    print("[KLS HUB] Window closed.")
-end)
-
-Window:OnDestroy(function()
-    print("[KLS HUB] Window destroyed.")
-end)
-
-----------------------------------------------------------------
---                      ABRIR HUB DIRETO
-----------------------------------------------------------------
-
-Window:Open()
-
-----------------------------------------------------------------
---        SISTEMA DE AUTO AVOID (GAPS + WAVES)
-----------------------------------------------------------------
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local LocalPlayer = Players.LocalPlayer
-
-local AutoAvoid = {
-    Enabled = false,
-    GapOrder = {}, 
-}
-
-local FLOAT_HEIGHT_OFFSET = 2
-local SAFETY_MARGIN       = 0.35
-local RECHECK_INTERVAL    = 0.15
-local LERP_SPEED_FACTOR   = 1.0
-
-local function getCharacter()
-    local lp = LocalPlayer
-    if not lp then return nil, nil, nil end
-    local char = lp.Character
-    if not char then return nil, nil, nil end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hum or not hrp then
-        return nil, nil, nil
-    end
-    return char, hum, hrp
-end
-
-local function getWalkSpeed(hum)
-    if not hum then return 16 end
-    return hum.WalkSpeed
-end
-
-local function getGapCenter(partOrModel)
-    if not partOrModel then return nil end
-    if partOrModel:IsA("BasePart") then
-        return partOrModel.CFrame
-    end
-    if partOrModel:IsA("Model") then
-        local cf = partOrModel:GetBoundingBox()
-        return cf
-    end
-    return nil
-end
-
-local function getGapRadius(partOrModel)
-    if not partOrModel then return 6 end
-    if partOrModel:IsA("BasePart") then
-        return math.max(partOrModel.Size.X, partOrModel.Size.Z) * 0.5
-    end
-    if partOrModel:IsA("Model") then
-        local _, size = partOrModel:GetBoundingBox()
-        return math.max(size.X, size.Z) * 0.5
-    end
-    return 6
-end
-
-local AllGaps = {}
-
-local function registerGap(name, instance)
-    local center = getGapCenter(instance)
-    if not center then return end
-    table.insert(AllGaps, {
-        Name   = name,
-        Object = instance,
-        Center = center,
-        Radius = getGapRadius(instance),
-    })
-end
-
-do
-    local misc = workspace:FindFirstChild("Misc")
-    if misc and misc:FindFirstChild("Gaps") then
-        local g = misc.Gaps
-        for i = 1, 9 do
-            local gap = g:FindFirstChild("Gap"..i)
-            if gap then
-                registerGap("Misc_Gap"..i, gap)
-            end
-        end
-    end
-end
-
-do
-    local radio = workspace:FindFirstChild("RadioactiveMap")
-    if radio and radio:FindFirstChild("OG") then
-        local og = radio.OG
-        for i = 1, 9 do
-            local gap = og:FindFirstChild("Gap"..i)
-            if gap then
-                registerGap("OG_Gap"..i, gap)
-            end
-        end
-    end
-end
-
-function AutoAvoid:GetRegisteredGaps()
-    return AllGaps
-end
-
-function AutoAvoid:SetGapOrder(orderTable)
-    local newOrder = {}
-    for _, wantedName in ipairs(orderTable) do
-        for _, g in ipairs(AllGaps) do
-            if g.Name == wantedName then
-                table.insert(newOrder, g)
-                break
-            end
-        end
-    end
-    self.GapOrder = newOrder
-end
-
-local function getTimeUntilWaveImpact()
-    local lp = LocalPlayer
-    if not lp then return nil end
-    local gui = lp:FindFirstChild("PlayerGui")
-    if not gui then return nil end
-
-    local timeGui = gui:FindFirstChild("RadioactiveTimeLeft")
-    if timeGui and timeGui:FindFirstChild("TextLabel") then
-        local txt = timeGui.TextLabel.Text or ""
-        local number = txt:match("(%d+)")
-        if number then
-            return tonumber(number)
-        end
-    end
-    return 1
-end
-
-local function getActiveWaveHitboxes()
-    local result = {}
-    local active = workspace:FindFirstChild("ActiveTsunamis")
-    if not active then return result end
-
-    for _, wave in ipairs(active:GetChildren()) do
-        local hitbox = wave:FindFirstChild("Hitbox")
-        if hitbox and hitbox:IsA("BasePart") then
-            table.insert(result, hitbox)
-        end
-    end
-
-    return result
-end
-
-local function isPathBlockedByWave(startPos, endPos, travelTime)
-    local hitboxes = getActiveWaveHitboxes()
-    if #hitboxes == 0 then
-        return false
-    end
-
-    for _, hb in ipairs(hitboxes) do
-        local hbPos = hb.Position
-        local distStart = (hbPos - startPos).Magnitude
-        local distEnd   = (hbPos - endPos).Magnitude
-        local segLen    = (endPos - startPos).Magnitude
-
-        if distStart < segLen and distEnd < segLen then
-            if travelTime > 0.4 then
-                return true
-            end
-        end
-    end
-
-    return false
-end
-
-local function getCurrentGap(root)
-    if not root or #AutoAvoid.GapOrder == 0 then return nil, nil end
-    local pos = root.Position
-    local bestGap, bestIdx, bestDist = nil, nil, math.huge
-
-    for i, gap in ipairs(AutoAvoid.GapOrder) do
-        local center = getGapCenter(gap.Object) or gap.Center
-        if center then
-            local dist = (center.Position - pos).Magnitude
-            if dist < bestDist then
-                bestDist = dist
-                bestGap  = gap
-                bestIdx  = i
-            end
-        end
-    end
-
-    return bestGap, bestIdx
-end
-
-local function getNextGap(idx)
-    if not idx or #AutoAvoid.GapOrder == 0 then return nil end
-    if idx >= #AutoAvoid.GapOrder then
-        return nil
-    end
-    return AutoAvoid.GapOrder[idx + 1]
-end
-
-local movingConnection = nil
-
-local function stopCurrentMovement()
-    if movingConnection then
-        movingConnection:Disconnect()
-        movingConnection = nil
-    end
-end
-
-local function moveSmoothTo(root, targetCFrame, speed)
-    stopCurrentMovement()
-    if not root or not targetCFrame then return end
-
-    local startPos = root.Position
-    local targetPos = targetCFrame.Position + Vector3.new(0, FLOAT_HEIGHT_OFFSET, 0)
-    local totalDist = (targetPos - startPos).Magnitude
-    if totalDist < 0.1 then return end
-
-    local travelSpeed = math.max(speed, 1) * LERP_SPEED_FACTOR
-    local totalTime   = totalDist / travelSpeed
-    local elapsed     = 0
-
-    movingConnection = RunService.Heartbeat:Connect(function(dt)
-        if not AutoAvoid.Enabled or not root.Parent then
-            stopCurrentMovement()
-            return
-        end
-
-        elapsed += dt
-        local alpha = math.clamp(elapsed / totalTime, 0, 1)
-        local eased = math.sin(alpha * math.pi * 0.5)
-        local newPos = startPos:Lerp(targetPos, eased)
-        root.CFrame = CFrame.new(newPos, newPos + root.CFrame.LookVector)
-
-        if alpha >= 1 then
-            stopCurrentMovement()
-        end
-    end)
-end
-
-local function canSafelyReachGap(hum, root, currentGap, nextGap)
-    if not hum or not root or not currentGap or not nextGap then
-        return false
-    end
-
-    local currentCenter = getGapCenter(currentGap.Object) or currentGap.Center
-    local nextCenter    = getGapCenter(nextGap.Object) or nextGap.Center
-    if not currentCenter or not nextCenter then
-        return false
-    end
-
-    local startPos = root.Position
-    local endPos   = nextCenter.Position + Vector3.new(0, FLOAT_HEIGHT_OFFSET, 0)
-
-    local dist       = (endPos - startPos).Magnitude
-    local walkSpeed  = getWalkSpeed(hum)
-    if walkSpeed <= 0 then return false end
-
-    local travelTime = dist / (walkSpeed * LERP_SPEED_FACTOR)
-    local timeLeft   = getTimeUntilWaveImpact() or 1
-
-    if (travelTime + SAFETY_MARGIN) > timeLeft then
-        return false
-    end
-
-    if isPathBlockedByWave(startPos, endPos, travelTime) then
-        return false
-    end
-
-    return true
-end
-
-local mainLoopConnection = nil
-local lastCheck = 0
-
-local function mainLoop(dt)
-    if not AutoAvoid.Enabled then
-        return
-    end
-
-    lastCheck = lastCheck + dt
-    if lastCheck < RECHECK_INTERVAL then
-        return
-    end
-    lastCheck = 0
-
-    local char, hum, root = getCharacter()
-    if not char then
-        stopCurrentMovement()
-        return
-    end
-
-    local currentGap, idx = getCurrentGap(root)
-    if not currentGap then
-        stopCurrentMovement()
-        return
-    end
-
-    if not movingConnection then
-        local center = getGapCenter(currentGap.Object) or currentGap.Center
-        if center then
-            local targetPos = center.Position + Vector3.new(0, FLOAT_HEIGHT_OFFSET, 0)
-            local currentPos = root.Position
-            local delta = (targetPos - currentPos)
-            if delta.Magnitude > 0.3 then
-                root.CFrame = root.CFrame + delta * 0.15
-            end
-        end
-    end
-
-    local nextGap = getNextGap(idx)
-    if not nextGap then
-        return
-    end
-
-    local canReach = canSafelyReachGap(hum, root, currentGap, nextGap)
-    if canReach then
-        local centerNext = getGapCenter(nextGap.Object) or nextGap.Center
-        moveSmoothTo(root, centerNext, getWalkSpeed(hum))
-    end
-end
-
-function AutoAvoid:SetEnabled(state)
-    self.Enabled = state and true or false
-
-    if self.Enabled then
-        if not mainLoopConnection then
-            mainLoopConnection = RunService.Heartbeat:Connect(mainLoop)
-        end
-    else
-        stopCurrentMovement()
-        if mainLoopConnection then
-            mainLoopConnection:Disconnect()
-            mainLoopConnection = nil
-        end
-    end
-end
-
-----------------------------------------------------------------
---          UI DO AUTO AVOID DENTRO DA ABA EVENTS
-----------------------------------------------------------------
-
-do
-    local EventsAutoSection = Tabs.Events:Section({
-        Title = "Radioactive Auto Avoid",
-        Opened = true,
-    })
-
-    EventsAutoSection:Paragraph({
-        Title = "Safe gaps navigator",
-        Desc  = "Moves through configured gaps automatically, always prioritizing survival.",
-        Color = "Green",
-        Icon  = "lucide:shield",
-    })
-
-    local gapNames = {}
-    for _, g in ipairs(AutoAvoid:GetRegisteredGaps()) do
-        table.insert(gapNames, g.Name)
-    end
-
-    local selectedOrder = {}
-
-    local function rebuildOrderLabel()
-        if #selectedOrder == 0 then
-            return "None"
-        end
-        return table.concat(selectedOrder, " -> ")
-    end
-
-    EventsAutoSection:Dropdown({
-        Title = "Add Gap to Route",
-        Values = gapNames,
-        Value = nil,
-        Callback = function(gapName)
-            table.insert(selectedOrder, gapName)
-            AutoAvoid:SetGapOrder(selectedOrder)
-            WindUI:Notify({
-                Title = "Gap added",
-                Content = "Route: " .. rebuildOrderLabel(),
-                Duration = 3,
-                Icon = "lucide:route",
-            })
-        end
-    })
-
-    EventsAutoSection:Button({
-        Title = "Clear Gap Route",
-        Icon  = "lucide:eraser",
-        Callback = function()
-            selectedOrder = {}
-            AutoAvoid:SetGapOrder({})
-            WindUI:Notify({
-                Title = "Route cleared",
-                Content = "No gaps configured. Character will not move.",
-                Duration = 3,
-                Icon = "lucide:trash-2",
-            })
-        end
-    })
-
-    EventsAutoSection:Toggle({
-        Title = "Enable Radioactive Auto Avoid",
-        Desc  = "Automatically moves between safe gaps when a wave is active.",
-        Icon  = "lucide:radar",
-        Value = false,
-        Callback = function(state)
-            AutoAvoid:SetEnabled(state)
-            WindUI:Notify({
-                Title = state and "Auto Avoid ON" or "Auto Avoid OFF",
-                Content = state and "Survival priority: staying inside safe gaps." or "Auto movement disabled.",
-                Duration = 3,
-                Icon = state and "lucide:shield-check" or "lucide:shield-off",
-            })
-        end
-    })
-
-    EventsAutoSection:Slider({
-        Title = "Float Smoothness",
-        Desc  = "Higher = faster transitions between gaps.",
-        Step  = 0.1,
-        Value = { Min = 0.5, Max = 2, Default = 1.0 },
-        Callback = function(v)
-            LERP_SPEED_FACTOR = tonumber(string.format("%.1f", v))
-        end
-    })
-
-    EventsAutoSection:Slider({
-        Title = "Safety Margin (s)",
-        Desc  = "Extra time required before leaving current gap.",
-        Step  = 0.05,
-        Value = { Min = 0.1, Max = 1, Default = SAFETY_MARGIN },
-        Callback = function(v)
-            SAFETY_MARGIN = tonumber(string.format("%.2f", v))
-        end
-    })
-end
+---------------------------------------------------------------------
+--                    ABRIR JANELA DIRETO (SEM KEY)
+---------------------------------------------------------------------
+
+Window:Open() -- abre o hub imediatamente, sem popup de key[web:11]
+
+--[[
+    Estrutura pronta:
+    - Tabs: Player, Farm, Selling, Settings.
+    - Nada dentro de Player/Farm/Selling ainda.
+    - Settings só com uma section básica para expansão de temas/configs.
+
+    No próximo passo a gente começa a popular Player, Farm e Selling
+    com lógica real (movement, auto-farm, auto-sell, etc.).
+]]

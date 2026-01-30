@@ -207,18 +207,18 @@ do
     })
 
     SectionInfo:Paragraph({
-        Title = "Coming soon",
-        Desc  = "All player features will be here: movement, stats, visuals and more.",
+        Title = "Player controls",
+        Desc  = "Configure movement speed and jump power.",
         Color = "Blue",
         Icon  = "lucide:info",
     })
 
-    -- Exemplo prático
+    -- WalkSpeed 16 - 1000
     SectionInfo:Slider({
         Title = "WalkSpeed",
-        Desc  = "Adjust player WalkSpeed.",
+        Desc  = "Adjust player WalkSpeed (16 - 1000).",
         Step  = 1,
-        Value = { Min = 8, Max = 40, Default = 16 },
+        Value = { Min = 16, Max = 1000, Default = 16 },
         Callback = function(v)
             local players = game:GetService("Players")
             local lp = players.LocalPlayer
@@ -230,11 +230,12 @@ do
         end
     })
 
+    -- JumpPower
     SectionInfo:Slider({
-        Title = "JumpPower",
+        Title = "Jump Power",
         Desc  = "Adjust player JumpPower.",
         Step  = 5,
-        Value = { Min = 25, Max = 120, Default = 50 },
+        Value = { Min = 25, Max = 500, Default = 50 },
         Callback = function(v)
             local players = game:GetService("Players")
             local lp = players.LocalPlayer
@@ -248,69 +249,36 @@ do
 end
 
 ----------------------------------------------------------------
---                      FARM (com features)
+--                      FARM (placeholder – aqui você pluga seu farm)
 ----------------------------------------------------------------
 
-local FarmConfig = {
-    AutoFarm = false,
-    TargetMob = "Default",
-    Radius = 35,
-}
-
 do
-    local SectionMain = Tabs.Farm:Section({
+    local SectionInfo = Tabs.Farm:Section({
         Title = "Farming System",
         Opened = true,
     })
 
-    SectionMain:Paragraph({
+    SectionInfo:Paragraph({
         Title = "Farming suite",
         Desc  = "Auto farm paths, target selectors and smart loops will be configured here.",
         Color = "Green",
         Icon  = "lucide:leaf",
     })
 
-    SectionMain:Toggle({
+    -- Exemplo de placeholder real (não deixa aba vazia)
+    SectionInfo:Toggle({
         Title = "Enable Auto Farm",
-        Desc  = "Automatically moves to and farms selected targets.",
+        Desc  = "Example toggle, plug your farm logic here.",
         Icon  = "lucide:play-circle",
         Value = false,
         Callback = function(state)
-            FarmConfig.AutoFarm = state
-        end
-    })
-
-    SectionMain:Dropdown({
-        Title = "Farm Target",
-        Values = { "Default", "Nearest Mob", "Boss", "Chest" },
-        Value = "Default",
-        Callback = function(value)
-            FarmConfig.TargetMob = value
-        end
-    })
-
-    SectionMain:Slider({
-        Title = "Farm Radius",
-        Desc  = "Max distance to search farm targets.",
-        Step  = 5,
-        Value = { Min = 10, Max = 150, Default = FarmConfig.Radius },
-        Callback = function(v)
-            FarmConfig.Radius = v
-        end
-    })
-
-    SectionMain:Button({
-        Title = "Force Re-scan",
-        Desc  = "Force update of current farm target.",
-        Icon  = "lucide:refresh-ccw",
-        Callback = function()
-            print("[KLS HUB][FARM] Force rescan with radius:", FarmConfig.Radius, "target:", FarmConfig.TargetMob)
+            print("[KLS HUB][FARM] Auto Farm:", state)
         end
     })
 end
 
 ----------------------------------------------------------------
---                      AUTO
+--                      AUTO (placeholder)
 ----------------------------------------------------------------
 
 do
@@ -325,30 +293,10 @@ do
         Color = "Orange",
         Icon  = "lucide:cpu",
     })
-
-    SectionInfo:Toggle({
-        Title = "Auto Rejoin",
-        Desc  = "Rejoins the game when you get kicked or disconnected (executor dependent).",
-        Icon  = "lucide:rotate-ccw",
-        Value = false,
-        Callback = function(state)
-            print("[KLS HUB][AUTO] Auto Rejoin:", state)
-        end
-    })
-
-    SectionInfo:Toggle({
-        Title = "Auto Buy Upgrades",
-        Desc  = "Automatically buys upgrades when you have enough currency.",
-        Icon  = "lucide:shopping-cart",
-        Value = false,
-        Callback = function(state)
-            print("[KLS HUB][AUTO] Auto Buy:", state)
-        end
-    })
 end
 
 ----------------------------------------------------------------
---                      TELEPORT
+--                      TELEPORT (placeholder)
 ----------------------------------------------------------------
 
 do
@@ -363,20 +311,10 @@ do
         Color = "Purple",
         Icon  = "lucide:map",
     })
-
-    SectionInfo:Dropdown({
-        Title = "Teleport Preset",
-        Values = { "Spawn", "Safe Zone", "Boss Room" },
-        Value = "Spawn",
-        Callback = function(place)
-            print("[KLS HUB][TP] Teleport to:", place)
-            -- aqui você encaixa o TP real do seu jogo
-        end
-    })
 end
 
 ----------------------------------------------------------------
---                      EVENTS
+--                      EVENTS (placeholder + Auto Avoid)
 ----------------------------------------------------------------
 
 do
@@ -394,8 +332,8 @@ do
 end
 
 ----------------------------------------------------------------
---                      SELLING
----------------------------------------------------------------->
+--                      SELLING (placeholder)
+----------------------------------------------------------------
 
 do
     local SectionInfo = Tabs.Selling:Section({
@@ -408,16 +346,6 @@ do
         Desc  = "Auto-sell filters, price rules and rarity protection will be configured here.",
         Color = "Yellow",
         Icon  = "lucide:coins",
-    })
-
-    SectionInfo:Toggle({
-        Title = "Enable Auto-Sell",
-        Desc  = "Automatically sells trash items based on your filters.",
-        Icon  = "lucide:banknote",
-        Value = false,
-        Callback = function(state)
-            print("[KLS HUB][SELL] Auto-Sell:", state)
-        end
     })
 end
 
@@ -465,7 +393,6 @@ do
 
     themeDropdown:Select(WindUI:GetCurrentTheme())
 
-    -- Transparência da janela (usar o valor no callback, não só boolean)
     ThemesSection:Slider({
         Title = "Background Transparency",
         Desc  = "Adjust the hub transparency in real-time.",
@@ -473,7 +400,8 @@ do
         Value = { Min = 0, Max = 1, Default = 0.2 },
         Callback = function(value)
             local v = tonumber(string.format("%.1f", value))
-            Window:ToggleTransparency(v) -- WindUI aceita bool ou number conforme versão; se for só bool, use (v > 0)
+            -- se sua versão do WindUI só aceitar bool, troque para Window:ToggleTransparency(v > 0)
+            Window:ToggleTransparency(v)
         end
     })
 
@@ -580,7 +508,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local AutoAvoid = {
     Enabled = false,
-    GapOrder = {},
+    GapOrder = {}, 
 }
 
 local FLOAT_HEIGHT_OFFSET = 2
@@ -589,7 +517,9 @@ local RECHECK_INTERVAL    = 0.15
 local LERP_SPEED_FACTOR   = 1.0
 
 local function getCharacter()
-    local char = LocalPlayer and LocalPlayer.Character
+    local lp = LocalPlayer
+    if not lp then return nil, nil, nil end
+    local char = lp.Character
     if not char then return nil, nil, nil end
     local hum = char:FindFirstChildOfClass("Humanoid")
     local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -685,7 +615,9 @@ function AutoAvoid:SetGapOrder(orderTable)
 end
 
 local function getTimeUntilWaveImpact()
-    local gui = LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui")
+    local lp = LocalPlayer
+    if not lp then return nil end
+    local gui = lp:FindFirstChild("PlayerGui")
     if not gui then return nil end
 
     local timeGui = gui:FindFirstChild("RadioactiveTimeLeft")

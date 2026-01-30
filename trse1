@@ -20,7 +20,6 @@ local function shouldKillScript(scr)
 end
 
 task.spawn(function()
-    -- PlayerScripts (PlayerModule, controladores de movimento, upgrades, etc.)
     local ps = LocalPlayer:WaitForChild("PlayerScripts", 10)
     if ps then
         for _, scr in ipairs(ps:GetDescendants()) do
@@ -30,7 +29,6 @@ task.spawn(function()
         end
     end
 
-    -- Scripts clonados para o Character
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     for _, scr in ipairs(char:GetDescendants()) do
         if shouldKillScript(scr) then
@@ -38,7 +36,6 @@ task.spawn(function()
         end
     end
 
-    -- HUDs/lojas que tenham lógica de speed/upgrades
     local pg = LocalPlayer:FindFirstChild("PlayerGui")
     if pg then
         for _, scr in ipairs(pg:GetDescendants()) do
@@ -50,9 +47,8 @@ task.spawn(function()
 end)
 
 --[[========================================================
-    HUB / CONTROLE PLAYER (SPEED 22 BASE, FLY, NOCLIP)
+    HUB / CONTROLE PLAYER
 ==========================================================]]
-
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 WindUI:SetNotificationLower(true)
 WindUI:SetFont("rbxassetid://0")
@@ -81,7 +77,7 @@ WindUI:Localization({
     }
 })
 
--- Tema base (Nebula)
+-- Tema base
 WindUI:AddTheme({
     Name = "Nebula",
     Accent = Color3.fromHex("#18181b"),
@@ -131,19 +127,18 @@ WindUI:Gradient({
 
 WindUI:SetTheme("Nebula")
 
--- Dados do usuário para card (nome + avatar)
+-- Card do usuário
 local displayName = LocalPlayer.DisplayName or LocalPlayer.Name
 local username = "@" .. (LocalPlayer.Name or "Player")
 
-local success, thumb = pcall(function()
+local okThumb, thumb = pcall(function()
     return Players:GetUserThumbnailAsync(
         LocalPlayer.UserId,
         Enum.ThumbnailType.HeadShot,
         Enum.ThumbnailSize.Size100x100
     )
 end)
-
-local avatarImage = success and thumb or "rbxassetid://0"
+local avatarImage = okThumb and thumb or "rbxassetid://0"
 
 local Window = WindUI:CreateWindow({
     Title      = "loc:HUB_TITLE",
@@ -233,7 +228,7 @@ local function getHumanoidRootPart()
 end
 
 local PlayerFlags = {
-    SpeedValue     = 22, -- speed base do jogo
+    SpeedValue     = 22,
     JumpEnabled    = false,
     JumpValue      = 50,
     NoClipEnabled  = false,
@@ -245,16 +240,36 @@ local PlayerFlags = {
 local DEFAULT_WALKSPEED = 22
 local DEFAULT_JUMPPOWER = 50
 
--- SPEED: controlada só pelo nosso slider, depois de matar scripts de speed
+-- Pega referência do HUD de speed
+local function getSpeedLabel()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return end
+    local hud = pg:FindFirstChild("HUD")
+    if not hud then return end
+    local bottomLeft = hud:FindFirstChild("BottomLeft")
+    if not bottomLeft then return end
+    local playerSpeed = bottomLeft:FindFirstChild("PlayerSpeed")
+    if not playerSpeed then return end
+    return playerSpeed:FindFirstChild("Speed")
+end
+
+local function updateHudSpeed(val)
+    local lbl = getSpeedLabel()
+    if lbl and lbl:IsA("TextLabel") then
+        lbl.Text = tostring(val)
+    end
+end
+
+-- SPEED: slider controla WalkSpeed e HUD
 local function forceSpeed()
     local hum = getHumanoid()
     if not hum then return end
-    hum.WalkSpeed = math.clamp(PlayerFlags.SpeedValue, 1, 1000)
+    local target = math.clamp(PlayerFlags.SpeedValue, 1, 25000) -- respeita cap teórico
+    hum.WalkSpeed = target
+    updateHudSpeed(target)
 end
 
-RunService.Heartbeat:Connect(function()
-    forceSpeed()
-end)
+RunService.Heartbeat:Connect(forceSpeed)
 
 -- JUMP
 local function applyJump(rawValue)
@@ -385,9 +400,9 @@ end)
 ----------------------------------------------------
 PlayerSection:Slider({
     Title = "Speed",
-    Desc  = "Velocidade do player (aplicada direto).",
+    Desc  = "Velocidade do player (atualiza HUD).",
     Step  = 1,
-    Value = { Min = 1, Max = 1000, Default = 22 },
+    Value = { Min = 1, Max = 5000, Default = 22 },
     Callback = function(value)
         PlayerFlags.SpeedValue = value
         forceSpeed()
@@ -513,7 +528,6 @@ local ThemesSection = Tabs.Settings:Section({
     Opened = true,
 })
 
--- Temas extras (Dark / Light)
 WindUI:AddTheme({
     Name = "Dark",
     Accent = Color3.fromHex("#18181b"),

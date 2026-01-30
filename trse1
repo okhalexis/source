@@ -17,7 +17,7 @@ local function GetCharacter()
 end
 
 -- Carregar WindUI (última versão)
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))() -- [web:4]
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 WindUI:SetNotificationLower(true)
 
@@ -26,7 +26,7 @@ WindUI:SetNotificationLower(true)
 -- Tema principal: Rose
 WindUI:AddTheme({
     Name = "Rose",
-    Accent = Color3.fromHex("#ff2056"),                 -- rose forte [web:11][web:13]
+    Accent = Color3.fromHex("#ff2056"),
     Background = Color3.fromHex("#0b0210"),
     BackgroundTransparency = 0,
     Outline = Color3.fromHex("#4b0218"),
@@ -187,7 +187,7 @@ local AnimeBackgrounds = {
     ["AnimeGirlBlue"] = "rbxassetid://665326906309",
     ["AnimePastel"]   = "rbxassetid://1096405055049",
     ["AnimeBoyDark"]  = "rbxassetid://256579271238",
-} -- IDs coerentes com assets de anime de fundo.[web:6]
+}
 
 WindUI:AddTheme({
     Name = "AnimeBlue",
@@ -261,6 +261,12 @@ local SettingsTab = Window:Tab({
     Icon = "lucide:settings",
 })
 
+-- NOVA TAB: AUTO
+local AutoTab = Window:Tab({
+    Title = "Auto",
+    Icon = "lucide:zap",
+})
+
 -- ══════════════════════════════════════════════════════
 -- PLAYER: Movement (Speed / JumpPower / Double Speed / Fly)
 -- ══════════════════════════════════════════════════════
@@ -295,8 +301,8 @@ local function ApplyMovementStats()
     end
     CurrentWalkSpeed = ws
 
-    hum.WalkSpeed = ws              -- default 16, aqui 16–1000.[web:22]
-    hum.JumpPower = CurrentJumpPower -- JumpPower funciona bem com o rig padrão do StarterPlayer.[web:25][file:19]
+    hum.WalkSpeed = ws
+    hum.JumpPower = CurrentJumpPower
 end
 
 -- Slider: WalkSpeed 16–1000
@@ -435,7 +441,7 @@ local function DisableFly()
     end
 end
 
--- Atualiza o fly a cada frame (usa direção da câmera + MoveVector) [web:3][web:6]
+-- Atualiza o fly a cada frame
 RunService.RenderStepped:Connect(function()
     if not FlyEnabled then
         return
@@ -473,7 +479,7 @@ RunService.RenderStepped:Connect(function()
     BG.CFrame = camCF
 end)
 
--- Tecla F para ligar/desligar Fly (sem toggle na UI)
+-- Tecla F para ligar/desligar Fly
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then
         return
@@ -580,6 +586,138 @@ ThemeSection:Button({
             Content = "Current theme: " .. tostring(t),
             Duration = 3,
             Icon = "lucide:palette",
+        })
+    end,
+})
+
+-- ══════════════════════════════════════════════════════
+-- AUTO TAB: INSTANT STEAL + WALKSPEED FIX
+-- ══════════════════════════════════════════════════════
+
+local AutoSection = AutoTab:Section({
+    Title = "Brainrot Auto",
+    Box = true,
+    Opened = true,
+    FontWeight = "SemiBold",
+})
+
+AutoSection:Paragraph({
+    Title = "Instant Steal",
+    Desc = "Clique uma vez no E para pegar brainrots (sem segurar).",
+})
+
+local INST_STEAL_ENABLED = false
+
+-- patch dos ProximityPrompt TakePrompt
+local function PatchPrompt(prompt : ProximityPrompt)
+    if not prompt or prompt.Name ~= "TakePrompt" then
+        return
+    end
+    prompt.HoldDuration = 0
+    prompt.RequiresLineOfSight = false
+    prompt.MaxActivationDistance = 20
+end
+
+local function ScanBrainrots()
+    local root = workspace:FindFirstChild("ActiveBrainrots")
+    if not root then
+        return
+    end
+    for _, v in ipairs(root:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and v.Name == "TakePrompt" then
+            PatchPrompt(v)
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if not INST_STEAL_ENABLED then
+        return
+    end
+    ScanBrainrots()
+end)
+
+workspace.DescendantAdded:Connect(function(obj)
+    if not INST_STEAL_ENABLED then
+        return
+    end
+    if obj:IsA("ProximityPrompt") and obj.Name == "TakePrompt" then
+        PatchPrompt(obj)
+    end
+end)
+
+AutoSection:Toggle({
+    Title = "Instant Steal Brainrots",
+    Desc = "Transforma o prompt de pegar brainrot em instantâneo.",
+    Default = false,
+    Callback = function(state)
+        INST_STEAL_ENABLED = state
+        if state then
+            ScanBrainrots()
+            WindUI:Notify({
+                Title = "Instant Steal",
+                Content = "Instant Steal ativado.",
+                Duration = 2,
+                Icon = "lucide:zap",
+            })
+        else
+            WindUI:Notify({
+                Title = "Instant Steal",
+                Content = "Instant Steal desativado.",
+                Duration = 2,
+                Icon = "lucide:zap",
+            })
+        end
+    end,
+})
+
+-- WalkSpeed “desbugado” também acessível na aba Auto
+local AutoWalkSection = AutoTab:Section({
+    Title = "WalkSpeed Fix",
+    Box = true,
+    Opened = true,
+    FontWeight = "SemiBold",
+})
+
+local DefaultHumanoidWS = 16
+
+do
+    local _, hum = GetCharacter()
+    if hum then
+        DefaultHumanoidWS = hum.WalkSpeed
+    end
+end
+
+AutoWalkSection:Slider({
+    Title = "WalkSpeed (Auto)",
+    Desc = "Ajuste rápido de velocidade",
+    Value = {
+        Min = 8,
+        Max = 75,
+        Default = DefaultHumanoidWS,
+    },
+    Step = 1,
+    Callback = function(v)
+        local _, hum = GetCharacter()
+        if hum then
+            hum.WalkSpeed = v
+        end
+    end,
+})
+
+AutoWalkSection:Button({
+    Title = "Reset WalkSpeed",
+    Icon = "lucide:refresh-cw",
+    Callback = function()
+        local _, hum = GetCharacter()
+        if hum then
+            hum.WalkSpeed = DefaultHumanoidWS
+        end
+        WindUI:Notify({
+            Title = "WalkSpeed",
+            Content = "WalkSpeed resetado para " .. tostring(DefaultHumanoidWS),
+            Duration = 2,
+            Icon = "lucide:refresh-cw",
         })
     end,
 })

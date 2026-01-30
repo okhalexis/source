@@ -13,7 +13,59 @@ WindUI:SetNotificationLower(true) --[web:11]
 -- Fonte custom (troque o id se quiser)
 WindUI:SetFont("rbxassetid://12187371879") --[cite:4]
 
--- // Tema personalizado de exemplo (pode editar depois)
+-- // Tema RED (principal)
+WindUI:AddTheme({
+    Name = "Red",
+    Accent = Color3.fromHex("#FF3333"),
+    Background = Color3.fromHex("#101010"),
+    BackgroundTransparency = 0,
+    Outline = Color3.fromHex("#FFFFFF"),
+    Text = Color3.fromHex("#FFFFFF"),
+    Placeholder = Color3.fromHex("#aaaaaa"),
+    Button = Color3.fromHex("#802020"),
+    Icon = Color3.fromHex("#ffaaaa"),
+
+    Hover = Color3.fromHex("#FF5555"),
+    WindowBackground = Color3.fromHex("#101010"),
+    WindowShadow = Color3.fromHex("#000000"),
+
+    DialogBackground = Color3.fromHex("#101010"),
+    DialogBackgroundTransparency = 0,
+    DialogTitle = Color3.fromHex("#FFFFFF"),
+    DialogContent = Color3.fromHex("#FFFFFF"),
+    DialogIcon = Color3.fromHex("#ffaaaa"),
+
+    WindowTopbarButtonIcon = Color3.fromHex("#ffaaaa"),
+    WindowTopbarTitle = Color3.fromHex("#FFFFFF"),
+    WindowTopbarAuthor = Color3.fromHex("#FFFFFF"),
+    WindowTopbarIcon = Color3.fromHex("#FFFFFF"),
+
+    TabBackground = Color3.fromHex("#101010"),
+    TabTitle = Color3.fromHex("#FFFFFF"),
+    TabIcon = Color3.fromHex("#ffaaaa"),
+
+    ElementBackground = Color3.fromHex("#1a0c0c"),
+    ElementTitle = Color3.fromHex("#FFFFFF"),
+    ElementDesc = Color3.fromHex("#FFCCCC"),
+    ElementIcon = Color3.fromHex("#ffaaaa"),
+
+    PopupBackground = Color3.fromHex("#101010"),
+    PopupBackgroundTransparency = 0,
+    PopupTitle = Color3.fromHex("#FFFFFF"),
+    PopupContent = Color3.fromHex("#FFFFFF"),
+    PopupIcon = Color3.fromHex("#ffaaaa"),
+
+    Toggle = Color3.fromHex("#802020"),
+    ToggleBar = Color3.fromHex("#FFFFFF"),
+
+    Checkbox = Color3.fromHex("#802020"),
+    CheckboxIcon = Color3.fromHex("#FFFFFF"),
+
+    Slider = Color3.fromHex("#802020"),
+    SliderThumb = Color3.fromHex("#FFFFFF"),
+}) --[web:43]
+
+-- (Mantém o KLS Dark como tema alternativo, se quiser)
 WindUI:AddTheme({
     Name = "KLS Dark",
     Accent = Color3.fromHex("#18181b"),
@@ -65,33 +117,30 @@ WindUI:AddTheme({
     SliderThumb = Color3.fromHex("#FFFFFF"),
 }) --[web:11]
 
--- Definir tema inicial
-WindUI:SetTheme("KLS Dark") --[web:11]
+-- Definir tema inicial como RED
+WindUI:SetTheme("Red") --[web:41]
 
 -- // Criar janela principal do hub (sem KeySystem, sem user badge)
 local Window = WindUI:CreateWindow({
     Title = "KLS HUB",
-    Icon = "craft:macbook-stroke", -- ícone premium do pack de ícones do Footagesus[web:20]
+    Icon = "craft:macbook-stroke",
     Author = "by Khalexis Team",
     Folder = "KLS_HUB",
     Size = UDim2.fromOffset(580, 460),
     MinSize = Vector2.new(560, 350),
     MaxSize = Vector2.new(850, 560),
-    Transparent = true,
-    Theme = "KLS Dark",
+    Transparent = false, -- começa sem transparência[web:34]
+    Theme = "Red",       -- garante que a window já nasce no tema Red[web:41]
     Resizable = true,
     SideBarWidth = 200,
     BackgroundImageTransparency = 0.42,
     HideSearchBar = false,
     ScrollBarEnabled = true,
 
-    -- Sem user card pra não aparecer letra no topo
     User = {
         Enabled = false,
         Anonymous = true,
     },
-
-    -- KeySystem completamente removido
 }) --[web:34]
 
 -- Tecla para abrir/fechar o hub
@@ -106,30 +155,27 @@ local Tabs = {
     Farm     = Window:Tab({ Title = "Farm",     Icon = "lucide:wheat" }),
     Selling  = Window:Tab({ Title = "Selling",  Icon = "lucide:shopping-bag" }),
     Settings = Window:Tab({ Title = "Settings", Icon = "lucide:settings" }),
-} --[web:11]
+} --[web:17]
 
 ---------------------------------------------------------------------
 --                          PLAYER TAB
 ---------------------------------------------------------------------
 do
-    -- Placeholder, vazio por enquanto
-    -- local InfoSection = Tabs.Player:Section({ Title = "Player", Opened = true })
+    -- Placeholder
 end
 
 ---------------------------------------------------------------------
 --                           FARM TAB
 ---------------------------------------------------------------------
 do
-    -- Placeholder, vazio por enquanto
-    -- local FarmSection = Tabs.Farm:Section({ Title = "Farm", Opened = true })
+    -- Placeholder
 end
 
 ---------------------------------------------------------------------
 --                          SELLING TAB
 ---------------------------------------------------------------------
 do
-    -- Placeholder, vazio por enquanto
-    -- local SellingSection = Tabs.Selling:Section({ Title = "Selling", Opened = true })
+    -- Placeholder
 end
 
 ---------------------------------------------------------------------
@@ -140,13 +186,13 @@ do
         Title = "Appearance & Themes",
         Icon = "lucide:palette",
         Opened = true,
-    }) --[web:11]
+    }) --[web:17]
 
     SettingsSection:Paragraph({
         Title = "Theme Manager",
         Desc  = "Selecione o tema visual do KLS HUB.",
         Color = "Blue",
-    }) --[web:29]
+    }) --[web:17]
 
     -- Coletar todos os temas registrados na WindUI
     local themeValues = {}
@@ -154,16 +200,17 @@ do
         table.insert(themeValues, name)
     end --[web:11]
 
-    -- Garantir que haja ao menos um tema (ex: KLS Dark)
     if #themeValues == 0 then
-        table.insert(themeValues, "KLS Dark")
+        table.insert(themeValues, "Red")
     end
 
-    -- Dropdown para seleção de tema
+    local currentTheme = WindUI:GetCurrentTheme() -- deve ser "Red" na primeira execução[web:17]
+
+    -- Dropdown de temas
     local ThemeDropdown = SettingsSection:Dropdown({
         Title = "Select Theme",
         Desc  = "Muda o tema global da interface.",
-        Value = WindUI:GetCurrentTheme(), -- tema atual como default[web:11]
+        Value = currentTheme,
         Values = themeValues,
         SearchBarEnabled = false,
         Multi = false,
@@ -186,34 +233,24 @@ do
                 })
             end
         end,
-    }) --[web:11][web:29]
+    }) --[web:17]
 
-    -- Selecionar explicitamente o tema atual no dropdown
-    ThemeDropdown:Select(WindUI:GetCurrentTheme()) --[web:11]
+    ThemeDropdown:Select(currentTheme) -- vai marcar "Red" logo de início[web:17]
 
-    -- Slider de transparência da janela (usando ToggleTransparency bool)
+    -- Transparência da janela: começa DESATIVADA
     local TransparencyToggle = SettingsSection:Toggle({
         Title = "Window Transparency",
         Desc  = "Ativa/desativa a transparência da janela do hub.",
         Icon = "lucide:app-window",
-        Value = WindUI:GetTransparency(), -- já pega o estado atual[web:29]
+        Value = false, -- inicia desligado
         Callback = function(state)
             Window:ToggleTransparency(state)
         end,
-    }) --[web:29]
-
-    -- (Se quiser depois a gente troca esse Toggle por Slider + lógica custom)
+    }) --[web:34]
 end
 
 ---------------------------------------------------------------------
 --                    ABRIR JANELA DIRETO (SEM KEY)
 ---------------------------------------------------------------------
 
-Window:Open() -- abre o hub imediatamente, sem popup de key[web:34]
-
---[[
-    Status atual:
-    - Tabs criadas: Player, Farm, Selling, Settings.
-    - Player/Farm/Selling ainda vazias, prontas pra receber lógica.
-    - Settings com Theme Manager completo (dropdown com todos os temas + toggle de transparência).
-]]
+Window:Open() --[web:34]

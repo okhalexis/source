@@ -11,7 +11,11 @@ local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/rel
 WindUI:SetNotificationLower(true) -- notificações embaixo [web:18]
 WindUI:SetFont("rbxassetid://12187371879") -- fonte clean (pode trocar o id)
 
--- // Tema principal do KLS HUB
+----------------------------------------------------------------
+--                      TEMAS REGISTRADOS
+----------------------------------------------------------------
+
+-- Tema principal do KLS HUB
 WindUI:AddTheme({
     Name = "KLS Midnight",
     Accent = Color3.fromHex("#3B82F6"),
@@ -117,6 +121,9 @@ WindUI:AddTheme({
     SliderThumb = Color3.fromHex("#22D3EE"),
 })
 
+-- Pode aproveitar também temas nativos da lib (Dark/Light etc.) [web:18]
+WindUI:SetTheme("KLS Midnight")
+
 -- Gradiente de fundo suave
 WindUI:Gradient({
     ["0"]   = { Color = Color3.fromHex("#020617"), Transparency = 0 },
@@ -125,11 +132,11 @@ WindUI:Gradient({
     Rotation = 90,
 })
 
--- Define tema inicial
-WindUI:SetTheme("KLS Midnight")
+----------------------------------------------------------------
+--                      JANELA PRINCIPAL
+----------------------------------------------------------------
 
--- // Criar janela principal do hub [web:24]
-local Window = WindUI:CreateWindow({
+local Window = WindUI:CreateWindow({ -- [web:18]
     Title = "KLS HUB",
     Icon = "lucide:radar",
     Author = "by Khalexis Team",
@@ -147,20 +154,15 @@ local Window = WindUI:CreateWindow({
     ScrollBarEnabled = true,
     HidePanelBackground = false,
 
-    -- Sem User / KeySystem por enquanto
     User = {
         Enabled = false,
         Anonymous = true,
     },
 })
 
--- Key para abrir/fechar (G)
 Window:SetToggleKey(Enum.KeyCode.G)
-
--- Ícone da janela um pouco maior
 Window:SetIconSize(26)
 
--- Botão flutuante para abrir
 Window:EditOpenButton({
     Title = "Open KLS HUB",
     Icon = "lucide:menu",
@@ -175,7 +177,6 @@ Window:EditOpenButton({
     Draggable = true,
 })
 
--- Tag de versão
 Window:Tag({
     Title = "v1.0.0",
     Icon = "lucide:github",
@@ -188,7 +189,7 @@ Window:Tag({
 ----------------------------------------------------------------
 
 local Tabs = {
-    Player   = Window:Tab({ Title = "Player",   Icon = "lucide:user" }),
+    Player   = Window:Tab({ Title = "Player",   Icon = "lucide:user" }),        -- [web:18]
     Farm     = Window:Tab({ Title = "Farm",     Icon = "lucide:wheat" }),
     Auto     = Window:Tab({ Title = "Auto",     Icon = "lucide:bot" }),
     Teleport = Window:Tab({ Title = "Teleport", Icon = "lucide:map-pin" }),
@@ -197,11 +198,10 @@ local Tabs = {
     Configs  = Window:Tab({ Title = "Configs",  Icon = "lucide:settings-2" }),
 }
 
--- Seleciona a aba inicial
 Tabs.Player:Select()
 
 ----------------------------------------------------------------
---                      PLAYER TAB (vazio por enquanto)
+--                      PLAYER (placeholder)
 ----------------------------------------------------------------
 
 do
@@ -219,7 +219,7 @@ do
 end
 
 ----------------------------------------------------------------
---                      FARM TAB (vazio por enquanto)
+--                      FARM (placeholder)
 ----------------------------------------------------------------
 
 do
@@ -237,7 +237,7 @@ do
 end
 
 ----------------------------------------------------------------
---                      AUTO TAB (vazio por enquanto)
+--                      AUTO (placeholder)
 ----------------------------------------------------------------
 
 do
@@ -255,7 +255,7 @@ do
 end
 
 ----------------------------------------------------------------
---                      TELEPORT TAB (vazio por enquanto)
+--                      TELEPORT (placeholder)
 ----------------------------------------------------------------
 
 do
@@ -273,7 +273,7 @@ do
 end
 
 ----------------------------------------------------------------
---                      EVENTS TAB (vazio por enquanto)
+--                      EVENTS (placeholder)
 ----------------------------------------------------------------
 
 do
@@ -291,7 +291,7 @@ do
 end
 
 ----------------------------------------------------------------
---                      SELLING TAB (vazio por enquanto)
+--                      SELLING (placeholder)
 ----------------------------------------------------------------
 
 do
@@ -309,7 +309,7 @@ do
 end
 
 ----------------------------------------------------------------
---                      CONFIGS TAB (com conteúdo)
+--                      CONFIGS (TEMAS AQUI)
 ----------------------------------------------------------------
 
 do
@@ -325,27 +325,40 @@ do
         Icon  = "lucide:radar",
     })
 
-    -- Seletor de tema
+    ----------------------------------------------------------------
+    --          THEME MANAGER (tudo centralizado aqui)
+    ----------------------------------------------------------------
+
     local ThemesSection = Tabs.Configs:Section({
         Title = "Theme Manager",
         Opened = true,
     })
 
-    ThemesSection:Dropdown({
+    -- Monta lista de temas disponíveis dinamicamente [web:18][web:21]
+    local themeValues = {}
+    for name, _ in pairs(WindUI:GetThemes()) do
+        table.insert(themeValues, name)
+    end
+
+    local themeDropdown = ThemesSection:Dropdown({
         Title = "Select Theme",
-        Values = { "KLS Midnight", "KLS Frost", "Dark", "Light" },
-        Callback = function(themeName)
-            WindUI:SetTheme(themeName)
+        Values = themeValues,
+        Value = WindUI:GetCurrentTheme(),
+        Callback = function(theme)
+            WindUI:SetTheme(theme)
             WindUI:Notify({
                 Title = "Theme applied",
-                Content = "Current theme: " .. themeName,
+                Content = "Current theme: " .. tostring(theme),
                 Duration = 3,
                 Icon = "lucide:palette",
             })
         end
     })
 
-    -- Transparência da janela [web:18]
+    -- Garante que o dropdown comece no tema atual [web:21]
+    themeDropdown:Select(WindUI:GetCurrentTheme())
+
+    -- Transparência da janela
     ThemesSection:Slider({
         Title = "Background Transparency",
         Desc  = "Adjust the hub transparency in real-time.",
@@ -368,7 +381,10 @@ do
         end
     })
 
-    -- Keybind custom para abrir o hub
+    ----------------------------------------------------------------
+    --          HOTKEYS / KEYBIND
+    ----------------------------------------------------------------
+
     local KeybindSection = Tabs.Configs:Section({
         Title = "Hotkeys",
         Opened = true,
@@ -391,7 +407,10 @@ do
         end
     })
 
-    -- Info / créditos
+    ----------------------------------------------------------------
+    --          ABOUT / LOADSTRING
+    ----------------------------------------------------------------
+
     local AboutSection = Tabs.Configs:Section({
         Title = "About & Info",
         Opened = true,

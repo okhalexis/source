@@ -1,723 +1,697 @@
--- ║                 BASE HUB - WINDUI STRUCTURE                  ║
--- ╚══════════════════════════════════════════════════════════════╝
-
--- Services básicos
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-
-local LocalPlayer = Players.LocalPlayer
-
--- Função util pra pegar Character / Humanoid / HRP
-local function GetCharacter()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    return char, hum, hrp
-end
-
--- Carregar WindUI (última versão)
+--// Loader WindUI (sempre latest)
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
+--// Ajustes básicos da Lib
 WindUI:SetNotificationLower(true)
+WindUI:SetFont("rbxassetid://0") -- trocamos depois por um asset real
 
--- ▓▓ Temas customizados
+--// Localization opcional (já deixo pronto pra escalonar multi-idioma)
+WindUI:Localization({
+    Enabled = true,
+    Prefix = "loc:",
+    DefaultLanguage = "en",
+    Translations = {
+        ["pt"] = {
+            ["HUB_TITLE"]   = "Meu Super Hub",
+            ["HUB_AUTHOR"]  = "by You",
+            ["TAB_PLAYER"]  = "Player",
+            ["TAB_FARM"]    = "Farm",
+            ["TAB_SELLING"] = "Selling",
+            ["TAB_SETTINGS"]= "Settings",
+        },
+        ["en"] = {
+            ["HUB_TITLE"]   = "My Super Hub",
+            ["HUB_AUTHOR"]  = "by You",
+            ["TAB_PLAYER"]  = "Player",
+            ["TAB_FARM"]    = "Farm",
+            ["TAB_SELLING"] = "Selling",
+            ["TAB_SETTINGS"]= "Settings",
+        },
+    }
+})
+-- Exemplo de forçar idioma:
+-- WindUI:SetLanguage("pt")
 
--- Tema principal: Rose
+--// Tema base + Gradiente (tudo centralizado pra Settings controlar depois)
 WindUI:AddTheme({
-    Name = "Rose",
-    Accent = Color3.fromHex("#ff2056"),
-    Background = Color3.fromHex("#0b0210"),
+    Name = "Nebula",
+    Accent = Color3.fromHex("#18181b"),
+    Background = Color3.fromHex("#050509"),
     BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#4b0218"),
-    Text = Color3.fromHex("#ffe4e6"),
-    Placeholder = Color3.fromHex("#f9a8d4"),
-    Button = Color3.fromHex("#111827"),
-    Icon = Color3.fromHex("#fecdd3"),
+    Outline = Color3.fromHex("#FFFFFF"),
+    Text = Color3.fromHex("#FFFFFF"),
+    Placeholder = Color3.fromHex("#7a7a7a"),
+    Button = Color3.fromHex("#2b2b35"),
+    Icon = Color3.fromHex("#a1a1aa"),
 
-    Hover = Color3.fromHex("#ffffff"),
-
-    WindowBackground = Color3.fromHex("#02010a"),
+    Hover = Color3.fromHex("#FFFFFF"),
+    WindowBackground = Color3.fromHex("#050509"),
     WindowShadow = Color3.fromHex("#000000"),
 
-    DialogBackground = Color3.fromHex("#02010a"),
-    DialogBackgroundTransparency = 0.05,
-    DialogTitle = Color3.fromHex("#ffe4e6"),
-    DialogContent = Color3.fromHex("#fecdd3"),
-    DialogIcon = Color3.fromHex("#ff2056"),
+    DialogBackground = Color3.fromHex("#050509"),
+    DialogBackgroundTransparency = 0,
+    DialogTitle = Color3.fromHex("#FFFFFF"),
+    DialogContent = Color3.fromHex("#FFFFFF"),
+    DialogIcon = Color3.fromHex("#a1a1aa"),
 
-    WindowTopbarButtonIcon = Color3.fromHex("#fecdd3"),
-    WindowTopbarTitle = Color3.fromHex("#ffe4e6"),
-    WindowTopbarAuthor = Color3.fromHex("#fecdd3"),
-    WindowTopbarIcon = Color3.fromHex("#ff2056"),
+    WindowTopbarButtonIcon = Color3.fromHex("a1a1aa"),
+    WindowTopbarTitle = Color3.fromHex("FFFFFF"),
+    WindowTopbarAuthor = Color3.fromHex("FFFFFF"),
+    WindowTopbarIcon = Color3.fromHex("FFFFFF"),
 
-    TabBackground = Color3.fromHex("#111827"),
-    TabTitle = Color3.fromHex("#ffe4e6"),
-    TabIcon = Color3.fromHex("#fecdd3"),
+    TabBackground = Color3.fromHex("#101019"),
+    TabTitle = Color3.fromHex("#FFFFFF"),
+    TabIcon = Color3.fromHex("a1a1aa"),
 
-    ElementBackground = Color3.fromHex("#111827"),
-    ElementTitle = Color3.fromHex("#ffe4e6"),
-    ElementDesc = Color3.fromHex("#fecdd3"),
-    ElementIcon = Color3.fromHex("#fecdd3"),
+    ElementBackground = Color3.fromHex("#101019"),
+    ElementTitle = Color3.fromHex("#FFFFFF"),
+    ElementDesc = Color3.fromHex("#b0b0b0"),
+    ElementIcon = Color3.fromHex("a1a1aa"),
 
-    PopupBackground = Color3.fromHex("#02010a"),
-    PopupBackgroundTransparency = 0.05,
-    PopupTitle = Color3.fromHex("#ffe4e6"),
-    PopupContent = Color3.fromHex("#fecdd3"),
-    PopupIcon = Color3.fromHex("#ff2056"),
+    PopupBackground = Color3.fromHex("#050509"),
+    PopupBackgroundTransparency = 0,
+    PopupTitle = Color3.fromHex("#FFFFFF"),
+    PopupContent = Color3.fromHex("#FFFFFF"),
+    PopupIcon = Color3.fromHex("a1a1aa"),
 
-    Toggle = Color3.fromHex("#111827"),
-    ToggleBar = Color3.fromHex("#ff2056"),
+    Toggle = Color3.fromHex("#52525b"),
+    ToggleBar = Color3.fromHex("#FFFFFF"),
 
-    Checkbox = Color3.fromHex("#111827"),
-    CheckboxIcon = Color3.fromHex("#ff2056"),
+    Checkbox = Color3.fromHex("#52525b"),
+    CheckboxIcon = Color3.fromHex("#FFFFFF"),
 
-    Slider = Color3.fromHex("#111827"),
-    SliderThumb = Color3.fromHex("#ff2056"),
+    Slider = Color3.fromHex("#52525b"),
+    SliderThumb = Color3.fromHex("#FFFFFF"),
 })
 
--- Tema EliteDark
-WindUI:AddTheme({
-    Name = "EliteDark",
-    Accent = Color3.fromHex("#6366f1"),
-    Background = Color3.fromHex("#020617"),
-    BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#4b5563"),
-    Text = Color3.fromHex("#e5e7eb"),
-    Placeholder = Color3.fromHex("#6b7280"),
-    Button = Color3.fromHex("#1e1e2e"),
-    Icon = Color3.fromHex("#818cf8"),
-
-    Hover = Color3.fromHex("#ffffff"),
-
-    WindowBackground = Color3.fromHex("#0a0a0f"),
-    WindowShadow = Color3.fromHex("#000000"),
-
-    DialogBackground = Color3.fromHex("#0a0a0f"),
-    DialogBackgroundTransparency = 0.05,
-    DialogTitle = Color3.fromHex("#e5e7eb"),
-    DialogContent = Color3.fromHex("#d1d5db"),
-    DialogIcon = Color3.fromHex("#818cf8"),
-
-    WindowTopbarButtonIcon = Color3.fromHex("#818cf8"),
-    WindowTopbarTitle = Color3.fromHex("#ffffff"),
-    WindowTopbarAuthor = Color3.fromHex("#9ca3af"),
-    WindowTopbarIcon = Color3.fromHex("#6366f1"),
-
-    TabBackground = Color3.fromHex("#1e1e2e"),
-    TabTitle = Color3.fromHex("#e5e7eb"),
-    TabIcon = Color3.fromHex("#818cf8"),
-
-    ElementBackground = Color3.fromHex("#1e1e2e"),
-    ElementTitle = Color3.fromHex("#e5e7eb"),
-    ElementDesc = Color3.fromHex("#9ca3af"),
-    ElementIcon = Color3.fromHex("#818cf8"),
-
-    PopupBackground = Color3.fromHex("#0a0a0f"),
-    PopupBackgroundTransparency = 0.05,
-    PopupTitle = Color3.fromHex("#e5e7eb"),
-    PopupContent = Color3.fromHex("#d1d5db"),
-    PopupIcon = Color3.fromHex("#818cf8"),
-
-    Toggle = Color3.fromHex("#1e1e2e"),
-    ToggleBar = Color3.fromHex("#6366f1"),
-
-    Checkbox = Color3.fromHex("#1e1e2e"),
-    CheckboxIcon = Color3.fromHex("#6366f1"),
-
-    Slider = Color3.fromHex("#1e1e2e"),
-    SliderThumb = Color3.fromHex("#6366f1"),
+WindUI:Gradient({
+    ["0"]   = { Color = Color3.fromHex("#0f172a"), Transparency = 0 },
+    ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
+}, {
+    Rotation = 45,
 })
 
--- Tema CrimsonNight
-WindUI:AddTheme({
-    Name = "CrimsonNight",
-    Accent = Color3.fromHex("#f97373"),
-    Background = Color3.fromHex("#020617"),
-    BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#4b5563"),
-    Text = Color3.fromHex("#f9fafb"),
-    Placeholder = Color3.fromHex("#6b7280"),
-    Button = Color3.fromHex("#111827"),
-    Icon = Color3.fromHex("#fecaca"),
+WindUI:SetTheme("Nebula")
 
-    Hover = Color3.fromHex("#ffffff"),
-
-    WindowBackground = Color3.fromHex("#09030a"),
-    WindowShadow = Color3.fromHex("#000000"),
-
-    DialogBackground = Color3.fromHex("#09030a"),
-    DialogBackgroundTransparency = 0.05,
-    DialogTitle = Color3.fromHex("#f9fafb"),
-    DialogContent = Color3.fromHex("#e5e7eb"),
-    DialogIcon = Color3.fromHex("#fecaca"),
-
-    WindowTopbarButtonIcon = Color3.fromHex("#fecaca"),
-    WindowTopbarTitle = Color3.fromHex("#f9fafb"),
-    WindowTopbarAuthor = Color3.fromHex("#e5e7eb"),
-    WindowTopbarIcon = Color3.fromHex("#f97373"),
-
-    TabBackground = Color3.fromHex("#111827"),
-    TabTitle = Color3.fromHex("#f9fafb"),
-    TabIcon = Color3.fromHex("#fecaca"),
-
-    ElementBackground = Color3.fromHex("#111827"),
-    ElementTitle = Color3.fromHex("#f9fafb"),
-    ElementDesc = Color3.fromHex("#e5e7eb"),
-    ElementIcon = Color3.fromHex("#fecaca"),
-
-    PopupBackground = Color3.fromHex("#09030a"),
-    PopupBackgroundTransparency = 0.05,
-    PopupTitle = Color3.fromHex("#f9fafb"),
-    PopupContent = Color3.fromHex("#e5e7eb"),
-    PopupIcon = Color3.fromHex("#fecaca"),
-
-    Toggle = Color3.fromHex("#111827"),
-    ToggleBar = Color3.fromHex("#f97373"),
-
-    Checkbox = Color3.fromHex("#111827"),
-    CheckboxIcon = Color3.fromHex("#f97373"),
-
-    Slider = Color3.fromHex("#111827"),
-    SliderThumb = Color3.fromHex("#f97373"),
-})
-
--- Temas com background de anime
-local AnimeBackgrounds = {
-    ["AnimeGirlBlue"] = "rbxassetid://665326906309",
-    ["AnimePastel"]   = "rbxassetid://1096405055049",
-    ["AnimeBoyDark"]  = "rbxassetid://256579271238",
-}
-
-WindUI:AddTheme({
-    Name = "AnimeBlue",
-    Accent = Color3.fromHex("#60a5fa"),
-    Background = Color3.fromHex("#020617"),
-    BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#38bdf8"),
-    Text = Color3.fromHex("#e5e7eb"),
-    Placeholder = Color3.fromHex("#64748b"),
-    Button = Color3.fromHex("#020617"),
-    Icon = Color3.fromHex("#93c5fd"),
-})
-
-WindUI:AddTheme({
-    Name = "AnimePastel",
-    Accent = Color3.fromHex("#f9a8d4"),
-    Background = Color3.fromHex("#0f172a"),
-    BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#fb7185"),
-    Text = Color3.fromHex("#fde68a"),
-    Placeholder = Color3.fromHex("#f9a8d4"),
-    Button = Color3.fromHex("#1e293b"),
-    Icon = Color3.fromHex("#fda4af"),
-})
-
-WindUI:AddTheme({
-    Name = "AnimeDarkBoy",
-    Accent = Color3.fromHex("#a855f7"),
-    Background = Color3.fromHex("#020617"),
-    BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#7e22ce"),
-    Text = Color3.fromHex("#e5e7eb"),
-    Placeholder = Color3.fromHex("#6b7280"),
-    Button = Color3.fromHex("#020617"),
-    Icon = Color3.fromHex("#a855f7"),
-})
-
--- Define Rose como tema principal
-WindUI:SetTheme("Rose")
-
--- ▓▓ Janela principal
+--// Window Principal
 local Window = WindUI:CreateWindow({
-    Title = "My Super Hub",
-    Icon = "lucide:crown",
-    Size = UDim2.fromOffset(620, 450),
-    Center = true,
-    Animate = true,
-    Theme = "Rose",
+    Title      = "loc:HUB_TITLE",
+    Icon       = "door-open",
+    Author     = "loc:HUB_AUTHOR",
+    Folder     = "MySuperHub",
+    Size       = UDim2.fromOffset(580, 460),
+    MinSize    = Vector2.new(560, 350),
+    MaxSize    = Vector2.new(850, 560),
+    Transparent= true,
+    Theme      = "Nebula",
+    Resizable  = true,
+    SideBarWidth = 200,
+    BackgroundImageTransparency = 0.35,
+    HideSearchBar = false,
+    ScrollBarEnabled = true,
+
+    User = {
+        Enabled = true,
+        Anonymous = true,
+        Callback = function()
+            WindUI:Notify({
+                Title = "Perfil",
+                Content = "User card clicado.",
+                Duration = 3,
+                Icon = "user",
+            })
+        end,
+    },
+
+    -- KeySystem comentado, pronto pra ativar se quiser monetizar:
+    -- KeySystem = {
+    --     Key = { "1234", "5678" },
+    --     Note = "Example Key System.",
+    --     URL = "https://seu-link-de-key-aqui",
+    --     SaveKey = true,
+    -- },
 })
 
 Window:SetToggleKey(Enum.KeyCode.RightShift)
+Window:SetBackgroundImageTransparency(0.4)
+Window:ToggleTransparency(false)
+Window:SetIconSize(22)
 
--- ▓▓ Tabs
-local PlayerTab = Window:Tab({
-    Title = "Player",
-    Icon = "lucide:user",
+Window:EditOpenButton({
+    Title = "Open Hub",
+    Icon = "monitor",
+    CornerRadius = UDim.new(0,16),
+    StrokeThickness = 2,
+    Color = ColorSequence.new(
+        Color3.fromHex("FF0F7B"),
+        Color3.fromHex("F89B29")
+    ),
+    OnlyMobile = false,
+    Enabled = true,
+    Draggable = true,
 })
 
-local SellingTab = Window:Tab({
-    Title = "Selling",
-    Icon = "lucide:dollar-sign",
-})
+--// Tabs principais
+local Tabs = {
+    Player   = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
+    Farm     = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }),
+    Selling  = Window:Tab({ Title = "loc:TAB_SELLING",  Icon = "shopping-bag" }),
+    Settings = Window:Tab({ Title = "loc:TAB_SETTINGS", Icon = "settings" }),
+}
 
-local EventsTab = Window:Tab({
-    Title = "Events",
-    Icon = "lucide:calendar",
-})
+Window:SelectTab(1)
 
-local SettingsTab = Window:Tab({
-    Title = "Settings",
-    Icon = "lucide:settings",
-})
-
--- NOVA TAB: AUTO
-local AutoTab = Window:Tab({
-    Title = "Auto",
-    Icon = "lucide:zap",
-})
-
--- ══════════════════════════════════════════════════════
--- PLAYER: Movement (Speed / JumpPower / Double Speed / Fly)
--- ══════════════════════════════════════════════════════
-
-local MovementSection = PlayerTab:Section({
-    Title = "Movement",
+----------------------------------------------------
+-- PLAYER TAB
+----------------------------------------------------
+local PlayerSection = Tabs.Player:Section({
+    Title = "Player Core",
     Box = true,
     Opened = true,
-    FontWeight = "SemiBold",
 })
 
-MovementSection:Paragraph({
-    Title = "Movement Settings",
-    Desc = "Ajuste de WalkSpeed, JumpPower, Double Speed e Fly (F).",
-})
+-- Estados globais do Player
+local PlayerFlags = {
+    WalkspeedEnabled = false,
+    JumpEnabled      = false,
+    NoclipEnabled    = false,
+    WalkspeedValue   = 16,
+    JumpValue        = 50,
+}
 
--- Estado atual de movimento
-local BaseWalkSpeed = 16
-local CurrentWalkSpeed = 16
-local CurrentJumpPower = 50
-local DoubleSpeedEnabled = false
-
-local function ApplyMovementStats()
-    local _, hum = GetCharacter()
-    if not hum then
-        return
-    end
-
-    local ws = BaseWalkSpeed
-    if DoubleSpeedEnabled then
-        ws = math.clamp(BaseWalkSpeed * 2, 16, 1000)
-    end
-    CurrentWalkSpeed = ws
-
-    hum.WalkSpeed = ws
-    hum.JumpPower = CurrentJumpPower
+local function getCharacter()
+    local plr = game:GetService("Players").LocalPlayer
+    if not plr then return end
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    return char
 end
 
--- Slider: WalkSpeed 16–1000
-MovementSection:Slider({
-    Title = "Walk Speed",
-    Desc = "Velocidade (16-1000)",
-    Value = {
-        Min = 16,
-        Max = 1000,
-        Default = 16,
-    },
-    Step = 1,
-    Callback = function(v)
-        BaseWalkSpeed = math.clamp(v, 16, 1000)
-        ApplyMovementStats()
-    end,
-})
+local function applyWalkspeed(value)
+    local char = getCharacter()
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    hum.WalkSpeed = value
+end
 
--- Slider: JumpPower 0–300
-MovementSection:Slider({
-    Title = "Jump Power",
-    Desc = "Força do pulo (0-300)",
-    Value = {
-        Min = 0,
-        Max = 300,
-        Default = 50,
-    },
-    Step = 1,
-    Callback = function(v)
-        CurrentJumpPower = v
-        ApplyMovementStats()
-    end,
-})
+local function applyJump(value)
+    local char = getCharacter()
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    hum.JumpPower = value
+end
 
--- Toggle: Double Speed
-MovementSection:Toggle({
-    Title = "Double Speed",
-    Desc = "Dobra o WalkSpeed configurado",
-    Default = false,
+-- Walkspeed
+local WalkspeedToggle = PlayerSection:Toggle({
+    Title = "Custom Walkspeed",
+    Desc  = "Ativa/desativa controle de velocidade.",
+    Icon  = "gauge",
+    Type  = "Toggle",
+    Value = false,
     Callback = function(state)
-        DoubleSpeedEnabled = state
-        ApplyMovementStats()
-    end,
-})
-
--- Reaplicar stats ao respawn
-LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
-    ApplyMovementStats()
-end)
-
-if LocalPlayer.Character then
-    task.spawn(function()
-        task.wait(1)
-        ApplyMovementStats()
-    end)
-end
-
--- ══════════════════════════════════════════════════════
--- Fly (sem toggle na UI, somente tecla F)
--- ══════════════════════════════════════════════════════
-
-local FlyEnabled = false
-local BV
-local BG
-local FlySpeed = 75
-local MoveVector = Vector3.zero
-
--- Input de movimento para o fly (WASD + Space + CTRL)
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then
-        return
-    end
-    if input.KeyCode == Enum.KeyCode.W then
-        MoveVector = Vector3.new(MoveVector.X, MoveVector.Y, -1)
-    elseif input.KeyCode == Enum.KeyCode.S then
-        MoveVector = Vector3.new(MoveVector.X, MoveVector.Y, 1)
-    elseif input.KeyCode == Enum.KeyCode.A then
-        MoveVector = Vector3.new(-1, MoveVector.Y, MoveVector.Z)
-    elseif input.KeyCode == Enum.KeyCode.D then
-        MoveVector = Vector3.new(1, MoveVector.Y, MoveVector.Z)
-    elseif input.KeyCode == Enum.KeyCode.Space then
-        MoveVector = Vector3.new(MoveVector.X, 1, MoveVector.Z)
-    elseif input.KeyCode == Enum.KeyCode.LeftControl then
-        MoveVector = Vector3.new(MoveVector.X, -1, MoveVector.Z)
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input, gp)
-    if gp then
-        return
-    end
-    if input.KeyCode == Enum.KeyCode.W or input.KeyCode == Enum.KeyCode.S then
-        MoveVector = Vector3.new(MoveVector.X, MoveVector.Y, 0)
-    elseif input.KeyCode == Enum.KeyCode.A or input.KeyCode == Enum.KeyCode.D then
-        MoveVector = Vector3.new(0, MoveVector.Y, MoveVector.Z)
-    elseif input.KeyCode == Enum.KeyCode.Space or input.KeyCode == Enum.KeyCode.LeftControl then
-        MoveVector = Vector3.new(MoveVector.X, 0, MoveVector.Z)
-    end
-end)
-
-local function EnableFly()
-    local char, hum, hrp = GetCharacter()
-    if not hum or not hrp then
-        return
-    end
-
-    FlyEnabled = true
-    hum.PlatformStand = true
-
-    BV = Instance.new("BodyVelocity")
-    BV.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    BV.Velocity = Vector3.zero
-    BV.Parent = hrp
-
-    BG = Instance.new("BodyGyro")
-    BG.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    BG.CFrame = hrp.CFrame
-    BG.P = 1e4
-    BG.Parent = hrp
-end
-
-local function DisableFly()
-    local _, hum = GetCharacter()
-    FlyEnabled = false
-    if hum then
-        hum.PlatformStand = false
-    end
-    if BV then
-        BV:Destroy()
-        BV = nil
-    end
-    if BG then
-        BG:Destroy()
-        BG = nil
-    end
-end
-
--- Atualiza o fly a cada frame
-RunService.RenderStepped:Connect(function()
-    if not FlyEnabled then
-        return
-    end
-
-    local _, hum, hrp = GetCharacter()
-    if not hum or not hrp or not BV or not BG then
-        DisableFly()
-        return
-    end
-
-    local cam = workspace.CurrentCamera
-    if not cam then
-        return
-    end
-
-    local camCF = cam.CFrame
-    local move = Vector3.new(0, 0, 0)
-
-    if MoveVector.Z ~= 0 then
-        move = move + (-camCF.LookVector * MoveVector.Z)
-    end
-    if MoveVector.X ~= 0 then
-        move = move + (camCF.RightVector * MoveVector.X)
-    end
-    if MoveVector.Y ~= 0 then
-        move = move + Vector3.new(0, MoveVector.Y, 0)
-    end
-
-    if move.Magnitude > 0 then
-        move = move.Unit * FlySpeed
-    end
-
-    BV.Velocity = move
-    BG.CFrame = camCF
-end)
-
--- Tecla F para ligar/desligar Fly
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then
-        return
-    end
-    if input.KeyCode == Enum.KeyCode.F then
-        if FlyEnabled then
-            DisableFly()
-            WindUI:Notify({
-                Title = "Fly",
-                Content = "Fly desativado (F).",
-                Duration = 2,
-                Icon = "lucide:move-vertical",
-            })
+        PlayerFlags.WalkspeedEnabled = state
+        if state then
+            applyWalkspeed(PlayerFlags.WalkspeedValue)
         else
-            EnableFly()
-            WindUI:Notify({
-                Title = "Fly",
-                Content = "Fly ativado (WASD/Space/CTRL) - F para desligar.",
-                Duration = 3,
-                Icon = "lucide:move-vertical",
-            })
+            applyWalkspeed(16)
         end
     end
-end)
+})
 
--- ══════════════════════════════════════════════════════
--- SETTINGS: Themes + Background anime
--- ══════════════════════════════════════════════════════
+local WalkspeedSlider = PlayerSection:Slider({
+    Title = "Walkspeed",
+    Desc  = "Velocidade do player.",
+    Step  = 1,
+    Value = {
+        Min = 16,
+        Max = 200,
+        Default = 50,
+    },
+    Callback = function(value)
+        PlayerFlags.WalkspeedValue = value
+        if PlayerFlags.WalkspeedEnabled then
+            applyWalkspeed(value)
+        end
+    end
+})
 
-local ThemeSection = SettingsTab:Section({
+-- JumpPower
+local JumpToggle = PlayerSection:Toggle({
+    Title = "Custom Jump",
+    Desc  = "Ativa/desativa controle de pulo.",
+    Icon  = "arrow-up",
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.JumpEnabled = state
+        if state then
+            applyJump(PlayerFlags.JumpValue)
+        else
+            applyJump(50)
+        end
+    end
+})
+
+local JumpSlider = PlayerSection:Slider({
+    Title = "JumpPower",
+    Desc  = "Altura do pulo.",
+    Step  = 1,
+    Value = {
+        Min = 50,
+        Max = 300,
+        Default = 80,
+    },
+    Callback = function(value)
+        PlayerFlags.JumpValue = value
+        if PlayerFlags.JumpEnabled then
+            applyJump(value)
+        end
+    end
+})
+
+-- Noclip (estrutura pronta, implementação do loop vem depois quando soubermos do jogo)
+local NoclipToggle = PlayerSection:Toggle({
+    Title = "Noclip (Framework)",
+    Desc  = "Estrutura pronta para noclip, linkar com loop do jogo.",
+    Icon  = "ghost",
+    Type  = "Checkbox",
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.NoclipEnabled = state
+        -- aqui depois vamos plugar o RunService.Stepped, etc.
+    end
+})
+
+----------------------------------------------------
+-- FARM TAB
+----------------------------------------------------
+local FarmSection = Tabs.Farm:Section({
+    Title = "Farm Engine",
+    Box = true,
+    Opened = true,
+})
+
+local FarmFlags = {
+    AutoFarmEnabled = false,
+    AutoCollect     = false,
+    FarmMode        = "Legit",
+    FarmRadius      = 50,
+}
+
+local FarmModeDropdown = FarmSection:Dropdown({
+    Title = "Farm Mode",
+    Desc  = "Legit, Semi-Legit, Rage.",
+    Values = { "Legit", "Semi-Legit", "Rage" },
+    Value  = "Legit",
+    Callback = function(value)
+        FarmFlags.FarmMode = value
+    end
+})
+
+local FarmRadiusSlider = FarmSection:Slider({
+    Title = "Farm Radius",
+    Desc  = "Raio de atuação do farm.",
+    Step  = 1,
+    Value = {
+        Min = 10,
+        Max = 250,
+        Default = 75,
+    },
+    Callback = function(v)
+        FarmFlags.FarmRadius = v
+    end
+})
+
+local AutoFarmToggle = FarmSection:Toggle({
+    Title = "Auto Farm",
+    Desc  = "Liga/desliga o sistema principal de farm.",
+    Icon  = "factory",
+    Value = false,
+    Callback = function(state)
+        FarmFlags.AutoFarmEnabled = state
+        -- futuro: loop baseado no jogo atual
+    end
+})
+
+local AutoCollectToggle = FarmSection:Toggle({
+    Title = "Auto Collect Drops",
+    Desc  = "Coleta automática de itens/moedas.",
+    Icon  = "coins",
+    Type  = "Checkbox",
+    Value = false,
+    Callback = function(state)
+        FarmFlags.AutoCollect = state
+    end
+})
+
+FarmSection:Button({
+    Title = "Debug: Print Farm Flags",
+    Color = Color3.fromHex("#a2ff30"),
+    Justify = "Center",
+    Callback = function()
+        print("[FARM FLAGS]", FarmFlags.AutoFarmEnabled, FarmFlags.AutoCollect, FarmFlags.FarmMode, FarmFlags.FarmRadius)
+    end
+})
+
+----------------------------------------------------
+-- SELLING TAB
+----------------------------------------------------
+local SellingSection = Tabs.Selling:Section({
+    Title = "Selling System",
+    Box = true,
+    Opened = true,
+})
+
+local SellingFlags = {
+    AutoSellEnabled = false,
+    SellWhenFull    = true,
+    SellThreshold   = 90,
+    SellMethod      = "Default",
+}
+
+local SellMethodDropdown = SellingSection:Dropdown({
+    Title = "Sell Method",
+    Desc  = "Selecione o método de venda (por jogo).",
+    Values = { "Default", "NPC", "GUI_Button", "RemoteEvent" },
+    Value  = "Default",
+    Callback = function(v)
+        SellingFlags.SellMethod = v
+    end
+})
+
+local AutoSellToggle = SellingSection:Toggle({
+    Title = "Auto Sell",
+    Desc  = "Ativa venda automática.",
+    Icon  = "shopping-bag",
+    Value = false,
+    Callback = function(state)
+        SellingFlags.AutoSellEnabled = state
+    end
+})
+
+local SellWhenFullToggle = SellingSection:Toggle({
+    Title = "Sell When Bag Full",
+    Desc  = "Vende quando inventário estiver cheio.",
+    Type  = "Checkbox",
+    Value = true,
+    Callback = function(state)
+        SellingFlags.SellWhenFull = state
+    end
+})
+
+local SellThresholdSlider = SellingSection:Slider({
+    Title = "Sell Threshold (%)",
+    Desc  = "Quando atingir X% da capacidade, vende.",
+    Step  = 1,
+    Value = {
+        Min = 10,
+        Max = 100,
+        Default = 90,
+    },
+    Callback = function(v)
+        SellingFlags.SellThreshold = v
+    end
+})
+
+SellingSection:Button({
+    Title = "Debug: Print Selling Flags",
+    Callback = function()
+        print("[SELL FLAGS]", SellingFlags.AutoSellEnabled, SellingFlags.SellWhenFull, SellingFlags.SellThreshold, SellingFlags.SellMethod)
+    end
+})
+
+----------------------------------------------------
+-- SETTINGS TAB (TEMAS + WINDOW + CONFIG)
+----------------------------------------------------
+local SettingsWindowSection = Tabs.Settings:Section({
+    Title = "Window",
+    Box = true,
+    Opened = true,
+})
+
+-- Transparência da janela
+local ToggleTransparency = SettingsWindowSection:Toggle({
+    Title = "Window Transparency",
+    Desc  = "Liga/desliga transparência global.",
+    Value = WindUI:GetTransparency(),
+    Callback = function(e)
+        Window:ToggleTransparency(e)
+    end
+})
+
+-- Keybind para abrir fechar UI
+local KeybindElement = SettingsWindowSection:Keybind({
+    Title = "Toggle UI Key",
+    Desc  = "Tecla para mostrar/ocultar a UI.",
+    Value = "RightShift",
+    Callback = function(v)
+        Window:SetToggleKey(Enum.KeyCode[v])
+    end
+})
+
+SettingsWindowSection:Button({
+    Title = "Center Window",
+    Callback = function()
+        Window:Toggle() -- fecha
+        task.wait(0.05)
+        Window:Toggle() -- reabre (WindUI já centraliza bem)
+    end
+})
+
+-- Fundo da janela
+local BackgroundSection = Tabs.Settings:Section({
+    Title = "Background",
+    Box = true,
+    Opened = false,
+})
+
+BackgroundSection:Input({
+    Title = "Background AssetId/Video",
+    Desc  = "rbxassetid://id ou video:link.webm",
+    Placeholder = "rbxassetid://id-here",
+    Callback = function(str)
+        if str ~= "" then
+            Window:SetBackgroundImage(str)
+        end
+    end
+})
+
+BackgroundSection:Slider({
+    Title = "Background Transparency",
+    Desc  = "Transparência do fundo.",
+    Step  = 0.05,
+    Value = {
+        Min = 0,
+        Max = 1,
+        Default = 0.4,
+    },
+    Callback = function(v)
+        Window:SetBackgroundImageTransparency(v)
+    end
+})
+
+----------------------------------------------------
+-- SETTINGS: THEMES
+----------------------------------------------------
+local ThemesSection = Tabs.Settings:Section({
     Title = "Themes",
     Box = true,
     Opened = true,
 })
 
-local CurrentBackgroundKey = nil
-
-local ThemeDropdown = ThemeSection:Dropdown({
-    Title = "Select Theme",
-    Desc = "Choose your favorite UI style",
-    Values = {
-        "Rose",
-        "EliteDark",
-        "CrimsonNight",
-        "AnimeBlue",
-        "AnimePastel",
-        "AnimeDarkBoy",
-        "Dark",
-        "Light",
-    },
-    Multi = false,
-    Default = "Rose",
-    Callback = function(value)
-        WindUI:SetTheme(value)
-    end,
+-- Pré-definição de alguns temas (facilita troca na UI)
+WindUI:AddTheme({
+    Name = "Dark",
+    Accent = Color3.fromHex("#18181b"),
+    Background = Color3.fromHex("#101010"),
+    BackgroundTransparency = 0,
+    Outline = Color3.fromHex("#FFFFFF"),
+    Text = Color3.fromHex("#FFFFFF"),
+    Placeholder = Color3.fromHex("#7a7a7a"),
+    Button = Color3.fromHex("#52525b"),
+    Icon = Color3.fromHex("#a1a1aa"),
+    Hover = Color3.fromHex("#FFFFFF"),
+    WindowBackground = Color3.fromHex("#101010"),
+    WindowShadow = Color3.fromHex("#000000"),
+    DialogBackground = Color3.fromHex("#101010"),
+    DialogBackgroundTransparency = 0,
+    DialogTitle = Color3.fromHex("#FFFFFF"),
+    DialogContent = Color3.fromHex("#FFFFFF"),
+    DialogIcon = Color3.fromHex("#a1a1aa"),
+    WindowTopbarButtonIcon = Color3.fromHex("a1a1aa"),
+    WindowTopbarTitle = Color3.fromHex("FFFFFF"),
+    WindowTopbarAuthor = Color3.fromHex("FFFFFF"),
+    WindowTopbarIcon = Color3.fromHex("FFFFFF"),
+    TabBackground = Color3.fromHex("#18181b"),
+    TabTitle = Color3.fromHex("#FFFFFF"),
+    TabIcon = Color3.fromHex("a1a1aa"),
+    ElementBackground = Color3.fromHex("#18181b"),
+    ElementTitle = Color3.fromHex("#FFFFFF"),
+    ElementDesc = Color3.fromHex("#FFFFFF"),
+    ElementIcon = Color3.fromHex("a1a1aa"),
+    PopupBackground = Color3.fromHex("#101010"),
+    PopupBackgroundTransparency = 0,
+    PopupTitle = Color3.fromHex("#FFFFFF"),
+    PopupContent = Color3.fromHex("#FFFFFF"),
+    PopupIcon = Color3.fromHex("#a1a1aa"),
+    Toggle = Color3.fromHex("#52525b"),
+    ToggleBar = Color3.fromHex("#FFFFFF"),
+    Checkbox = Color3.fromHex("#52525b"),
+    CheckboxIcon = Color3.fromHex("#FFFFFF"),
+    Slider = Color3.fromHex("#52525b"),
+    SliderThumb = Color3.fromHex("#FFFFFF"),
 })
 
-local AnimeBgDropdown = ThemeSection:Dropdown({
-    Title = "Anime Background",
-    Desc = "Select an anime background image",
-    Values = {
-        "None",
-        "AnimeGirlBlue",
-        "AnimePastel",
-        "AnimeBoyDark",
-    },
-    SearchBarEnabled = false,
-    Callback = function(choice)
-        if choice == "None" then
-            CurrentBackgroundKey = nil
-            Window:SetBackgroundImage("")
-            return
-        end
-
-        CurrentBackgroundKey = choice
-        local asset = AnimeBackgrounds[choice]
-        if asset then
-            Window:SetBackgroundImage(asset)
-        end
-    end,
+WindUI:AddTheme({
+    Name = "Light",
+    Accent = Color3.fromHex("#e5e5e5"),
+    Background = Color3.fromHex("#f4f4f5"),
+    BackgroundTransparency = 0,
+    Outline = Color3.fromHex("#000000"),
+    Text = Color3.fromHex("#000000"),
+    Placeholder = Color3.fromHex("#7a7a7a"),
+    Button = Color3.fromHex("#e5e5e5"),
+    Icon = Color3.fromHex("#27272a"),
+    Hover = Color3.fromHex("#000000"),
+    WindowBackground = Color3.fromHex("#ffffff"),
+    WindowShadow = Color3.fromHex("#000000"),
+    DialogBackground = Color3.fromHex("#ffffff"),
+    DialogBackgroundTransparency = 0,
+    DialogTitle = Color3.fromHex("#000000"),
+    DialogContent = Color3.fromHex("#000000"),
+    DialogIcon = Color3.fromHex("#27272a"),
+    WindowTopbarButtonIcon = Color3.fromHex("27272a"),
+    WindowTopbarTitle = Color3.fromHex("000000"),
+    WindowTopbarAuthor = Color3.fromHex("000000"),
+    WindowTopbarIcon = Color3.fromHex("000000"),
+    TabBackground = Color3.fromHex("#e5e7eb"),
+    TabTitle = Color3.fromHex("#000000"),
+    TabIcon = Color3.fromHex("27272a"),
+    ElementBackground = Color3.fromHex("#e5e7eb"),
+    ElementTitle = Color3.fromHex("#000000"),
+    ElementDesc = Color3.fromHex("#111827"),
+    ElementIcon = Color3.fromHex("27272a"),
+    PopupBackground = Color3.fromHex("#ffffff"),
+    PopupBackgroundTransparency = 0,
+    PopupTitle = Color3.fromHex("#000000"),
+    PopupContent = Color3.fromHex("#000000"),
+    PopupIcon = Color3.fromHex("#27272a"),
+    Toggle = Color3.fromHex("#d4d4d8"),
+    ToggleBar = Color3.fromHex("#000000"),
+    Checkbox = Color3.fromHex("#d4d4d8"),
+    CheckboxIcon = Color3.fromHex("#000000"),
+    Slider = Color3.fromHex("#d4d4d8"),
+    SliderThumb = Color3.fromHex("#000000"),
 })
 
-ThemeSection:Slider({
-    Title = "Background Transparency",
-    Desc = "Adjust background opacity",
-    Value = {
-        Min = 0,
-        Max = 1,
-        Default = 0,
-    },
-    Step = 0.05,
-    Callback = function(v)
-        Window:SetBackgroundImageTransparency(v)
-    end,
-})
+local availableThemes = WindUI:GetThemes()
+local themeNames = {}
+for name, _ in pairs(availableThemes) do
+    table.insert(themeNames, name)
+end
 
-ThemeSection:Button({
-    Title = "Show Current Theme",
-    Icon = "lucide:palette",
-    Callback = function()
-        local t = WindUI:GetCurrentTheme()
+local ThemeDropdown = ThemesSection:Dropdown({
+    Title = "Theme",
+    Desc  = "Selecione o tema.",
+    Values= themeNames,
+    Value = WindUI:GetCurrentTheme() or "Nebula",
+    Callback = function(themeName)
+        WindUI:SetTheme(themeName)
         WindUI:Notify({
             Title = "Theme",
-            Content = "Current theme: " .. tostring(t),
+            Content = "Tema alterado para: " .. tostring(themeName),
             Duration = 3,
-            Icon = "lucide:palette",
+            Icon = "palette",
         })
-    end,
+    end
 })
 
--- ══════════════════════════════════════════════════════
--- AUTO TAB: INSTANT STEAL + WALKSPEED FIX
--- ══════════════════════════════════════════════════════
-
-local AutoSection = AutoTab:Section({
-    Title = "Brainrot Auto",
-    Box = true,
-    Opened = true,
-    FontWeight = "SemiBold",
-})
-
-AutoSection:Paragraph({
-    Title = "Instant Steal",
-    Desc = "Clique uma vez no E para pegar brainrots (sem segurar).",
-})
-
-local INST_STEAL_ENABLED = false
-
--- patch dos ProximityPrompt TakePrompt
-local function PatchPrompt(prompt : ProximityPrompt)
-    if not prompt or prompt.Name ~= "TakePrompt" then
-        return
-    end
-    prompt.HoldDuration = 0
-    prompt.RequiresLineOfSight = false
-    prompt.MaxActivationDistance = 20
-end
-
-local function ScanBrainrots()
-    local root = workspace:FindFirstChild("ActiveBrainrots")
-    if not root then
-        return
-    end
-    for _, v in ipairs(root:GetDescendants()) do
-        if v:IsA("ProximityPrompt") and v.Name == "TakePrompt" then
-            PatchPrompt(v)
-        end
-    end
-end
-
-RunService.Heartbeat:Connect(function()
-    if not INST_STEAL_ENABLED then
-        return
-    end
-    ScanBrainrots()
-end)
-
-workspace.DescendantAdded:Connect(function(obj)
-    if not INST_STEAL_ENABLED then
-        return
-    end
-    if obj:IsA("ProximityPrompt") and obj.Name == "TakePrompt" then
-        PatchPrompt(obj)
-    end
-end)
-
-AutoSection:Toggle({
-    Title = "Instant Steal Brainrots",
-    Desc = "Transforma o prompt de pegar brainrot em instantâneo.",
-    Default = false,
-    Callback = function(state)
-        INST_STEAL_ENABLED = state
-        if state then
-            ScanBrainrots()
-            WindUI:Notify({
-                Title = "Instant Steal",
-                Content = "Instant Steal ativado.",
-                Duration = 2,
-                Icon = "lucide:zap",
-            })
-        else
-            WindUI:Notify({
-                Title = "Instant Steal",
-                Content = "Instant Steal desativado.",
-                Duration = 2,
-                Icon = "lucide:zap",
-            })
-        end
-    end,
-})
-
--- WalkSpeed “desbugado” também acessível na aba Auto
-local AutoWalkSection = AutoTab:Section({
-    Title = "WalkSpeed Fix",
-    Box = true,
-    Opened = true,
-    FontWeight = "SemiBold",
-})
-
-local DefaultHumanoidWS = 16
-
-do
-    local _, hum = GetCharacter()
-    if hum then
-        DefaultHumanoidWS = hum.WalkSpeed
-    end
-end
-
-AutoWalkSection:Slider({
-    Title = "WalkSpeed (Auto)",
-    Desc = "Ajuste rápido de velocidade",
-    Value = {
-        Min = 8,
-        Max = 75,
-        Default = DefaultHumanoidWS,
-    },
-    Step = 1,
-    Callback = function(v)
-        local _, hum = GetCharacter()
-        if hum then
-            hum.WalkSpeed = v
-        end
-    end,
-})
-
-AutoWalkSection:Button({
-    Title = "Reset WalkSpeed",
-    Icon = "lucide:refresh-cw",
+ThemesSection:Button({
+    Title = "Debug: Print Current Theme",
     Callback = function()
-        local _, hum = GetCharacter()
-        if hum then
-            hum.WalkSpeed = DefaultHumanoidWS
+        print("Current Theme:", WindUI:GetCurrentTheme())
+    end
+})
+
+----------------------------------------------------
+-- SETTINGS: CONFIG (SAVE / LOAD)
+----------------------------------------------------
+local ConfigSection = Tabs.Settings:Section({
+    Title = "Configs",
+    Box = true,
+    Opened = false,
+})
+
+local ConfigManager = Window.ConfigManager
+local CurrentConfig = ConfigManager:CreateConfig("Default") -- default.json
+
+-- Exemplos de registro de flags “reais”
+-- Você pode registrar elementos do WindUI diretamente:
+CurrentConfig:Register("PlayerWalkspeedToggle", WalkspeedToggle)
+CurrentConfig:Register("PlayerWalkspeedSlider", WalkspeedSlider)
+CurrentConfig:Register("PlayerJumpToggle", JumpToggle)
+CurrentConfig:Register("PlayerJumpSlider", JumpSlider)
+CurrentConfig:Register("FarmModeDropdown", FarmModeDropdown)
+CurrentConfig:Register("AutoFarmToggle", AutoFarmToggle)
+CurrentConfig:Register("AutoSellToggle", AutoSellToggle)
+CurrentConfig:Register("ThemeDropdown", ThemeDropdown)
+
+local configFileName = "Default"
+
+ConfigSection:Input({
+    Title = "Config Name",
+    Desc  = "Nome do arquivo de config.",
+    Placeholder = "Default",
+    Callback = function(text)
+        configFileName = (text ~= "" and text) or "Default"
+        CurrentConfig = ConfigManager:CreateConfig(configFileName)
+    end
+})
+
+ConfigSection:Button({
+    Title = "Save Config",
+    Icon  = "save",
+    Callback = function()
+        if CurrentConfig then
+            CurrentConfig:Save()
+            WindUI:Notify({
+                Title = "Config",
+                Content = "Config salva como: " .. configFileName,
+                Duration = 3,
+                Icon = "save",
+            })
         end
-        WindUI:Notify({
-            Title = "WalkSpeed",
-            Content = "WalkSpeed resetado para " .. tostring(DefaultHumanoidWS),
-            Duration = 2,
-            Icon = "lucide:refresh-cw",
-        })
-    end,
+    end
+})
+
+ConfigSection:Button({
+    Title = "Load Config",
+    Icon  = "folder-open",
+    Callback = function()
+        if CurrentConfig then
+            CurrentConfig:Load()
+            WindUI:Notify({
+                Title = "Config",
+                Content = "Config carregada: " .. configFileName,
+                Duration = 3,
+                Icon = "folder-open",
+            })
+        end
+    end
+})
+
+ConfigSection:Button({
+    Title = "Delete Config",
+    Icon  = "trash",
+    Callback = function()
+        if CurrentConfig then
+            CurrentConfig:Delete()
+            WindUI:Notify({
+                Title = "Config",
+                Content = "Config deletada: " .. configFileName,
+                Duration = 3,
+                Icon = "trash",
+            })
+        end
+    end
 })

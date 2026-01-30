@@ -63,15 +63,15 @@ WindUI:AddTheme({
 
     Slider = Color3.fromHex("#52525b"),
     SliderThumb = Color3.fromHex("#FFFFFF"),
-}) --[cite:4]
+}) --[web:11]
 
 -- Definir tema inicial
-WindUI:SetTheme("KLS Dark") --[cite:4]
+WindUI:SetTheme("KLS Dark") --[web:11]
 
 -- // Criar janela principal do hub (sem KeySystem, sem user badge)
 local Window = WindUI:CreateWindow({
     Title = "KLS HUB",
-    Icon = "craft:macbook-stroke", -- ícone mais premium do pack do Footagesus[web:20]
+    Icon = "craft:macbook-stroke", -- ícone premium do pack de ícones do Footagesus[web:20]
     Author = "by Khalexis Team",
     Folder = "KLS_HUB",
     Size = UDim2.fromOffset(580, 460),
@@ -91,11 +91,11 @@ local Window = WindUI:CreateWindow({
         Anonymous = true,
     },
 
-    -- KeySystem completamente removido aqui
-}) --[web:11]
+    -- KeySystem completamente removido
+}) --[web:34]
 
--- Opcional: tecla para abrir/fechar o hub
-Window:SetToggleKey(Enum.KeyCode.RightShift) --[web:11]
+-- Tecla para abrir/fechar o hub
+Window:SetToggleKey(Enum.KeyCode.RightShift) --[web:34]
 
 ---------------------------------------------------------------------
 --                              TABS
@@ -112,62 +112,108 @@ local Tabs = {
 --                          PLAYER TAB
 ---------------------------------------------------------------------
 do
-    -- Não adicionar nada ainda aqui, será preenchido depois
-    -- Exemplo de estrutura pronta:
+    -- Placeholder, vazio por enquanto
     -- local InfoSection = Tabs.Player:Section({ Title = "Player", Opened = true })
-    -- (vazio por enquanto)
 end
 
 ---------------------------------------------------------------------
 --                           FARM TAB
 ---------------------------------------------------------------------
 do
-    -- Estrutura reservada para futuro auto-farm
+    -- Placeholder, vazio por enquanto
     -- local FarmSection = Tabs.Farm:Section({ Title = "Farm", Opened = true })
-    -- (vazio por enquanto)
 end
 
 ---------------------------------------------------------------------
 --                          SELLING TAB
 ---------------------------------------------------------------------
 do
-    -- Estrutura reservada para sistema de selling
+    -- Placeholder, vazio por enquanto
     -- local SellingSection = Tabs.Selling:Section({ Title = "Selling", Opened = true })
-    -- (vazio por enquanto)
 end
 
 ---------------------------------------------------------------------
---                         SETTINGS TAB
--- (aqui depois a gente pluga Themes / Config System / etc.)
+--                         SETTINGS TAB (THEMES)
 ---------------------------------------------------------------------
 do
     local SettingsSection = Tabs.Settings:Section({
-        Title = "Interface",
+        Title = "Appearance & Themes",
+        Icon = "lucide:palette",
         Opened = true,
     }) --[web:11]
 
     SettingsSection:Paragraph({
-        Title = "KLS HUB",
-        Desc  = "Base pronta, categorias criadas. Próximo passo: preencher Player, Farm e Selling.",
+        Title = "Theme Manager",
+        Desc  = "Selecione o tema visual do KLS HUB.",
         Color = "Blue",
-    }) --[cite:6]
+    }) --[web:29]
 
-    -- Exemplo de placeholder para Theme Manager (pode ser preenchido depois)
-    -- local ThemeDropdown = SettingsSection:Dropdown({ ... })
+    -- Coletar todos os temas registrados na WindUI
+    local themeValues = {}
+    for name, _ in pairs(WindUI:GetThemes()) do
+        table.insert(themeValues, name)
+    end --[web:11]
+
+    -- Garantir que haja ao menos um tema (ex: KLS Dark)
+    if #themeValues == 0 then
+        table.insert(themeValues, "KLS Dark")
+    end
+
+    -- Dropdown para seleção de tema
+    local ThemeDropdown = SettingsSection:Dropdown({
+        Title = "Select Theme",
+        Desc  = "Muda o tema global da interface.",
+        Value = WindUI:GetCurrentTheme(), -- tema atual como default[web:11]
+        Values = themeValues,
+        SearchBarEnabled = false,
+        Multi = false,
+        AllowNone = false,
+        Callback = function(themeName)
+            if themeName and WindUI:GetThemes()[themeName] then
+                WindUI:SetTheme(themeName)
+                WindUI:Notify({
+                    Title = "Theme Applied",
+                    Content = "Tema atual: " .. tostring(themeName),
+                    Duration = 3,
+                    Icon = "lucide:check-circle-2",
+                })
+            else
+                WindUI:Notify({
+                    Title = "Theme Error",
+                    Content = "Tema inválido ou não encontrado.",
+                    Duration = 3,
+                    Icon = "lucide:alert-triangle",
+                })
+            end
+        end,
+    }) --[web:11][web:29]
+
+    -- Selecionar explicitamente o tema atual no dropdown
+    ThemeDropdown:Select(WindUI:GetCurrentTheme()) --[web:11]
+
+    -- Slider de transparência da janela (usando ToggleTransparency bool)
+    local TransparencyToggle = SettingsSection:Toggle({
+        Title = "Window Transparency",
+        Desc  = "Ativa/desativa a transparência da janela do hub.",
+        Icon = "lucide:app-window",
+        Value = WindUI:GetTransparency(), -- já pega o estado atual[web:29]
+        Callback = function(state)
+            Window:ToggleTransparency(state)
+        end,
+    }) --[web:29]
+
+    -- (Se quiser depois a gente troca esse Toggle por Slider + lógica custom)
 end
 
 ---------------------------------------------------------------------
 --                    ABRIR JANELA DIRETO (SEM KEY)
 ---------------------------------------------------------------------
 
-Window:Open() -- abre o hub imediatamente, sem popup de key[web:11]
+Window:Open() -- abre o hub imediatamente, sem popup de key[web:34]
 
 --[[
-    Estrutura pronta:
-    - Tabs: Player, Farm, Selling, Settings.
-    - Nada dentro de Player/Farm/Selling ainda.
-    - Settings só com uma section básica para expansão de temas/configs.
-
-    No próximo passo a gente começa a popular Player, Farm e Selling
-    com lógica real (movement, auto-farm, auto-sell, etc.).
+    Status atual:
+    - Tabs criadas: Player, Farm, Selling, Settings.
+    - Player/Farm/Selling ainda vazias, prontas pra receber lógica.
+    - Settings com Theme Manager completo (dropdown com todos os temas + toggle de transparência).
 ]]

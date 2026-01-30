@@ -1,4 +1,4 @@
---[[
+--[[ 
     KLS HUB - Roblox Script Hub
     Desenvolvido por: Khalexis Team
     UI Library: WindUI (Footagesus)
@@ -468,3 +468,471 @@ end)
 ----------------------------------------------------------------
 
 Window:Open()
+
+----------------------------------------------------------------
+--        SISTEMA DE AUTO AVOID (GAPS + WAVES)
+--        (NÃO ALTERA NADA DO HUB, SÓ ADICIONA)
+----------------------------------------------------------------
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local AutoAvoid = {
+    Enabled = false,
+    GapOrder = {}, -- ordem dos gaps definida pelo usuário
+}
+
+--========================
+-- CONFIGS
+--========================
+
+local FLOAT_HEIGHT_OFFSET = 2
+local SAFETY_MARGIN       = 0.35
+local RECHECK_INTERVAL    = 0.15
+local LERP_SPEED_FACTOR   = 1.0
+
+--========================
+-- UTILITÁRIOS
+--========================
+
+local function getCharacter()
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("Humanoid") or not char:FindFirstChild("HumanoidRootPart") then
+        return nil, nil, nil
+    end
+    return char, char:FindFirstChild("Humanoid"), char:FindFirstChild("HumanoidRootPart")
+end
+
+local function getWalkSpeed(hum)
+    if not hum then return 16 end
+    return hum.WalkSpeed
+end
+
+local function getGapCenter(partOrModel)
+    if not partOrModel then return nil end
+    if partOrModel:IsA("BasePart") then
+        return partOrModel.CFrame
+    end
+    if partOrModel:IsA("Model") then
+        local cf = partOrModel:GetBoundingBox()
+        return cf
+    end
+    return nil
+end
+
+local function getGapRadius(partOrModel)
+    if not partOrModel then return 6 end
+    if partOrModel:IsA("BasePart") then
+        return math.max(partOrModel.Size.X, partOrModel.Size.Z) * 0.5
+    end
+    if partOrModel:IsA("Model") then
+        local _, size = partOrModel:GetBoundingBox()
+        return math.max(size.X, size.Z) * 0.5
+    end
+    return 6
+end
+
+--========================
+-- REGISTRO DE GAPS
+--========================
+
+local AllGaps = {}
+
+local function registerGap(name, instance)
+    local center = getGapCenter(instance)
+    if not center then return end
+    table.insert(AllGaps, {
+        Name   = name,
+        Object = instance,
+        Center = center,
+        Radius = getGapRadius(instance),
+    })
+end
+
+-- Gaps em workspace.Misc.Gaps (centro Uncommon etc.) [file:32]
+do
+    local misc = workspace:FindFirstChild("Misc")
+    if misc and misc:FindFirstChild("Gaps") then
+        local g = misc.Gaps
+        for i = 1, 9 do
+            local gap = g:FindFirstChild("Gap"..i)
+            if gap then
+                registerGap("Misc_Gap"..i, gap)
+            end
+        end
+    end
+end
+
+-- Gaps no mapa RadioactiveMap.OG [file:32]
+do
+    local radio = workspace:FindFirstChild("RadioactiveMap")
+    if radio and radio:FindFirstChild("OG") then
+        local og = radio.OG
+        for i = 1, 9 do
+            local gap = og:FindFirstChild("Gap"..i)
+            if gap then
+                registerGap("OG_Gap"..i, gap)
+            end
+        end
+    end
+end
+
+function AutoAvoid:GetRegisteredGaps()
+    return AllGaps
+end
+
+function AutoAvoid:SetGapOrder(orderTable)
+    local newOrder = {}
+    for _, wantedName in ipairs(orderTable) do
+        for _, g in ipairs(AllGaps) do
+            if g.Name == wantedName then
+                table.insert(newOrder, g)
+                break
+            end
+        end
+    end
+    self.GapOrder = newOrder
+end
+
+--========================
+-- INFORMAÇÕES DA WAVE
+--========================
+
+-- Timer de Radioactive em PlayerGui.RadioactiveTimeLeft [file:33]
+local function getTimeUntilWaveImpact()
+    local gui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not gui then return nil end
+
+    local timeGui = gui:FindFirstChild("RadioactiveTimeLeft")
+    if timeGui and timeGui:FindFirstChild("TextLabel") then
+        local txt = timeGui.TextLabel.Text or ""
+        local number = txt:match("(%d+)")
+        if number then
+            return tonumber(number)
+        end
+    end
+    return 1
+end
+
+-- Hitboxes em workspace.ActiveTsunamis [file:32]
+local function getActiveWaveHitboxes()
+    local result = {}
+    local active = workspace:FindFirstChild("ActiveTsunamis")
+    if not active then return result end
+
+    for _, wave in ipairs(active:GetChildren()) do
+        local hitbox = wave:FindFirstChild("Hitbox")
+        if hitbox and hitbox:IsA("BasePart") then
+            table.insert(result, hitbox)
+        end
+    end
+
+    return result
+end
+
+local function isPathBlockedByWave(startPos, endPos, travelTime)
+    local hitboxes = getActiveWaveHitboxes()
+    if #hitboxes == 0 then
+        return false
+    end
+
+    for _, hb in ipairs(hitboxes) do
+        local hbPos = hb.Position
+        local distStart = (hbPos - startPos).Magnitude
+        local distEnd   = (hbPos - endPos).Magnitude
+        local segLen    = (endPos - startPos).Magnitude
+
+        if distStart < segLen and distEnd < segLen then
+            if travelTime > 0.4 then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+--========================
+-- GAP ATUAL / PRÓXIMO
+--========================
+
+local function getCurrentGap(root)
+    if not root or #AutoAvoid.GapOrder == 0 then return nil, nil end
+    local pos = root.Position
+    local bestGap, bestIdx, bestDist = nil, nil, math.huge
+
+    for i, gap in ipairs(AutoAvoid.GapOrder) do
+        local center = getGapCenter(gap.Object) or gap.Center
+        local dist = (center.Position - pos).Magnitude
+        if dist < bestDist then
+            bestDist = dist
+            bestGap  = gap
+            bestIdx  = i
+        end
+    end
+
+    return bestGap, bestIdx
+end
+
+local function getNextGap(idx)
+    if not idx or #AutoAvoid.GapOrder == 0 then return nil end
+    if idx >= #AutoAvoid.GapOrder then
+        return nil
+    end
+    return AutoAvoid.GapOrder[idx + 1]
+end
+
+--========================
+-- MOVIMENTO SUAVE
+--========================
+
+local movingConnection = nil
+
+local function stopCurrentMovement()
+    if movingConnection then
+        movingConnection:Disconnect()
+        movingConnection = nil
+    end
+end
+
+local function moveSmoothTo(root, targetCFrame, speed)
+    stopCurrentMovement()
+
+    local startPos = root.Position
+    local targetPos = targetCFrame.Position + Vector3.new(0, FLOAT_HEIGHT_OFFSET, 0)
+    local totalDist = (targetPos - startPos).Magnitude
+    if totalDist < 0.1 then return end
+
+    local travelSpeed = math.max(speed, 1) * LERP_SPEED_FACTOR
+    local totalTime   = totalDist / travelSpeed
+    local elapsed     = 0
+
+    movingConnection = RunService.Heartbeat:Connect(function(dt)
+        if not AutoAvoid.Enabled then
+            stopCurrentMovement()
+            return
+        end
+
+        elapsed += dt
+        local alpha = math.clamp(elapsed / totalTime, 0, 1)
+        local eased = math.sin(alpha * math.pi * 0.5)
+        local newPos = startPos:Lerp(targetPos, eased)
+        root.CFrame = CFrame.new(newPos, newPos + root.CFrame.LookVector)
+
+        if alpha >= 1 then
+            stopCurrentMovement()
+        end
+    end)
+end
+
+--========================
+-- DECISÃO DE TROCA DE GAP
+--========================
+
+local function canSafelyReachGap(hum, root, currentGap, nextGap)
+    if not hum or not root or not currentGap or not nextGap then
+        return false
+    end
+
+    local currentCenter = getGapCenter(currentGap.Object) or currentGap.Center
+    local nextCenter    = getGapCenter(nextGap.Object) or nextGap.Center
+    if not currentCenter or not nextCenter then
+        return false
+    end
+
+    local startPos = root.Position
+    local endPos   = nextCenter.Position + Vector3.new(0, FLOAT_HEIGHT_OFFSET, 0)
+
+    local dist       = (endPos - startPos).Magnitude
+    local walkSpeed  = getWalkSpeed(hum)
+    if walkSpeed <= 0 then return false end
+
+    local travelTime = dist / (walkSpeed * LERP_SPEED_FACTOR)
+    local timeLeft   = getTimeUntilWaveImpact() or 1
+
+    if (travelTime + SAFETY_MARGIN) > timeLeft then
+        return false
+    end
+
+    if isPathBlockedByWave(startPos, endPos, travelTime) then
+        return false
+    end
+
+    return true
+end
+
+--========================
+-- LOOP PRINCIPAL
+--========================
+
+local mainLoopConnection = nil
+local lastCheck = 0
+
+local function mainLoop(dt)
+    if not AutoAvoid.Enabled then
+        return
+    end
+
+    lastCheck = lastCheck + dt
+    if lastCheck < RECHECK_INTERVAL then
+        return
+    end
+    lastCheck = 0
+
+    local char, hum, root = getCharacter()
+    if not char then
+        stopCurrentMovement()
+        return
+    end
+
+    local currentGap, idx = getCurrentGap(root)
+    if not currentGap then
+        stopCurrentMovement()
+        return
+    end
+
+    if not movingConnection then
+        local center = getGapCenter(currentGap.Object) or currentGap.Center
+        local targetPos = center.Position + Vector3.new(0, FLOAT_HEIGHT_OFFSET, 0)
+        local currentPos = root.Position
+        local delta = (targetPos - currentPos)
+        if delta.Magnitude > 0.3 then
+            root.CFrame = root.CFrame + delta * 0.15
+        end
+    end
+
+    local nextGap = getNextGap(idx)
+    if not nextGap then
+        return
+    end
+
+    local canReach = canSafelyReachGap(hum, root, currentGap, nextGap)
+    if canReach then
+        local centerNext = getGapCenter(nextGap.Object) or nextGap.Center
+        moveSmoothTo(root, centerNext, getWalkSpeed(hum))
+    end
+end
+
+function AutoAvoid:SetEnabled(state)
+    self.Enabled = state and true or false
+
+    if self.Enabled then
+        if not mainLoopConnection then
+            mainLoopConnection = RunService.Heartbeat:Connect(mainLoop)
+        end
+    else
+        stopCurrentMovement()
+        if mainLoopConnection then
+            mainLoopConnection:Disconnect()
+            mainLoopConnection = nil
+        end
+    end
+end
+
+----------------------------------------------------------------
+--          UI DO AUTO AVOID DENTRO DA ABA EVENTS
+----------------------------------------------------------------
+
+do
+    local EventsAutoSection = Tabs.Events:Section({
+        Title = "Radioactive Auto Avoid",
+        Opened = true,
+    })
+
+    EventsAutoSection:Paragraph({
+        Title = "Safe gaps navigator",
+        Desc  = "Moves through configured gaps automatically, always prioritizing survival.",
+        Color = "Green",
+        Icon  = "lucide:shield",
+    })
+
+    -- Lista de gaps registrados para o dropdown
+    local gapNames = {}
+    for _, g in ipairs(AutoAvoid:GetRegisteredGaps()) do
+        table.insert(gapNames, g.Name)
+    end
+
+    -- Ordem interna (string) que o usuário vai construir
+    local selectedOrder = {}
+
+    local function rebuildOrderLabel()
+        if #selectedOrder == 0 then
+            return "None"
+        end
+        return table.concat(selectedOrder, " -> ")
+    end
+
+    -- Dropdown para adicionar gaps na ordem
+    EventsAutoSection:Dropdown({
+        Title = "Add Gap to Route",
+        Values = gapNames,
+        Value = nil,
+        Callback = function(gapName)
+            table.insert(selectedOrder, gapName)
+            AutoAvoid:SetGapOrder(selectedOrder)
+            WindUI:Notify({
+                Title = "Gap added",
+                Content = "Route: " .. rebuildOrderLabel(),
+                Duration = 3,
+                Icon = "lucide:route",
+            })
+        end
+    })
+
+    -- Botão para limpar a rota
+    EventsAutoSection:Button({
+        Title = "Clear Gap Route",
+        Icon  = "lucide:eraser",
+        Callback = function()
+            selectedOrder = {}
+            AutoAvoid:SetGapOrder({})
+            WindUI:Notify({
+                Title = "Route cleared",
+                Content = "No gaps configured. Character will not move.",
+                Duration = 3,
+                Icon = "lucide:trash-2",
+            })
+        end
+    })
+
+    -- Toggle principal do sistema de avoid
+    EventsAutoSection:Toggle({
+        Title = "Enable Radioactive Auto Avoid",
+        Desc  = "Automatically moves between safe gaps when a wave is active.",
+        Icon  = "lucide:radar",
+        Value = false,
+        Callback = function(state)
+            AutoAvoid:SetEnabled(state)
+            WindUI:Notify({
+                Title = state and "Auto Avoid ON" or "Auto Avoid OFF",
+                Content = state and "Survival priority: staying inside safe gaps." or "Auto movement disabled.",
+                Duration = 3,
+                Icon = state and "lucide:shield-check" or "lucide:shield-off",
+            })
+        end
+    })
+
+    -- Slider para ajustar a “flutuação” (velocidade de interpolação)
+    EventsAutoSection:Slider({
+        Title = "Float Smoothness",
+        Desc  = "Higher = faster transitions between gaps.",
+        Step  = 0.1,
+        Value = { Min = 0.5, Max = 2, Default = 1.0 },
+        Callback = function(v)
+            LERP_SPEED_FACTOR = tonumber(string.format("%.1f", v))
+        end
+    })
+
+    -- Slider para margem de segurança em relação ao tempo da wave
+    EventsAutoSection:Slider({
+        Title = "Safety Margin (s)",
+        Desc  = "Extra time required before leaving current gap.",
+        Step  = 0.05,
+        Value = { Min = 0.1, Max = 1, Default = SAFETY_MARGIN },
+        Callback = function(v)
+            SAFETY_MARGIN = tonumber(string.format("%.2f", v))
+        end
+    })
+end

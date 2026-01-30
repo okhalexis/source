@@ -122,14 +122,6 @@ local Window = WindUI:CreateWindow({
             })
         end,
     },
-
-    -- KeySystem comentado, pronto pra ativar se quiser monetizar:
-    -- KeySystem = {
-    --     Key = { "1234", "5678" },
-    --     Note = "Example Key System.",
-    --     URL = "https://seu-link-de-key-aqui",
-    --     SaveKey = true,
-    -- },
 })
 
 Window:SetToggleKey(Enum.KeyCode.RightShift)
@@ -170,7 +162,6 @@ local PlayerSection = Tabs.Player:Section({
     Opened = true,
 })
 
--- Serviços / refs globais
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -195,7 +186,6 @@ local function getHumanoidRootPart()
     return char:FindFirstChild("HumanoidRootPart")
 end
 
--- Estados globais do Player
 local PlayerFlags = {
     SpeedEnabled   = false,
     JumpEnabled    = false,
@@ -210,7 +200,7 @@ local PlayerFlags = {
 }
 
 ----------------------------------------------------
--- SISTEMA ULTRA-AGRESSIVO DE SPEED
+-- SPEED ULTRA-AGRESSIVO
 ----------------------------------------------------
 local DEFAULT_WALKSPEED = 16
 
@@ -220,7 +210,6 @@ local SpeedOverrideFactor = 1
 local function captureBaseSpeed()
     local hum = getHumanoid()
     if not hum then return end
-
     local current = hum.WalkSpeed
     if current <= 0 then
         current = DEFAULT_WALKSPEED
@@ -266,13 +255,12 @@ local function hardApplySpeed()
 end
 
 RunService.Heartbeat:Connect(function()
-    local hum = getHumanoid()
-    if not hum then return end
+    if not getHumanoid() then return end
     hardApplySpeed()
 end)
 
 ----------------------------------------------------
--- SISTEMA AVANÇADO DE JUMP POWER
+-- JUMP POWER
 ----------------------------------------------------
 local DEFAULT_JUMPPOWER = 50
 
@@ -309,7 +297,7 @@ RunService.Heartbeat:Connect(function()
 end)
 
 ----------------------------------------------------
--- SISTEMA DE FLY
+-- FLY
 ----------------------------------------------------
 local FlyVelocity
 local FlyGyro
@@ -419,42 +407,41 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 ----------------------------------------------------
--- SISTEMA DE NOCLIP
+-- NOCLIP FORTE (ATRAVESSA QUALQUER PAREDE)
 ----------------------------------------------------
-local function setCharacterNoClipState(enabled)
+-- Aqui ignoramos totalmente colisão de todas as partes do personagem
+-- (exceto opcionalmente o chão se quiser, mas sua instrução agora é atravessar tudo).
+
+local function applyFullNoClip()
     local char = getCharacter()
     if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
     for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") and part ~= hrp then
-            local relativeY = hrp.Position.Y - part.Position.Y
-            local isFootPart = relativeY > 1.5
-
-            if enabled then
-                if isFootPart then
-                    part.CanCollide = true
-                else
-                    part.CanCollide = false
-                end
-            else
-                part.CanCollide = true
-            end
+        if part:IsA("BasePart") then
+            part.CanCollide = false
         end
     end
 end
 
-RunService.Stepped:Connect(function(_, _)
-    if not PlayerFlags.NoClipEnabled then return end
-    setCharacterNoClipState(true)
+local function disableFullNoClip()
+    local char = getCharacter()
+    if not char then return end
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = true
+        end
+    end
+end
+
+RunService.Stepped:Connect(function()
+    if PlayerFlags.NoClipEnabled then
+        applyFullNoClip()
+    end
 end)
 
 ----------------------------------------------------
--- ELEMENTOS DA UI (PLAYER)
+-- UI PLAYER
 ----------------------------------------------------
 
--- Speed
 local SpeedToggle = PlayerSection:Toggle({
     Title = "Custom Speed",
     Desc  = "Ativa/desativa controle de velocidade.",
@@ -494,7 +481,6 @@ local SpeedSlider = PlayerSection:Slider({
     end
 })
 
--- Jump Power
 local JumpToggle = PlayerSection:Toggle({
     Title = "Custom Jump",
     Desc  = "Ativa/desativa controle de pulo.",
@@ -527,7 +513,6 @@ local JumpSlider = PlayerSection:Slider({
     end
 })
 
--- Fly (UI)
 local FlyToggle = PlayerSection:Toggle({
     Title = "Fly",
     Desc  = "Ativa/desativa fly (tecla F).",
@@ -556,17 +541,16 @@ local FlySpeedSlider = PlayerSection:Slider({
     end
 })
 
--- NoClip
 local NoClipToggle = PlayerSection:Toggle({
     Title = "NoClip",
-    Desc  = "Atravessa paredes e objetos, mas não o chão.",
+    Desc  = "Atravessa qualquer parede/objeto.",
     Icon  = "ghost",
     Type  = "Checkbox",
     Value = false,
     Callback = function(state)
         PlayerFlags.NoClipEnabled = state
         if not state then
-            setCharacterNoClipState(false)
+            disableFullNoClip()
         end
     end
 })
@@ -709,7 +693,7 @@ SellingSection:Button({
 })
 
 ----------------------------------------------------
--- SETTINGS TAB (TEMAS + WINDOW + CONFIG)
+-- SETTINGS TAB (apenas Window + Themes)
 ----------------------------------------------------
 local SettingsWindowSection = Tabs.Settings:Section({
     Title = "Window",
@@ -744,40 +728,6 @@ SettingsWindowSection:Button({
     end
 })
 
-local BackgroundSection = Tabs.Settings:Section({
-    Title = "Background",
-    Box = true,
-    Opened = false,
-})
-
-BackgroundSection:Input({
-    Title = "Background AssetId/Video",
-    Desc  = "rbxassetid://id ou video:link.webm",
-    Placeholder = "rbxassetid://id-here",
-    Callback = function(str)
-        if str ~= "" then
-            Window:SetBackgroundImage(str)
-        end
-    end
-})
-
-BackgroundSection:Slider({
-    Title = "Background Transparency",
-    Desc  = "Transparência do fundo.",
-    Step = 0.05,
-    Value = {
-        Min = 0,
-        Max = 1,
-        Default = 0.4,
-    },
-    Callback = function(v)
-        Window:SetBackgroundImageTransparency(v)
-    end
-})
-
-----------------------------------------------------
--- SETTINGS: THEMES
-----------------------------------------------------
 local ThemesSection = Tabs.Settings:Section({
     Title = "Themes",
     Box = true,
@@ -894,90 +844,5 @@ ThemesSection:Button({
     Title = "Debug: Print Current Theme",
     Callback = function()
         print("Current Theme:", WindUI:GetCurrentTheme())
-    end
-})
-
-----------------------------------------------------
--- SETTINGS: CONFIG (SAVE / LOAD)
-----------------------------------------------------
-local ConfigSection = Tabs.Settings:Section({
-    Title = "Configs",
-    Box = true,
-    Opened = false,
-})
-
-local ConfigManager = Window.ConfigManager
-local CurrentConfig = ConfigManager:CreateConfig("Default")
-
-CurrentConfig:Register("PlayerSpeedToggle", SpeedToggle)
-CurrentConfig:Register("PlayerSpeedSlider", SpeedSlider)
-CurrentConfig:Register("PlayerJumpToggle", JumpToggle)
-CurrentConfig:Register("PlayerJumpSlider", JumpSlider)
-CurrentConfig:Register("FlyToggle", FlyToggle)
-CurrentConfig:Register("FlySpeedSlider", FlySpeedSlider)
-CurrentConfig:Register("NoClipToggle", NoClipToggle)
-
-CurrentConfig:Register("FarmModeDropdown", FarmModeDropdown)
-CurrentConfig:Register("AutoFarmToggle", AutoFarmToggle)
-CurrentConfig:Register("AutoSellToggle", AutoSellToggle)
-CurrentConfig:Register("ThemeDropdown", ThemeDropdown)
-
-local configFileName = "Default"
-
-ConfigSection:Input({
-    Title = "Config Name",
-    Desc  = "Nome do arquivo de config.",
-    Placeholder = "Default",
-    Callback = function(text)
-        configFileName = (text ~= "" and text) or "Default"
-        CurrentConfig = ConfigManager:CreateConfig(configFileName)
-    end
-})
-
-ConfigSection:Button({
-    Title = "Save Config",
-    Icon  = "save",
-    Callback = function()
-        if CurrentConfig then
-            CurrentConfig:Save()
-            WindUI:Notify({
-                Title = "Config",
-                Content = "Config salva como: " .. configFileName,
-                Duration = 3,
-                Icon = "save",
-            })
-        end
-    end
-})
-
-ConfigSection:Button({
-    Title = "Load Config",
-    Icon  = "folder-open",
-    Callback = function()
-        if CurrentConfig then
-            CurrentConfig:Load()
-            WindUI:Notify({
-                Title = "Config",
-                Content = "Config carregada: " .. configFileName,
-                Duration = 3,
-                Icon = "folder-open",
-            })
-        end
-    end
-})
-
-ConfigSection:Button({
-    Title = "Delete Config",
-    Icon  = "trash",
-    Callback = function()
-        if CurrentConfig then
-            CurrentConfig:Delete()
-            WindUI:Notify({
-                Title = "Config",
-                Content = "Config deletada: " .. configFileName,
-                Duration = 3,
-                Icon = "trash",
-            })
-        end
     end
 })

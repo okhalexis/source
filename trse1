@@ -47,7 +47,7 @@ task.spawn(function()
 end)
 
 --[[========================================================
-    HUB / CONTROLE PLAYER
+    HUB / CONTROLE PLAYER (SPEED, JUMP, FLY, NOCLIP)
 ==========================================================]]
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 WindUI:SetNotificationLower(true)
@@ -77,57 +77,65 @@ WindUI:Localization({
     }
 })
 
--- Tema base
+-- Tema Rose default
 WindUI:AddTheme({
-    Name = "Nebula",
-    Accent = Color3.fromHex("#18181b"),
-    Background = Color3.fromHex("#050509"),
+    Name = "Rose",
+    Accent = Color3.fromHex("#fb7185"),
+    Background = Color3.fromHex("#111827"),
     BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#FFFFFF"),
-    Text = Color3.fromHex("#FFFFFF"),
-    Placeholder = Color3.fromHex("#7a7a7a"),
-    Button = Color3.fromHex("#2b2b35"),
-    Icon = Color3.fromHex("#a1a1aa"),
-    Hover = Color3.fromHex("#FFFFFF"),
-    WindowBackground = Color3.fromHex("#050509"),
-    WindowShadow = Color3.fromHex("#000000"),
-    DialogBackground = Color3.fromHex("#050509"),
+    Outline = Color3.fromHex("#fecaca"),
+    Text = Color3.fromHex("#ffe4e6"),
+    Placeholder = Color3.fromHex("#fda4af"),
+    Button = Color3.fromHex("#9f1239"),
+    Icon = Color3.fromHex("#fecaca"),
+    Hover = Color3.fromHex("#ffffff"),
+
+    WindowBackground = Color3.fromHex("#111827"),
+    WindowShadow = Color3.fromHex("#020617"),
+
+    DialogBackground = Color3.fromHex("#111827"),
     DialogBackgroundTransparency = 0,
-    DialogTitle = Color3.fromHex("#FFFFFF"),
-    DialogContent = Color3.fromHex("#FFFFFF"),
-    DialogIcon = Color3.fromHex("#a1a1aa"),
-    WindowTopbarButtonIcon = Color3.fromHex("a1a1aa"),
-    WindowTopbarTitle = Color3.fromHex("FFFFFF"),
-    WindowTopbarAuthor = Color3.fromHex("FFFFFF"),
-    WindowTopbarIcon = Color3.fromHex("FFFFFF"),
-    TabBackground = Color3.fromHex("#101019"),
-    TabTitle = Color3.fromHex("#FFFFFF"),
-    TabIcon = Color3.fromHex("a1a1aa"),
-    ElementBackground = Color3.fromHex("#101019"),
-    ElementTitle = Color3.fromHex("#FFFFFF"),
-    ElementDesc = Color3.fromHex("#b0b0b0"),
-    ElementIcon = Color3.fromHex("a1a1aa"),
-    PopupBackground = Color3.fromHex("#050509"),
+    DialogTitle = Color3.fromHex("#ffe4e6"),
+    DialogContent = Color3.fromHex("#fecdd3"),
+    DialogIcon = Color3.fromHex("#fecaca"),
+
+    WindowTopbarButtonIcon = Color3.fromHex("fecaca"),
+    WindowTopbarTitle = Color3.fromHex("ffe4e6"),
+    WindowTopbarAuthor = Color3.fromHex("fecaca"),
+    WindowTopbarIcon = Color3.fromHex("fecaca"),
+
+    TabBackground = Color3.fromHex("#1f2937"),
+    TabTitle = Color3.fromHex("#ffe4e6"),
+    TabIcon = Color3.fromHex("fecaca"),
+
+    ElementBackground = Color3.fromHex("#1f2937"),
+    ElementTitle = Color3.fromHex("#ffe4e6"),
+    ElementDesc = Color3.fromHex("#fecaca"),
+    ElementIcon = Color3.fromHex("fecaca"),
+
+    PopupBackground = Color3.fromHex("#111827"),
     PopupBackgroundTransparency = 0,
-    PopupTitle = Color3.fromHex("#FFFFFF"),
-    PopupContent = Color3.fromHex("#FFFFFF"),
-    PopupIcon = Color3.fromHex("a1a1aa"),
-    Toggle = Color3.fromHex("#52525b"),
-    ToggleBar = Color3.fromHex("#FFFFFF"),
-    Checkbox = Color3.fromHex("#52525b"),
-    CheckboxIcon = Color3.fromHex("#FFFFFF"),
-    Slider = Color3.fromHex("#52525b"),
-    SliderThumb = Color3.fromHex("#FFFFFF"),
+    PopupTitle = Color3.fromHex("#ffe4e6"),
+    PopupContent = Color3.fromHex("#fecaca"),
+    PopupIcon = Color3.fromHex("fecaca"),
+
+    Toggle = Color3.fromHex("#be123c"),
+    ToggleBar = Color3.fromHex("#ffe4e6"),
+    Checkbox = Color3.fromHex("#be123c"),
+    CheckboxIcon = Color3.fromHex("#ffe4e6"),
+    Slider = Color3.fromHex("#be123c"),
+    SliderThumb = Color3.fromHex("#ffe4e6"),
 })
 
 WindUI:Gradient({
-    ["0"]   = { Color = Color3.fromHex("#0f172a"), Transparency = 0 },
+    ["0"]   = { Color = Color3.fromHex("#111827"), Transparency = 0 },
     ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
 }, { Rotation = 45 })
 
-WindUI:SetTheme("Nebula")
+-- já entra no Rose
+WindUI:SetTheme("Rose")
 
--- Card do usuário
+-- Dados usuário
 local displayName = LocalPlayer.DisplayName or LocalPlayer.Name
 local username = "@" .. (LocalPlayer.Name or "Player")
 
@@ -148,14 +156,13 @@ local Window = WindUI:CreateWindow({
     Size       = UDim2.fromOffset(580, 460),
     MinSize    = Vector2.new(560, 350),
     MaxSize    = Vector2.new(850, 560),
-    Transparent= true,
-    Theme      = "Nebula",
+    Transparent= false, -- transparência desativada por padrão
+    Theme      = "Rose",
     Resizable  = true,
     SideBarWidth = 200,
     BackgroundImageTransparency = 0.35,
     HideSearchBar = false,
     ScrollBarEnabled = true,
-
     User = {
         Enabled   = true,
         Anonymous = false,
@@ -173,9 +180,12 @@ local Window = WindUI:CreateWindow({
     },
 })
 
+-- toggle inicial (sem transparência)
+Window:ToggleTransparency(false)
+
+-- Key padrão (RightShift) – será sobrescrita pelo keybind da Settings
 Window:SetToggleKey(Enum.KeyCode.RightShift)
 Window:SetBackgroundImageTransparency(0.4)
-Window:ToggleTransparency(false)
 Window:SetIconSize(22)
 
 Window:EditOpenButton({
@@ -240,7 +250,7 @@ local PlayerFlags = {
 local DEFAULT_WALKSPEED = 22
 local DEFAULT_JUMPPOWER = 50
 
--- Pega referência do HUD de speed
+-- HUD Speed label
 local function getSpeedLabel()
     local pg = LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return end
@@ -260,11 +270,11 @@ local function updateHudSpeed(val)
     end
 end
 
--- SPEED: slider controla WalkSpeed e HUD
+-- SPEED
 local function forceSpeed()
     local hum = getHumanoid()
     if not hum then return end
-    local target = math.clamp(PlayerFlags.SpeedValue, 1, 25000) -- respeita cap teórico
+    local target = math.clamp(PlayerFlags.SpeedValue, 1, 25000)
     hum.WalkSpeed = target
     updateHudSpeed(target)
 end
@@ -487,7 +497,7 @@ Tabs.Selling:Section({
 })
 
 ----------------------------------------------------
--- SETTINGS (Window + Themes)
+-- SETTINGS (Window + Themes + Toggle Keybind)
 ----------------------------------------------------
 local SettingsWindowSection = Tabs.Settings:Section({
     Title = "Window",
@@ -498,18 +508,27 @@ local SettingsWindowSection = Tabs.Settings:Section({
 SettingsWindowSection:Toggle({
     Title = "Window Transparency",
     Desc  = "Liga/desliga transparência global.",
-    Value = WindUI:GetTransparency(),
+    Value = false,
     Callback = function(e)
         Window:ToggleTransparency(e)
     end
 })
 
+-- Botão/Keybind: clica, aparece 'Pressione uma tecla', e salva a tecla
 SettingsWindowSection:Keybind({
     Title = "Toggle UI Key",
-    Desc  = "Tecla para mostrar/ocultar a UI.",
+    Desc  = "Clique aqui e pressione a tecla para abrir/fechar o hub.",
     Value = "RightShift",
-    Callback = function(v)
-        Window:SetToggleKey(Enum.KeyCode[v])
+    Callback = function(keyName)
+        if typeof(keyName) == "string" and Enum.KeyCode[keyName] then
+            Window:SetToggleKey(Enum.KeyCode[keyName])
+            WindUI:Notify({
+                Title = "Toggle Key",
+                Content = "Tecla do hub alterada para: " .. keyName,
+                Duration = 3,
+                Icon = "keyboard",
+            })
+        end
     end
 })
 
@@ -528,89 +547,8 @@ local ThemesSection = Tabs.Settings:Section({
     Opened = true,
 })
 
-WindUI:AddTheme({
-    Name = "Dark",
-    Accent = Color3.fromHex("#18181b"),
-    Background = Color3.fromHex("#101010"),
-    BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#FFFFFF"),
-    Text = Color3.fromHex("#FFFFFF"),
-    Placeholder = Color3.fromHex("#7a7a7a"),
-    Button = Color3.fromHex("#52525b"),
-    Icon = Color3.fromHex("#a1a1aa"),
-    Hover = Color3.fromHex("#FFFFFF"),
-    WindowBackground = Color3.fromHex("#101010"),
-    WindowShadow = Color3.fromHex("#000000"),
-    DialogBackground = Color3.fromHex("#101010"),
-    DialogBackgroundTransparency = 0,
-    DialogTitle = Color3.fromHex("#FFFFFF"),
-    DialogContent = Color3.fromHex("#FFFFFF"),
-    DialogIcon = Color3.fromHex("#a1a1aa"),
-    WindowTopbarButtonIcon = Color3.fromHex("a1a1aa"),
-    WindowTopbarTitle = Color3.fromHex("FFFFFF"),
-    WindowTopbarAuthor = Color3.fromHex("FFFFFF"),
-    WindowTopbarIcon = Color3.fromHex("FFFFFF"),
-    TabBackground = Color3.fromHex("#18181b"),
-    TabTitle = Color3.fromHex("#FFFFFF"),
-    TabIcon = Color3.fromHex("a1a1aa"),
-    ElementBackground = Color3.fromHex("#18181b"),
-    ElementTitle = Color3.fromHex("#FFFFFF"),
-    ElementDesc = Color3.fromHex("#FFFFFF"),
-    ElementIcon = Color3.fromHex("a1a1aa"),
-    PopupBackground = Color3.fromHex("#101010"),
-    PopupBackgroundTransparency = 0,
-    PopupTitle = Color3.fromHex("#FFFFFF"),
-    PopupContent = Color3.fromHex("#FFFFFF"),
-    PopupIcon = Color3.fromHex("a1a1aa"),
-    Toggle = Color3.fromHex("#52525b"),
-    ToggleBar = Color3.fromHex("#FFFFFF"),
-    Checkbox = Color3.fromHex("#52525b"),
-    CheckboxIcon = Color3.fromHex("#FFFFFF"),
-    Slider = Color3.fromHex("#52525b"),
-    SliderThumb = Color3.fromHex("#FFFFFF"),
-})
-
-WindUI:AddTheme({
-    Name = "Light",
-    Accent = Color3.fromHex("#e5e5e5"),
-    Background = Color3.fromHex("#f4f4f5"),
-    BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#000000"),
-    Text = Color3.fromHex("#000000"),
-    Placeholder = Color3.fromHex("#7a7a7a"),
-    Button = Color3.fromHex("#e5e5e5"),
-    Icon = Color3.fromHex("#27272a"),
-    Hover = Color3.fromHex("#000000"),
-    WindowBackground = Color3.fromHex("#ffffff"),
-    WindowShadow = Color3.fromHex("#000000"),
-    DialogBackground = Color3.fromHex("#ffffff"),
-    DialogBackgroundTransparency = 0,
-    DialogTitle = Color3.fromHex("#000000"),
-    DialogContent = Color3.fromHex("#000000"),
-    DialogIcon = Color3.fromHex("#27272a"),
-    WindowTopbarButtonIcon = Color3.fromHex("27272a"),
-    WindowTopbarTitle = Color3.fromHex("000000"),
-    WindowTopbarAuthor = Color3.fromHex("000000"),
-    WindowTopbarIcon = Color3.fromHex("000000"),
-    TabBackground = Color3.fromHex("#e5e7eb"),
-    TabTitle = Color3.fromHex("#000000"),
-    TabIcon = Color3.fromHex("27272a"),
-    ElementBackground = Color3.fromHex("#e5e7eb"),
-    ElementTitle = Color3.fromHex("#000000"),
-    ElementDesc = Color3.fromHex("#111827"),
-    ElementIcon = Color3.fromHex("27272a"),
-    PopupBackground = Color3.fromHex("#ffffff"),
-    PopupBackgroundTransparency = 0,
-    PopupTitle = Color3.fromHex("#000000"),
-    PopupContent = Color3.fromHex("#000000"),
-    PopupIcon = Color3.fromHex("27272a"),
-    Toggle = Color3.fromHex("#d4d4d8"),
-    ToggleBar = Color3.fromHex("#000000"),
-    Checkbox = Color3.fromHex("#d4d4d8"),
-    CheckboxIcon = Color3.fromHex("#000000"),
-    Slider = Color3.fromHex("#d4d4d8"),
-    SliderThumb = Color3.fromHex("#000000"),
-})
+-- Você ainda pode adicionar outros temas aqui se quiser (Dark, Light, etc.)
+-- Exemplo: WindUI:AddTheme({ Name = "Dark", ... })
 
 local themeNames = {}
 for name in pairs(WindUI:GetThemes()) do
@@ -621,7 +559,7 @@ ThemesSection:Dropdown({
     Title  = "Theme",
     Desc   = "Selecione o tema.",
     Values = themeNames,
-    Value  = WindUI:GetCurrentTheme() or "Nebula",
+    Value  = WindUI:GetCurrentTheme() or "Rose",
     Callback = function(themeName)
         WindUI:SetTheme(themeName)
         WindUI:Notify({

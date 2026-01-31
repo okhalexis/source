@@ -619,27 +619,27 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO GAP SYSTEM - POSIÇÕES FIXAS + WAVE DETECTION
+-- AUTO FARM BRAINROT
 ----------------------------------------------------
-local AutoGapSection = Tabs.Farm:Section({
-    Title  = "Auto Gap",
-    Icon   = "navigation",
+local AutoFarmSection = Tabs.Farm:Section({
+    Title  = "Auto Farm Brainrot",
+    Icon   = "cpu",
     Box    = true,
     Opened = true,
 })
 
--- POSIÇÕES FIXAS (10 posições)
+-- POSIÇÕES FIXAS COM NOMES DAS ÁREAS
 local GapPositions = {
-    { Index = 1,  Name = "Start Position",      Position = Vector3.new(150.03, 3.26, -9.30) },
-    { Index = 2,  Name = "Common Gap",          Position = Vector3.new(201.99, -2.74, -9.46) },
-    { Index = 3,  Name = "Uncommon Gap",        Position = Vector3.new(288.75, -2.74, -33.45) },
-    { Index = 4,  Name = "Rare Gap",            Position = Vector3.new(399.06, -2.74, -39.60) },
-    { Index = 5,  Name = "Epic Gap",            Position = Vector3.new(544.87, -2.74, -34.12) },
-    { Index = 6,  Name = "Legendary Gap",       Position = Vector3.new(761.22, -2.74, -37.66) },
-    { Index = 7,  Name = "Mythical Gap",        Position = Vector3.new(1081.41, -2.74, -6.72) },
-    { Index = 8,  Name = "Cosmic Gap",          Position = Vector3.new(1552.26, -2.74, -17.41) },
-    { Index = 9,  Name = "Secret Gap",          Position = Vector3.new(2272.14, -2.74, -47.31) },
-    { Index = 10, Name = "Final Gap (Celestial)", Position = Vector3.new(2591.95, -2.74, 12.74) },
+    { Index = 1,  Name = "Start Position",  Position = Vector3.new(150.03, 3.26, -9.30) },
+    { Index = 2,  Name = "Common",          Position = Vector3.new(201.99, -2.74, -9.46) },
+    { Index = 3,  Name = "Uncommon",        Position = Vector3.new(288.75, -2.74, -33.45) },
+    { Index = 4,  Name = "Rare",            Position = Vector3.new(399.06, -2.74, -39.60) },
+    { Index = 5,  Name = "Epic",            Position = Vector3.new(544.87, -2.74, -34.12) },
+    { Index = 6,  Name = "Legendary",       Position = Vector3.new(761.22, -2.74, -37.66) },
+    { Index = 7,  Name = "Mythical",        Position = Vector3.new(1081.41, -2.74, -6.72) },
+    { Index = 8,  Name = "Cosmic",          Position = Vector3.new(1552.26, -2.74, -17.41) },
+    { Index = 9,  Name = "Secret",          Position = Vector3.new(2272.14, -2.74, -47.31) },
+    { Index = 10, Name = "Celestial",       Position = Vector3.new(2591.95, -2.74, 12.74) },
 }
 
 local AutoGapState = {
@@ -702,7 +702,6 @@ function WaveDetector.ScanAllWaves()
         if obj:IsA("BasePart") and not obj.Anchored then
             local vel = obj.AssemblyLinearVelocity
             if vel and vel.Magnitude > 10 then
-                -- Verifica se já foi adicionado
                 local alreadyExists = false
                 for _, wave in ipairs(waves) do
                     if wave.Part == obj then
@@ -752,10 +751,6 @@ function WaveDetector.ScanAllWaves()
     
     if #waves > 0 then
         print(string.format("[Wave Detector] 🌊 Found %d active waves", #waves))
-        for i, wave in ipairs(waves) do
-            print(string.format("[Wave Detector] Wave %d: %s at (%.1f, %.1f, %.1f) | Speed: %.1f", 
-                i, wave.Name, wave.Position.X, wave.Position.Y, wave.Position.Z, wave.Speed))
-        end
     end
     
     return waves
@@ -783,7 +778,6 @@ function WaveDetector.IsSafeToMove(currentGapIndex, nextGapIndex)
     local waves = WaveDetector.ScanAllWaves()
     
     if #waves == 0 then
-        print("[Wave Detector] ✅ No waves detected, safe to move")
         return true
     end
     
@@ -794,21 +788,16 @@ function WaveDetector.IsSafeToMove(currentGapIndex, nextGapIndex)
         if waveGapIndex then
             local gapDifference = waveGapIndex - currentGapIndex
             
-            print(string.format("[Wave Detector] Wave '%s' at Gap %d | Player at Gap %d | Difference: %d", 
-                wave.Name, waveGapIndex, currentGapIndex, gapDifference))
-            
-            -- Lógica: Se estou no gap 4 e wave está no gap 6 (diff = 2), posso mover
+            -- Se estou no gap 4 e wave está no gap 6 (diff = 2), posso mover
             -- Se estou no gap 4 e wave está no gap 5 (diff = 1), NÃO posso mover
-            -- Se estou no gap 4 e wave está no gap 4 ou antes (diff <= 0), NÃO posso mover
             
             if gapDifference <= 1 then
-                print(string.format("[Wave Detector] ⚠️ DANGER! Wave too close (Gap %d vs Player Gap %d)", waveGapIndex, currentGapIndex))
+                print(string.format("[Wave Detector] ⚠️ DANGER! Wave at Gap %d, Player at Gap %d", waveGapIndex, currentGapIndex))
                 return false
             end
         end
     end
     
-    print("[Wave Detector] ✅ All waves are safe distance away")
     return true
 end
 
@@ -834,7 +823,8 @@ end
     UI CONTROLS
 ==========================================================]]
 
-local function getGapNames()
+-- Função retorna apenas nomes das áreas (da posição 2 em diante)
+local function getAreaNames()
     local names = {}
     for i = 2, #GapPositions do -- Começa do 2 (pula Start Position)
         table.insert(names, GapPositions[i].Name)
@@ -842,11 +832,11 @@ local function getGapNames()
     return names
 end
 
-AutoGapSection:Dropdown({
-    Title  = "Select Gap",
-    Desc   = "Choose target gap",
+AutoFarmSection:Dropdown({
+    Title  = "Select Area",
+    Desc   = "Choose target area",
     Icon   = "map-pin",
-    Values = getGapNames(),
+    Values = getAreaNames(),
     Value  = nil,
     Callback = function(value)
         for i, gap in ipairs(GapPositions) do
@@ -854,7 +844,7 @@ AutoGapSection:Dropdown({
                 AutoGapState.TargetGapIndex = i
                 
                 WindUI:Notify({
-                    Title   = "Auto Gap",
+                    Title   = "Auto Farm",
                     Content = "Selected: " .. value,
                     Duration= 3,
                     Icon    = "map-pin",
@@ -865,9 +855,9 @@ AutoGapSection:Dropdown({
     end
 })
 
-AutoGapSection:Toggle({
+AutoFarmSection:Toggle({
     Title = "Go to Area",
-    Desc  = "Auto navigate to selected gap",
+    Desc  = "Auto navigate to selected area",
     Icon  = "navigation",
     Value = false,
     Callback = function(state)
@@ -876,8 +866,8 @@ AutoGapSection:Toggle({
         if state then
             if not AutoGapState.TargetGapIndex then
                 WindUI:Notify({
-                    Title   = "Auto Gap",
-                    Content = "⚠️ Select a gap first!",
+                    Title   = "Auto Farm",
+                    Content = "⚠️ Select an area first!",
                     Duration= 3,
                     Icon    = "alert-triangle",
                 })
@@ -885,11 +875,11 @@ AutoGapSection:Toggle({
                 return
             end
             
-            -- Começa da posição 1 (Start Position)
+            -- Começa da posição 0 (vai direto para posição 1 automaticamente)
             AutoGapState.CurrentPositionIndex = 0
             
             WindUI:Notify({
-                Title   = "Auto Gap",
+                Title   = "Auto Farm",
                 Content = "🚀 Starting navigation to " .. GapPositions[AutoGapState.TargetGapIndex].Name,
                 Duration= 3,
                 Icon    = "navigation",
@@ -898,7 +888,7 @@ AutoGapSection:Toggle({
             AutoGapState.WaitingForWave = false
             
             WindUI:Notify({
-                Title   = "Auto Gap",
+                Title   = "Auto Farm",
                 Content = "Stopped.",
                 Duration= 3,
                 Icon    = "square",
@@ -936,12 +926,12 @@ RunService.Heartbeat:Connect(function(dt)
         -- Se já está próximo da posição atual, marca como alcançada
         if distToNext < 10 then
             AutoGapState.CurrentPositionIndex = nextPositionIndex
-            print(string.format("[Auto Gap] ✅ Reached position %d: %s", nextPositionIndex, nextPosition.Name))
+            print(string.format("[Auto Farm] ✅ Reached position %d: %s", nextPositionIndex, nextPosition.Name))
             
             -- Se chegou no target final
             if AutoGapState.CurrentPositionIndex == AutoGapState.TargetGapIndex then
                 WindUI:Notify({
-                    Title   = "Auto Gap",
+                    Title   = "Auto Farm",
                     Content = "✅ Arrived at " .. nextPosition.Name,
                     Duration= 3,
                     Icon    = "check-circle",
@@ -957,8 +947,8 @@ RunService.Heartbeat:Connect(function(dt)
         local isSafe = WaveDetector.IsSafeToMove(AutoGapState.CurrentPositionIndex, nextPositionIndex)
         
         if isSafe then
-            if not AutoGapState.WaitingForWave then
-                print(string.format("[Auto Gap] 🚀 Moving to position %d: %s", nextPositionIndex, nextPosition.Name))
+            if AutoGapState.WaitingForWave then
+                print("[Wave Detector] ✅ Wave passed, safe to move!")
             end
             
             AutoGapState.WaitingForWave = false
@@ -966,25 +956,25 @@ RunService.Heartbeat:Connect(function(dt)
             -- TP para próxima posição
             tpToPosition(nextPosition.Position, function()
                 AutoGapState.CurrentPositionIndex = nextPositionIndex
-                print(string.format("[Auto Gap] ✅ Arrived at %s", nextPosition.Name))
+                print(string.format("[Auto Farm] ✅ Arrived at %s", nextPosition.Name))
             end)
         else
             -- Espera wave passar
             if not AutoGapState.WaitingForWave then
                 AutoGapState.WaitingForWave = true
-                print(string.format("[Auto Gap] ⏸️ Waiting at position %d (%s) for wave to pass...", 
+                print(string.format("[Auto Farm] ⏸️ Waiting at position %d (%s) for wave to pass...", 
                     AutoGapState.CurrentPositionIndex, 
-                    GapPositions[AutoGapState.CurrentPositionIndex] and GapPositions[AutoGapState.CurrentPositionIndex].Name or "Start"))
+                    GapPositions[math.max(1, AutoGapState.CurrentPositionIndex)].Name))
                 
                 WindUI:Notify({
-                    Title   = "Auto Gap",
+                    Title   = "Auto Farm",
                     Content = "⏸️ Waiting for wave...",
                     Duration= 2,
                     Icon    = "pause-circle",
                 })
             end
             
-            task.wait(1) -- Aguarda 1 segundo antes de verificar novamente
+            task.wait(1)
         end
     end
 end)

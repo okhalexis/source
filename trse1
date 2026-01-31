@@ -212,6 +212,25 @@ local PlayerSection = Tabs.Player:Section({
     Opened = true,
 })
 
+-- Sub‑categorias dobráveis
+local SpeedCategory = PlayerSection:Section({
+    Title = "⚡ Speed",
+    Box = false,
+    Opened = false,
+})
+
+local JumpCategory = PlayerSection:Section({
+    Title = "⬆ Jump",
+    Box = false,
+    Opened = false,
+})
+
+local FlyCategory = PlayerSection:Section({
+    Title = "🕊 Fly",
+    Box = false,
+    Opened = false,
+})
+
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -269,42 +288,51 @@ local function updateHudSpeed(val)
 end
 
 ----------------------------------------------------
--- SISTEMA DE SPEED (EMPURRA A CADA 60ms)
+-- SPEED SUAVE + ANIMAÇÃO
 ----------------------------------------------------
-local pushingSpeed = false
+local AnimationId_Run = "rbxassetid://ANIMATION_ID_AQUI" -- coloque seu run anim
+local runTrack
 
-local function startSpeedPush()
-    if pushingSpeed then return end
-    pushingSpeed = true
+local function setupRunAnimation()
+    local hum = getHumanoid()
+    if not hum then return end
+    if runTrack and runTrack.IsPlaying then return end
 
-    task.spawn(function()
-        while pushingSpeed do
-            task.wait(0.06) -- 60 ms
+    local animator = hum:FindFirstChildOfClass("Animator") or hum:WaitForChild("Animator", 2)
+    if not animator then return end
 
-            local hum = getHumanoid()
-            local hrp = getHumanoidRootPart()
-            if not hum or not hrp then
-                continue
-            end
+    local runAnim = Instance.new("Animation")
+    runAnim.AnimationId = AnimationId_Run
+    runTrack = animator:LoadAnimation(runAnim)
+    runTrack.Priority = Enum.AnimationPriority.Movement
+end
 
-            local moveDir = hum.MoveDirection
-            if moveDir.Magnitude > 0 then
-                moveDir = moveDir.Unit
-                local speed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
-                local delta = speed * 0.06
+local function applySpeed()
+    local hum = getHumanoid()
+    if not hum then return end
 
-                hrp.CFrame = hrp.CFrame + (moveDir * delta)
-                updateHudSpeed(speed)
-            end
+    local speed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
+    hum.WalkSpeed = speed
+    updateHudSpeed(speed)
+
+    setupRunAnimation()
+
+    if speed >= 30 then
+        if runTrack and not runTrack.IsPlaying then
+            runTrack:Play(0.15)
         end
-    end)
+    else
+        if runTrack and runTrack.IsPlaying then
+            runTrack:Stop(0.15)
+        end
+    end
 end
 
-local function stopSpeedPush()
-    pushingSpeed = false
-end
-
-startSpeedPush()
+RunService.Heartbeat:Connect(function()
+    local hum = getHumanoid()
+    if not hum then return end
+    hum.WalkSpeed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
+end)
 
 ----------------------------------------------------
 -- JUMP
@@ -439,20 +467,22 @@ end)
 ----------------------------------------------------
 -- UI ELEMENTOS PLAYER
 ----------------------------------------------------
-PlayerSection:Slider({
+-- SPEED CATEGORY
+SpeedCategory:Slider({
     Title = "Speed",
-    Desc  = "Velocidade (empurrão a cada 60ms).",
+    Desc  = "Player movement speed.",
     Step  = 1,
     Value = { Min = 1, Max = MAX_SPEED, Default = 22 },
     Callback = function(value)
         PlayerFlags.SpeedValue = value
-        updateHudSpeed(value)
+        applySpeed()
     end
 })
 
-PlayerSection:Toggle({
+-- JUMP CATEGORY
+JumpCategory:Toggle({
     Title = "Custom Jump",
-    Desc  = "Ativa/desativa controle de pulo.",
+    Desc  = "Enable custom jump height.",
     Icon  = "arrow-up",
     Value = false,
     Callback = function(state)
@@ -465,9 +495,9 @@ PlayerSection:Toggle({
     end
 })
 
-PlayerSection:Slider({
+JumpCategory:Slider({
     Title = "Jump Power",
-    Desc  = "Altura do pulo.",
+    Desc  = "Jump height.",
     Step  = 1,
     Value = { Min = 10, Max = 300, Default = 80 },
     Callback = function(value)
@@ -478,9 +508,10 @@ PlayerSection:Slider({
     end
 })
 
-PlayerSection:Toggle({
+-- FLY CATEGORY
+FlyCategory:Toggle({
     Title = "Fly",
-    Desc  = "Ativa/desativa fly (tecla F).",
+    Desc  = "Toggle fly (F key).",
     Icon  = "feather",
     Value = false,
     Callback = function(state)
@@ -488,9 +519,9 @@ PlayerSection:Toggle({
     end
 })
 
-PlayerSection:Slider({
+FlyCategory:Slider({
     Title = "Fly Speed",
-    Desc  = "Velocidade do fly.",
+    Desc  = "Flight speed.",
     Step  = 1,
     Value = { Min = 10, Max = 500, Default = 50 },
     Callback = function(value)
@@ -498,9 +529,10 @@ PlayerSection:Slider({
     end
 })
 
+-- NOCLIP (fora de categoria)
 PlayerSection:Toggle({
     Title = "NoClip",
-    Desc  = "Atravessa qualquer parede/objeto.",
+    Desc  = "Walk through any wall/object.",
     Icon  = "ghost",
     Type  = "Checkbox",
     Value = false,
@@ -516,7 +548,7 @@ PlayerSection:Toggle({
 -- FARM / INSTANT STEAL
 ----------------------------------------------------
 local FarmSection = Tabs.Farm:Section({
-    Title = "Farm",
+    Title = "Instant Steal",
     Box = true,
     Opened = true,
 })
@@ -569,7 +601,7 @@ end
 
 FarmSection:Toggle({
     Title = "Instant Steal",
-    Desc  = "Pegar Brainrot com 1 clique (sem segurar E).",
+    Desc  = "Quick Interact!",
     Icon  = "zap",
     Value = false,
     Callback = function(state)

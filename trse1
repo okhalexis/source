@@ -154,7 +154,7 @@ local Window = WindUI:CreateWindow({
     Size       = UDim2.fromOffset(580, 460),
     MinSize    = Vector2.new(560, 350),
     MaxSize    = Vector2.new(850, 560),
-    Transparent= false,
+    Transparent= false, -- sem transparência
     Theme      = "Red",
     Resizable  = true,
     SideBarWidth = 200,
@@ -214,6 +214,7 @@ local PlayerSection = Tabs.Player:Section({
 
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
 local function getCharacter()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -233,16 +234,17 @@ local function getHumanoidRootPart()
 end
 
 local PlayerFlags = {
-    SpeedValue     = 22,   -- valor usado pelo sistema de "empurrão"
+    SpeedValue     = 22,
     JumpEnabled    = false,
     JumpValue      = 50,
     NoClipEnabled  = false,
     FlyEnabled     = false,
     FlySpeed       = 50,
     FlyKey         = Enum.KeyCode.F,
+    InstantSteal   = false,
 }
 
-local DEFAULT_WALKSPEED = 16      -- não vamos mais mexer nisso
+local DEFAULT_WALKSPEED = 16
 local DEFAULT_JUMPPOWER = 50
 local MAX_SPEED = 1000
 
@@ -267,7 +269,7 @@ local function updateHudSpeed(val)
 end
 
 ----------------------------------------------------
--- SISTEMA NOVO DE SPEED (EMPURRA A CADA 60ms)
+-- SISTEMA DE SPEED (EMPURRA A CADA 60ms)
 ----------------------------------------------------
 local pushingSpeed = false
 
@@ -285,15 +287,12 @@ local function startSpeedPush()
                 continue
             end
 
-            -- direção atual de movimento (WASD)
             local moveDir = hum.MoveDirection
             if moveDir.Magnitude > 0 then
                 moveDir = moveDir.Unit
-                -- distância = speed(studs/s) * tempo(0.06s)
                 local speed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
                 local delta = speed * 0.06
 
-                -- empurra na direção que o player está se movendo
                 hrp.CFrame = hrp.CFrame + (moveDir * delta)
                 updateHudSpeed(speed)
             end
@@ -305,7 +304,6 @@ local function stopSpeedPush()
     pushingSpeed = false
 end
 
--- Opcional: começar auto
 startSpeedPush()
 
 ----------------------------------------------------
@@ -493,7 +491,7 @@ PlayerSection:Toggle({
 PlayerSection:Slider({
     Title = "Fly Speed",
     Desc  = "Velocidade do fly.",
-    Step = 1,
+    Step  = 1,
     Value = { Min = 10, Max = 500, Default = 50 },
     Callback = function(value)
         PlayerFlags.FlySpeed = value
@@ -515,14 +513,78 @@ PlayerSection:Toggle({
 })
 
 ----------------------------------------------------
--- FARM / SELLING PLACEHOLDER
+-- FARM / INSTANT STEAL
 ----------------------------------------------------
-Tabs.Farm:Section({
-    Title = "Farm (em breve)",
+local FarmSection = Tabs.Farm:Section({
+    Title = "Farm",
     Box = true,
     Opened = true,
 })
 
+-- Instant Steal: transforma segurar E em clique instantâneo
+local connections = {}
+
+local function setPromptInstant(prompt)
+    -- aqui você pode filtrar por prompt.ObjectText / ActionText se quiser só Brainrot
+    -- ex: if not tostring(prompt.ObjectText):lower():find("brainrot") then return end
+    prompt.HoldDuration = 0
+end
+
+local function enableInstantSteal()
+    -- todos prompts existentes
+    for _, prompt in ipairs(workspace:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") then
+            setPromptInstant(prompt)
+        end
+    end
+
+    -- quando novos prompts aparecem
+    table.insert(connections,
+        ProximityPromptService.PromptShown:Connect(function(prompt)
+            setPromptInstant(prompt)
+        end)
+    )
+
+    -- quando o player começa a segurar, já dispara instantaneamente
+    table.insert(connections,
+        ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
+            if not PlayerFlags.InstantSteal then return end
+            if player ~= LocalPlayer then return end
+            setPromptInstant(prompt)
+            pcall(function()
+                fireproximityprompt(prompt)
+            end)
+        end)
+    )
+end
+
+local function disableInstantSteal()
+    for _, conn in ipairs(connections) do
+        if conn.Connected then
+            conn:Disconnect()
+        end
+    end
+    table.clear(connections)
+end
+
+FarmSection:Toggle({
+    Title = "Instant Steal",
+    Desc  = "Pegar Brainrot com 1 clique (sem segurar E).",
+    Icon  = "zap",
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.InstantSteal = state
+        if state then
+            enableInstantSteal()
+        else
+            disableInstantSteal()
+        end
+    end
+})
+
+----------------------------------------------------
+-- SELLING PLACEHOLDER
+----------------------------------------------------
 Tabs.Selling:Section({
     Title = "Selling (em breve)",
     Box = true,

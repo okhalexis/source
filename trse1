@@ -1,4 +1,10 @@
-Segue o script **inteiro** reescrito, mantendo a mesma estrutura do seu original, só trocando o sistema de wave pelo sistema “todas as waves em ActiveTsunamis + thresholds por gap”:
+Segue o seu script **completo**, mesma estrutura, apenas com o sistema de waves/gaps atualizado para:
+
+- Ler `workspace.ActiveTsunamis`.
+- Considerar TODAS as waves (qualquer nome) e TODAS as ramificações.
+- Usar os thresholds por gap: 400, 500, 750, 1200, 1450, 2200, 2500, 2800, 2900.
+
+Cole exatamente assim:
 
 ```lua
 --[[========================================================
@@ -622,7 +628,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - SISTEMA WAVE X / GAP
+-- AUTO FARM BRAINROT - LEVITANDO + NO CLIP AUTO
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Auto Farm Brainrot",
@@ -644,17 +650,17 @@ local GapPositions = {
     { Index = 9,  Name = "Final",     X = 2599.1, Y = -2.7, Z = -14.0 },
 }
 
--- DISTÂNCIA MÍNIMA EM X POR GAP (onda mais perto à frente)
+-- LIMIAR DE DISTÂNCIA EM X POR GAP (onda mais próxima à frente)
 local GAP_SAFE_DELTAX = {
      [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/images/161181950/5e3d933a-b1f5-4191-b316-776f88ab900f/image.jpg) = 400,
-     [escape-tsunami-for-brainrots.fandom](https://escape-tsunami-for-brainrots.fandom.com/wiki/Waves) = 500,
-     [devforum.roblox](https://devforum.roblox.com/t/how-to-see-the-runservice-heartbeat-in-game/677595) = 750,
-     [devforum.roblox](https://devforum.roblox.com/t/performance-why-you-should-care-when-you-should-care/1932247) = 1200,
-     [roblox.fandom](https://roblox.fandom.com/wiki/Wave_of_Brainrots/Escape_Tsunami_for_Brainrots!) = 1450,
-     [devforum.roblox](https://devforum.roblox.com/t/runserviceheartbeat-switching-to-variable-frequency/23509?page=2) = 2200,
-     [devforum.roblox](https://devforum.roblox.com/t/which-is-best-for-performance-renderstepped-or-loops-or-anything-else-i-havent-mentioned/1327697) = 2500,
-     [play.google](https://play.google.com/store/apps/details?id=com.there.yet.offroad.driving.pranks.games&hl=pt_BR) = 2800,
-     [devforum.roblox](https://devforum.roblox.com/t/making-my-timer-using-runserviceheartbeatwait/966771) = 2900,
+    [2] = 500,
+    [3] = 750,
+    [4] = 1200,
+    [5] = 1450,
+    [6] = 2200,
+    [7] = 2500,
+    [8] = 2800,
+    [9] = 2900,
 }
 
 local AutoGapState = {
@@ -671,12 +677,13 @@ local ARRIVAL_DISTANCE = 2
 local CHECK_INTERVAL   = 0.03
 
 ----------------------------------------------------
--- WAVE DETECTOR (workspace.ActiveTsunamis)
+-- WAVE DETECTOR VIA workspace.ActiveTsunamis
 ----------------------------------------------------
 local WaveDetector = {}
 
-local ActiveTsunamisFolder = workspace:WaitForChild("ActiveTsunamis", 10)
+local ActiveTsunamisFolder = workspace:WaitForChild("ActiveTsunamis")
 
+-- pega uma BasePart representando a frente da onda (todas ramificações)
 local function getWavePartDeep(root)
     if root:IsA("BasePart") then
         return root
@@ -703,6 +710,7 @@ local function getWavePartDeep(root)
     return bestPart
 end
 
+-- menor (waveX - playerX) dentre TODAS as waves/ramificações
 local function getNearestWaveDeltaX(playerPosX)
     if not ActiveTsunamisFolder then return nil end
 
@@ -725,6 +733,7 @@ local function getNearestWaveDeltaX(playerPosX)
     return nearestDeltaX
 end
 
+-- true = pode avançar para gapIndex; false = segura parado
 function WaveDetector.IsSafeForGap(gapIndex)
     local hrp = getHumanoidRootPart()
     if not hrp then
@@ -740,6 +749,7 @@ function WaveDetector.IsSafeForGap(gapIndex)
     local deltaX = getNearestWaveDeltaX(playerX)
 
     if not deltaX then
+        -- nenhuma wave ativa no momento
         return true, nil
     end
 
@@ -1070,8 +1080,8 @@ Tabs.Selling:Section({
 ----------------------------------------------------
 local SettingsWindowSection = Tabs.Settings:Section({
     Title = "Window Settings",
-    Icon  = "sliders",
-    Box   = true,
+    Icon = "sliders",
+    Box = true,
     Opened = true,
 })
 

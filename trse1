@@ -264,54 +264,6 @@ local function updateHudSpeed(val)
 end
 
 ----------------------------------------------------
--- ENHANCED GOD MODE (PLAYER TAB)
-----------------------------------------------------
-local GodModeSection = Tabs.Player:Section({
-    Title  = "Enhanced God Mode",
-    Icon   = "heart",
-    Box    = true,
-    Opened = false,
-})
-
-local function enableGodMode()
-    local hum = getHumanoid()
-    if not hum then return end
-    hum.MaxHealth = math.huge
-    hum.Health = math.huge
-end
-
-local function disableGodMode()
-    local hum = getHumanoid()
-    if not hum then return end
-    hum.MaxHealth = 100
-    hum.Health = 100
-end
-
-RunService.Heartbeat:Connect(function()
-    if PlayerFlags.GodMode then
-        local hum = getHumanoid()
-        if hum then
-            hum.Health = math.huge
-        end
-    end
-end)
-
-GodModeSection:Toggle({
-    Title = "Enhanced God Mode",
-    Desc  = "Infinite health protection.",
-    Icon  = "heart",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.GodMode = state
-        if state then
-            enableGodMode()
-        else
-            disableGodMode()
-        end
-    end
-})
-
-----------------------------------------------------
 -- SPEED HACK (EMPURRA A CADA FRAME)
 ----------------------------------------------------
 local SpeedSection = Tabs.Player:Section({
@@ -589,7 +541,7 @@ NoClipSection:Toggle({
 })
 
 ----------------------------------------------------
--- FARM / INSTANT STEAL
+-- FARM / INSTANT STEAL  (AGORA BOTÃO)
 ----------------------------------------------------
 local FarmSection = Tabs.Farm:Section({
     Title = "Instant Steal",
@@ -637,18 +589,21 @@ local function disableInstantSteal()
     table.clear(connections)
 end
 
-FarmSection:Toggle({
+FarmSection:Button({
     Title = "Instant Steal",
     Desc  = "Quick Interact!",
     Icon  = "zap",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.InstantSteal = state
-        if state then
-            enableInstantSteal()
-        else
-            disableInstantSteal()
-        end
+    Callback = function()
+        PlayerFlags.InstantSteal = true
+        disableInstantSteal()
+        enableInstantSteal()
+
+        WindUI:Notify({
+            Title   = "Instant Steal",
+            Content = "Instant Steal enabled (Quick Interact).",
+            Duration= 3,
+            Icon    = "zap",
+        })
     end
 })
 

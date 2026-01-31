@@ -207,6 +207,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local CollectionService = game:GetService("CollectionService")
+local TweenService = game:GetService("TweenService")
 
 local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -618,119 +619,150 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO GAP SYSTEM - CORRIGIDO COM NOMES DAS ÁREAS
+-- AUTO FARM SYSTEM - COMPLEXO
 ----------------------------------------------------
-local AutoGapSection = Tabs.Farm:Section({
-    Title  = "Auto Gap",
-    Icon   = "navigation",
+local AutoFarmSection = Tabs.Farm:Section({
+    Title  = "Auto Farm Brainrot",
+    Icon   = "cpu",
     Box    = true,
     Opened = true,
 })
 
--- Gap 1 = Common, Gap 2 = Uncommon, etc.
-local GapDatabase = {
-    { Index = 1, Name = "Common",    Position = nil },
-    { Index = 2, Name = "Uncommon",  Position = nil },
-    { Index = 3, Name = "Rare",      Position = nil },
-    { Index = 4, Name = "Epic",      Position = nil },
-    { Index = 5, Name = "Legendary", Position = nil },
-    { Index = 6, Name = "Mythical",  Position = nil },
-    { Index = 7, Name = "Cosmic",    Position = nil },
-    { Index = 8, Name = "Secret",    Position = nil },
-    { Index = 9, Name = "Celestial", Position = nil },
-}
-
-local AutoGapState = {
-    Enabled        = false,
-    SelectedArea   = nil,
+-- Estado do Auto Farm
+local AutoFarmState = {
+    Enabled = false,
+    SelectedBrainrot = nil,
+    CurrentPhase = "IDLE", -- IDLE, GO_TO_SHOP, ENTER_GAP1, NAVIGATE_GAPS, COLLECT
+    CurrentGapIndex = 0,
     WaitingForWave = false,
+    FlySpeed = 80,
 }
 
--- DETECÇÃO DE WAVE MELHORADA
-local WaveDetector = {}
+-- Database
+local BrainrotDatabase = {}
+local GapDatabase = {}
+local WaveDatabase = {}
+local UpgradeShopPosition = nil
 
-function WaveDetector.GetAllWaves()
-    local waves = {}
+--[[========================================================
+    SISTEMA DE DETECÇÃO - WORKSPACE SCANNER
+==========================================================]]
+
+local WorkspaceScanner = {}
+
+-- Detecta todos os brainrots spawned
+function WorkspaceScanner.ScanBrainrots()
+    BrainrotDatabase = {}
     
-    -- Método 1: Por atributo
-    if workspace:GetAttribute("SnakeWavesActive") == true or workspace:GetAttribute("WackyWavesActive") == true then
-        for _, obj in workspace:GetChildren() do
-            local name = obj.Name:lower()
-            if (name:find("snake") or name:find("wacky") or name:find("wave")) and (obj:IsA("Model") or obj:IsA("BasePart")) then
-                table.insert(waves, obj)
-            end
-        end
-    end
+    print("[Auto Farm] 🔍 Scanning for brainrots...")
     
-    -- Método 2: Por nome
-    for _, obj in workspace:GetChildren() do
-        local name = obj.Name:lower()
-        if (name:find("tsunami") or name:find("wave") or name:find("water")) and (obj:IsA("Model") or obj:IsA("BasePart")) then
-            local alreadyAdded = false
-            for _, w in waves do
-                if w == obj then alreadyAdded = true break end
-            end
-            if not alreadyAdded then
-                table.insert(waves, obj)
-            end
-        end
-    end
-    
-    -- Método 3: Por velocidade alta
+    -- Procura no workspace por objetos com "brainrot" no nome ou propriedade
     for _, obj in workspace:GetDescendants() do
-        if obj:IsA("BasePart") and not obj.Anchored then
-            local vel = obj.AssemblyLinearVelocity
-            if vel and vel.Magnitude > 20 then
-                local alreadyAdded = false
-                for _, w in waves do
-                    if w == obj then alreadyAdded = true break end
+        local name = obj.Name:lower()
+        
+        -- Detecta brainrots por nome
+        if name:find("brainrot") or name:find("brain") or name:find("rot") then
+            if obj:IsA("Model") or obj:IsA("BasePart") then
+                local pos = nil
+                
+                if obj:IsA("Model") then
+                    pos = obj:GetPivot().Position
+                elseif obj:IsA("BasePart") then
+                    pos = obj.Position
                 end
+                
+                if pos then
+                    table.insert(BrainrotDatabase, {
+                        Name = obj.Name,
+                        Object = obj,
+                        Position = pos,
+                        CFrame = CFrame.new(pos),
+                    })
+                    print(string.format("[Auto Farm] ✅ Found brainrot: %s at Y=%.1f", obj.Name, pos.Y))
+                end
+            end
+        end
+        
+        -- Detecta por atributos
+        if obj:GetAttribute("IsBrainrot") == true then
+            local pos = nil
+            
+            if obj:IsA("Model") then
+                pos = obj:GetPivot().Position
+            elseif obj:IsA("BasePart") then
+                pos = obj.Position
+            end
+            
+            if pos then
+                local alreadyAdded = false
+                for _, br in BrainrotDatabase do
+                    if br.Object == obj then alreadyAdded = true break end
+                end
+                
                 if not alreadyAdded then
-                    table.insert(waves, obj)
+                    table.insert(BrainrotDatabase, {
+                        Name = obj.Name,
+                        Object = obj,
+                        Position = pos,
+                        CFrame = CFrame.new(pos),
+                    })
+                    print(string.format("[Auto Farm] ✅ Found brainrot (by attribute): %s", obj.Name))
                 end
             end
         end
     end
     
-    return waves
+    print(string.format("[Auto Farm] 📦 Total brainrots found: %d", #BrainrotDatabase))
+    return BrainrotDatabase
 end
 
-function WaveDetector.GetPrimaryPart(obj)
-    if not obj then return nil end
-    if obj:IsA("BasePart") then return obj end
-    if obj:IsA("Model") then
-        return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+-- Detecta upgrade shop
+function WorkspaceScanner.FindUpgradeShop()
+    print("[Auto Farm] 🏪 Searching for Upgrade Shop...")
+    
+    for _, obj in workspace:GetDescendants() do
+        local name = obj.Name:lower()
+        
+        if name:find("upgrade") and name:find("shop") then
+            if obj:IsA("Model") then
+                UpgradeShopPosition = obj:GetPivot()
+                print(string.format("[Auto Farm] ✅ Found Upgrade Shop at Y=%.1f", UpgradeShopPosition.Position.Y))
+                return UpgradeShopPosition
+            elseif obj:IsA("BasePart") then
+                UpgradeShopPosition = obj.CFrame
+                print(string.format("[Auto Farm] ✅ Found Upgrade Shop at Y=%.1f", UpgradeShopPosition.Position.Y))
+                return UpgradeShopPosition
+            end
+        end
     end
+    
+    -- Fallback: procura por "shop" genérico
+    for _, obj in workspace:GetDescendants() do
+        local name = obj.Name:lower()
+        
+        if name:find("shop") or name:find("store") then
+            if obj:IsA("Model") or obj:IsA("BasePart") then
+                local cf = obj:IsA("Model") and obj:GetPivot() or obj.CFrame
+                UpgradeShopPosition = cf
+                print(string.format("[Auto Farm] ⚠️ Found generic shop at Y=%.1f", cf.Position.Y))
+                return UpgradeShopPosition
+            end
+        end
+    end
+    
+    warn("[Auto Farm] ❌ Upgrade Shop not found!")
     return nil
 end
 
-function WaveDetector.IsWaveDangerous(wavePos, playerPos, safeDistance)
-    if not wavePos or not playerPos then return false end
+-- Detecta todos os gaps
+function WorkspaceScanner.ScanGaps()
+    GapDatabase = {}
     
-    local dist = (wavePos - playerPos).Magnitude
-    return dist < safeDistance
-end
-
-function WaveDetector.IsWaveApproaching(wavePos, waveVel, playerPos)
-    if not wavePos or not waveVel or not playerPos then return false end
-    
-    local toPlayer = (playerPos - wavePos).Unit
-    local waveDir = waveVel.Unit
-    
-    local dot = toPlayer:Dot(waveDir)
-    
-    return dot > 0.5
-end
-
--- Scanner de gaps
-local GapScanner = {}
-
-function GapScanner.ScanAllGaps()
-    print("[Auto Gap] 🔍 Scanning for gaps...")
+    print("[Auto Farm] 🔍 Scanning for gaps...")
     
     local foundGaps = {}
     
-    -- Procura por tags primeiro
+    -- Método 1: Por tags
     for _, obj in CollectionService:GetTagged("Gap") do
         if obj:IsA("BasePart") then
             table.insert(foundGaps, {
@@ -738,19 +770,21 @@ function GapScanner.ScanAllGaps()
                 CFrame = obj.CFrame,
                 Part = obj,
                 Height = obj.Position.Y,
+                Size = obj.Size,
             })
         end
     end
     
-    -- Se não achou por tag, procura por altura
+    -- Método 2: Por altura e tamanho
     if #foundGaps == 0 then
-        print("[Auto Gap] ⚠️ No tagged gaps, scanning by height...")
+        print("[Auto Farm] ⚠️ No tagged gaps, scanning by height...")
         
         for _, obj in workspace:GetDescendants() do
             if obj:IsA("BasePart") and obj.Anchored then
                 local pos = obj.Position
                 local size = obj.Size
                 
+                -- Plataforma grande e elevada
                 if pos.Y >= 50 and pos.Y <= 500 then
                     if size.X >= 8 and size.Z >= 8 then
                         local isDupe = false
@@ -767,6 +801,7 @@ function GapScanner.ScanAllGaps()
                                 CFrame = CFrame.new(pos),
                                 Part = obj,
                                 Height = pos.Y,
+                                Size = size,
                             })
                         end
                     end
@@ -775,102 +810,352 @@ function GapScanner.ScanAllGaps()
         end
     end
     
-    -- Ordena por altura
+    -- Ordena por altura (do mais baixo pro mais alto)
     table.sort(foundGaps, function(a, b)
         return a.Height < b.Height
     end)
     
-    -- Atribui UM gap para CADA área (Gap 1 = Common, Gap 2 = Uncommon, etc.)
-    for i, gap in ipairs(foundGaps) do
-        if i <= #GapDatabase then
-            GapDatabase[i].Position = gap.CFrame
-            print(string.format("[Auto Gap] Gap %d (%s) → Y: %.1f", i, GapDatabase[i].Name, gap.Height))
+    GapDatabase = foundGaps
+    
+    print(string.format("[Auto Farm] ✅ Found %d gaps", #GapDatabase))
+    for i, gap in ipairs(GapDatabase) do
+        print(string.format("[Auto Farm] Gap %d → Y: %.1f", i, gap.Height))
+    end
+    
+    return GapDatabase
+end
+
+--[[========================================================
+    SISTEMA DE DETECÇÃO DE WAVES
+==========================================================]]
+
+local WaveDetector = {}
+
+-- Detecta todas as waves ativas
+function WaveDetector.ScanActiveWaves()
+    WaveDatabase = {}
+    
+    -- Método 1: Por atributo de workspace
+    local hasSnakeWave = workspace:GetAttribute("SnakeWavesActive") == true
+    local hasWackyWave = workspace:GetAttribute("WackyWavesActive") == true
+    
+    if hasSnakeWave or hasWackyWave then
+        print(string.format("[Wave Detector] 🌊 Active: Snake=%s, Wacky=%s", tostring(hasSnakeWave), tostring(hasWackyWave)))
+    end
+    
+    -- Método 2: Procura por objetos com "wave", "tsunami", "water"
+    for _, obj in workspace:GetChildren() do
+        local name = obj.Name:lower()
+        
+        if name:find("tsunami") or name:find("wave") or name:find("water") or name:find("snake") or name:find("wacky") then
+            if obj:IsA("Model") or obj:IsA("BasePart") then
+                local part = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
+                
+                if part then
+                    local vel = part.AssemblyLinearVelocity or Vector3.zero
+                    
+                    table.insert(WaveDatabase, {
+                        Name = obj.Name,
+                        Object = obj,
+                        Part = part,
+                        Position = part.Position,
+                        Velocity = vel,
+                        Speed = vel.Magnitude,
+                        Direction = vel.Magnitude > 0 and vel.Unit or Vector3.zero,
+                        Size = part.Size,
+                    })
+                end
+            end
         end
     end
     
-    print(string.format("[Auto Gap] ✅ Found %d gaps total", math.min(#foundGaps, #GapDatabase)))
+    -- Método 3: Procura por parts com velocidade alta
+    for _, obj in workspace:GetDescendants() do
+        if obj:IsA("BasePart") and not obj.Anchored then
+            local vel = obj.AssemblyLinearVelocity
+            if vel and vel.Magnitude > 15 then
+                local alreadyAdded = false
+                for _, wave in WaveDatabase do
+                    if wave.Part == obj then alreadyAdded = true break end
+                end
+                
+                if not alreadyAdded then
+                    table.insert(WaveDatabase, {
+                        Name = obj.Name,
+                        Object = obj,
+                        Part = obj,
+                        Position = obj.Position,
+                        Velocity = vel,
+                        Speed = vel.Magnitude,
+                        Direction = vel.Unit,
+                        Size = obj.Size,
+                    })
+                end
+            end
+        end
+    end
+    
+    if #WaveDatabase > 0 then
+        print(string.format("[Wave Detector] 🌊 Found %d active waves", #WaveDatabase))
+        for i, wave in ipairs(WaveDatabase) do
+            print(string.format("[Wave Detector] Wave %d: %s (Speed: %.1f)", i, wave.Name, wave.Speed))
+        end
+    end
+    
+    return WaveDatabase
 end
 
--- Helpers
-local function getAreaNames()
-    local names = {}
-    for _, area in ipairs(GapDatabase) do
-        if area.Position then
-            table.insert(names, area.Name)
+-- Calcula tempo até wave atingir posição
+function WaveDetector.TimeToReach(waveData, targetPos)
+    if not waveData or not targetPos then return math.huge end
+    
+    local wavePos = waveData.Position
+    local waveVel = waveData.Velocity
+    
+    if waveVel.Magnitude < 1 then return math.huge end
+    
+    -- Calcula distância no eixo Z (direção principal da wave)
+    local distZ = targetPos.Z - wavePos.Z
+    local velZ = waveVel.Z
+    
+    if math.abs(velZ) < 0.5 then return math.huge end
+    
+    -- Se wave já passou do ponto
+    if (velZ > 0 and distZ < 0) or (velZ < 0 and distZ > 0) then
+        return math.huge
+    end
+    
+    local timeToReach = math.abs(distZ) / math.abs(velZ)
+    
+    return timeToReach
+end
+
+-- Verifica se é seguro mover para próximo gap
+function WaveDetector.IsSafeToMove(currentPos, targetPos, safetyMargin)
+    safetyMargin = safetyMargin or 5 -- segundos de margem
+    
+    WaveDetector.ScanActiveWaves()
+    
+    if #WaveDatabase == 0 then
+        return true -- Sem waves, sempre seguro
+    end
+    
+    -- Calcula tempo de viagem (fly speed = 80 studs/s)
+    local travelDistance = (targetPos - currentPos).Magnitude
+    local travelTime = travelDistance / AutoFarmState.FlySpeed
+    
+    -- Verifica cada wave
+    for _, wave in ipairs(WaveDatabase) do
+        local timeWaveReaches = WaveDetector.TimeToReach(wave, targetPos)
+        
+        -- Se wave vai chegar antes de nós (com margem), NÃO é seguro
+        if timeWaveReaches < (travelTime + safetyMargin) then
+            print(string.format("[Wave Detector] ⚠️ Wave %s will reach in %.1fs (travel=%.1fs)", wave.Name, timeWaveReaches, travelTime))
+            return false
         end
+    end
+    
+    return true
+end
+
+--[[========================================================
+    SISTEMA DE PATHFINDING INTELIGENTE
+==========================================================]]
+
+local PathFinder = {}
+
+-- Encontra gap mais próximo do brainrot
+function PathFinder.FindGapNearBrainrot(brainrotPos)
+    if #GapDatabase == 0 then return nil end
+    
+    local closestGap = nil
+    local shortestDist = math.huge
+    
+    for _, gap in ipairs(GapDatabase) do
+        local dist = (gap.Position - brainrotPos).Magnitude
+        
+        if dist < shortestDist then
+            shortestDist = dist
+            closestGap = gap
+        end
+    end
+    
+    print(string.format("[PathFinder] 📍 Closest gap to brainrot: Gap at Y=%.1f (dist: %.1f)", closestGap.Height, shortestDist))
+    
+    return closestGap
+end
+
+-- Cria rota otimizada do gap atual até gap do brainrot
+function PathFinder.CreateRoute(startGapIndex, targetGapIndex)
+    if startGapIndex >= targetGapIndex then
+        return {GapDatabase[targetGapIndex]}
+    end
+    
+    local route = {}
+    
+    for i = startGapIndex + 1, targetGapIndex do
+        table.insert(route, GapDatabase[i])
+    end
+    
+    print(string.format("[PathFinder] 🗺️ Route created: %d gaps", #route))
+    
+    return route
+end
+
+--[[========================================================
+    SISTEMA DE MOVIMENTO FLY AUTOMÁTICO
+==========================================================]]
+
+local AutoFly = {}
+
+local AutoFlyBodyVel = nil
+local AutoFlyBodyGyro = nil
+
+function AutoFly.Start()
+    local hrp = getHumanoidRootPart()
+    local hum = getHumanoid()
+    if not hrp or not hum then return false end
+    
+    hum.PlatformStand = true
+    
+    if not AutoFlyBodyVel then
+        AutoFlyBodyVel = Instance.new("BodyVelocity")
+        AutoFlyBodyVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        AutoFlyBodyVel.Velocity = Vector3.zero
+        AutoFlyBodyVel.Parent = hrp
+    end
+    
+    if not AutoFlyBodyGyro then
+        AutoFlyBodyGyro = Instance.new("BodyGyro")
+        AutoFlyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        AutoFlyBodyGyro.P = 9e4
+        AutoFlyBodyGyro.CFrame = hrp.CFrame
+        AutoFlyBodyGyro.Parent = hrp
+    end
+    
+    return true
+end
+
+function AutoFly.Stop()
+    local hum = getHumanoid()
+    if hum then hum.PlatformStand = false end
+    
+    if AutoFlyBodyVel then
+        AutoFlyBodyVel:Destroy()
+        AutoFlyBodyVel = nil
+    end
+    
+    if AutoFlyBodyGyro then
+        AutoFlyBodyGyro:Destroy()
+        AutoFlyBodyGyro = nil
+    end
+end
+
+function AutoFly.FlyTo(targetCF, callback)
+    local hrp = getHumanoidRootPart()
+    if not hrp then return end
+    
+    AutoFly.Start()
+    
+    local targetPos = targetCF.Position
+    
+    task.spawn(function()
+        while AutoFarmState.Enabled do
+            hrp = getHumanoidRootPart()
+            if not hrp then break end
+            
+            local currentPos = hrp.Position
+            local dist = (targetPos - currentPos).Magnitude
+            
+            if dist < 5 then
+                AutoFlyBodyVel.Velocity = Vector3.zero
+                if callback then callback() end
+                break
+            end
+            
+            local dir = (targetPos - currentPos).Unit
+            AutoFlyBodyVel.Velocity = dir * AutoFarmState.FlySpeed
+            AutoFlyBodyGyro.CFrame = CFrame.lookAt(currentPos, targetPos)
+            
+            task.wait()
+        end
+    end)
+end
+
+--[[========================================================
+    UI CONTROLS
+==========================================================]]
+
+-- Scan inicial
+task.spawn(function()
+    task.wait(3)
+    WorkspaceScanner.ScanBrainrots()
+    WorkspaceScanner.FindUpgradeShop()
+    WorkspaceScanner.ScanGaps()
+    WaveDetector.ScanActiveWaves()
+end)
+
+-- Função para obter nomes dos brainrots
+local function getBrainrotNames()
+    local names = {}
+    for _, br in ipairs(BrainrotDatabase) do
+        table.insert(names, br.Name)
     end
     return names
 end
 
-local function getAreaByName(name)
-    for _, area in ipairs(GapDatabase) do
-        if area.Name == name then
-            return area
-        end
-    end
-    return nil
-end
-
-local function getNextGap(currentName)
-    for i, area in ipairs(GapDatabase) do
-        if area.Name == currentName and i < #GapDatabase then
-            if GapDatabase[i + 1].Position then
-                return GapDatabase[i + 1]
-            end
-        end
-    end
-    return nil
-end
-
--- UI SIMPLES: Select Area + Go to Area
-AutoGapSection:Dropdown({
-    Title  = "Select Area",
-    Desc   = "Choose area to teleport (Common, Rare, Epic...)",
-    Icon   = "map-pin",
-    Values = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial"},
+AutoFarmSection:Dropdown({
+    Title  = "Select Brainrot",
+    Desc   = "Choose brainrot to farm",
+    Icon   = "target",
+    Values = getBrainrotNames(),
     Value  = nil,
     Callback = function(value)
-        AutoGapState.SelectedArea = value
+        AutoFarmState.SelectedBrainrot = value
         
         WindUI:Notify({
-            Title   = "Auto Gap",
+            Title   = "Auto Farm",
             Content = "Selected: " .. value,
             Duration= 3,
-            Icon    = "map-pin",
+            Icon    = "target",
         })
     end
 })
 
-AutoGapSection:Toggle({
-    Title = "Go to Area",
-    Desc  = "Teleport and auto-navigate gaps",
-    Icon  = "navigation",
+AutoFarmSection:Toggle({
+    Title = "Auto Farm",
+    Desc  = "Start intelligent auto-farming",
+    Icon  = "cpu",
     Value = false,
     Callback = function(state)
-        AutoGapState.Enabled = state
+        AutoFarmState.Enabled = state
         
         if state then
-            if not AutoGapState.SelectedArea then
+            if not AutoFarmState.SelectedBrainrot then
                 WindUI:Notify({
-                    Title   = "Auto Gap",
-                    Content = "⚠️ Select an area first!",
+                    Title   = "Auto Farm",
+                    Content = "⚠️ Select a brainrot first!",
                     Duration= 3,
                     Icon    = "alert-triangle",
                 })
-                AutoGapState.Enabled = false
+                AutoFarmState.Enabled = false
                 return
             end
             
+            AutoFarmState.CurrentPhase = "GO_TO_SHOP"
+            
             WindUI:Notify({
-                Title   = "Auto Gap",
-                Content = "🚀 Teleporting to " .. AutoGapState.SelectedArea,
+                Title   = "Auto Farm",
+                Content = "🚀 Starting auto farm for " .. AutoFarmState.SelectedBrainrot,
                 Duration= 3,
-                Icon    = "navigation",
+                Icon    = "cpu",
             })
         else
-            AutoGapState.WaitingForWave = false
+            AutoFarmState.CurrentPhase = "IDLE"
+            AutoFly.Stop()
+            
             WindUI:Notify({
-                Title   = "Auto Gap",
+                Title   = "Auto Farm",
                 Content = "Stopped.",
                 Duration= 3,
                 Icon    = "square",
@@ -879,92 +1164,183 @@ AutoGapSection:Toggle({
     end
 })
 
--- SISTEMA PRINCIPAL (TP DIRETO + ESPERA WAVE)
+--[[========================================================
+    MAIN AUTO FARM LOOP
+==========================================================]]
+
 RunService.Heartbeat:Connect(function(dt)
-    if not AutoGapState.Enabled then
-        AutoGapState.WaitingForWave = false
-        return
-    end
-
-    if not AutoGapState.SelectedArea then return end
-
-    local area = getAreaByName(AutoGapState.SelectedArea)
-    if not area or not area.Position then 
-        print("[Auto Gap] ⚠️ Area not found or not scanned yet")
-        return 
-    end
-
+    if not AutoFarmState.Enabled then return end
+    
     local hrp = getHumanoidRootPart()
     if not hrp then return end
-
-    local targetCF = area.Position
-    local playerPos = hrp.Position
-    local targetPos = targetCF.Position
     
-    local distToGap = (targetPos - playerPos).Magnitude
-    local isAtGap = distToGap < 10
-    
-    -- Se ainda não chegou no gap, TP DIRETO
-    if not isAtGap then
-        hrp.CFrame = targetCF + Vector3.new(0, 3, 0)
-        task.wait(0.1)
-        return
+    -- FASE 1: IR PARA UPGRADE SHOP
+    if AutoFarmState.CurrentPhase == "GO_TO_SHOP" then
+        if not UpgradeShopPosition then
+            WorkspaceScanner.FindUpgradeShop()
+            return
+        end
+        
+        local distToShop = (hrp.Position - UpgradeShopPosition.Position).Magnitude
+        
+        if distToShop > 10 then
+            AutoFly.FlyTo(UpgradeShopPosition, function()
+                print("[Auto Farm] ✅ Arrived at Upgrade Shop")
+                AutoFarmState.CurrentPhase = "ENTER_GAP1"
+            end)
+        else
+            AutoFarmState.CurrentPhase = "ENTER_GAP1"
+        end
     end
     
-    -- Chegou no gap atual, verifica waves
-    local waves = WaveDetector.GetAllWaves()
-    local dangerousWave = false
+    -- FASE 2: ENTRAR NO GAP 1
+    if AutoFarmState.CurrentPhase == "ENTER_GAP1" then
+        if #GapDatabase == 0 then
+            WorkspaceScanner.ScanGaps()
+            return
+        end
+        
+        local gap1 = GapDatabase[1]
+        local distToGap1 = (hrp.Position - gap1.Position).Magnitude
+        
+        if distToGap1 > 8 then
+            AutoFly.FlyTo(gap1.CFrame + Vector3.new(0, 3, 0), function()
+                print("[Auto Farm] ✅ Entered Gap 1")
+                AutoFarmState.CurrentGapIndex = 1
+                AutoFarmState.CurrentPhase = "NAVIGATE_GAPS"
+            end)
+        else
+            AutoFarmState.CurrentGapIndex = 1
+            AutoFarmState.CurrentPhase = "NAVIGATE_GAPS"
+        end
+    end
     
-    for _, wave in waves do
-        local part = WaveDetector.GetPrimaryPart(wave)
-        if part then
-            local wavePos = part.Position
-            local waveVel = part.AssemblyLinearVelocity or Vector3.zero
+    -- FASE 3: NAVEGAR ENTRE GAPS ATÉ BRAINROT
+    if AutoFarmState.CurrentPhase == "NAVIGATE_GAPS" then
+        -- Encontra brainrot selecionado
+        local targetBrainrot = nil
+        for _, br in ipairs(BrainrotDatabase) do
+            if br.Name == AutoFarmState.SelectedBrainrot then
+                targetBrainrot = br
+                break
+            end
+        end
+        
+        if not targetBrainrot then
+            print("[Auto Farm] ❌ Brainrot not found!")
+            AutoFarmState.Enabled = false
+            return
+        end
+        
+        -- Encontra gap mais próximo do brainrot
+        local targetGap = PathFinder.FindGapNearBrainrot(targetBrainrot.Position)
+        if not targetGap then return end
+        
+        local targetGapIndex = nil
+        for i, gap in ipairs(GapDatabase) do
+            if gap == targetGap then
+                targetGapIndex = i
+                break
+            end
+        end
+        
+        if not targetGapIndex then return end
+        
+        -- Já chegou no gap do brainrot
+        if AutoFarmState.CurrentGapIndex >= targetGapIndex then
+            AutoFarmState.CurrentPhase = "COLLECT"
+            return
+        end
+        
+        -- Calcula próximo gap
+        local nextGapIndex = AutoFarmState.CurrentGapIndex + 1
+        local nextGap = GapDatabase[nextGapIndex]
+        
+        if not nextGap then return end
+        
+        local currentPos = hrp.Position
+        local nextGapPos = nextGap.Position
+        
+        local distToNextGap = (currentPos - nextGapPos).Magnitude
+        
+        -- Verifica se é seguro mover
+        local isSafe = WaveDetector.IsSafeToMove(currentPos, nextGapPos, 5)
+        
+        if isSafe then
+            if distToNextGap > 8 then
+                AutoFly.FlyTo(nextGap.CFrame + Vector3.new(0, 3, 0), function()
+                    print(string.format("[Auto Farm] ✅ Reached Gap %d", nextGapIndex))
+                    AutoFarmState.CurrentGapIndex = nextGapIndex
+                end)
+            else
+                AutoFarmState.CurrentGapIndex = nextGapIndex
+            end
+        else
+            -- Espera wave passar
+            if not AutoFarmState.WaitingForWave then
+                AutoFarmState.WaitingForWave = true
+                print("[Auto Farm] ⏸️ Waiting for wave to pass...")
+                AutoFly.Stop()
+            end
             
-            -- Verifica se wave está perigosa (< 150 studs E vindo na direção)
-            if WaveDetector.IsWaveDangerous(wavePos, playerPos, 150) then
-                if WaveDetector.IsWaveApproaching(wavePos, waveVel, playerPos) then
-                    dangerousWave = true
-                    if not AutoGapState.WaitingForWave then
-                        AutoGapState.WaitingForWave = true
-                        print("[Auto Gap] ⏸️ Waiting for wave to pass...")
-                    end
-                    break
-                end
+            -- Verifica novamente se ficou seguro
+            task.wait(1)
+            if WaveDetector.IsSafeToMove(currentPos, nextGapPos, 5) then
+                AutoFarmState.WaitingForWave = false
+                print("[Auto Farm] ✅ Safe to move again!")
             end
         end
     end
     
-    -- Se wave passou, vai pro próximo gap
-    if not dangerousWave and AutoGapState.WaitingForWave then
-        AutoGapState.WaitingForWave = false
-        print("[Auto Gap] ✅ Wave passed! Moving to next gap...")
+    -- FASE 4: COLETAR BRAINROT
+    if AutoFarmState.CurrentPhase == "COLLECT" then
+        local targetBrainrot = nil
+        for _, br in ipairs(BrainrotDatabase) do
+            if br.Name == AutoFarmState.SelectedBrainrot then
+                targetBrainrot = br
+                break
+            end
+        end
         
-        local nextGap = getNextGap(AutoGapState.SelectedArea)
-        if nextGap and nextGap.Position then
-            AutoGapState.SelectedArea = nextGap.Name
-            WindUI:Notify({
-                Title   = "Auto Gap",
-                Content = "Moving to " .. nextGap.Name,
-                Duration= 2,
-                Icon    = "arrow-right",
-            })
-        else
-            WindUI:Notify({
-                Title   = "Auto Gap",
-                Content = "✅ Reached final gap!",
-                Duration= 3,
-                Icon    = "check-circle",
-            })
-            AutoGapState.Enabled = false
+        if not targetBrainrot then
+            print("[Auto Farm] ❌ Brainrot disappeared!")
+            AutoFarmState.Enabled = false
+            return
+        end
+        
+        local distToBrainrot = (hrp.Position - targetBrainrot.Position).Magnitude
+        
+        if distToBrainrot > 5 then
+            AutoFly.FlyTo(targetBrainrot.CFrame, function()
+                print("[Auto Farm] ✅ Collecting brainrot...")
+                
+                -- Tenta ativar proximity prompt
+                for _, desc in targetBrainrot.Object:GetDescendants() do
+                    if desc:IsA("ProximityPrompt") then
+                        pcall(function()
+                            fireproximityprompt(desc)
+                        end)
+                    end
+                end
+                
+                task.wait(2)
+                
+                WindUI:Notify({
+                    Title   = "Auto Farm",
+                    Content = "✅ Brainrot collected! Restarting...",
+                    Duration= 3,
+                    Icon    = "check-circle",
+                })
+                
+                -- Reinicia ciclo
+                AutoFarmState.CurrentPhase = "GO_TO_SHOP"
+                AutoFarmState.CurrentGapIndex = 0
+                
+                -- Rescan brainrots
+                WorkspaceScanner.ScanBrainrots()
+            end)
         end
     end
-end)
-
--- Auto-scan ao iniciar
-task.spawn(function()
-    task.wait(3)
-    GapScanner.ScanAllGaps()
 end)
 
 ----------------------------------------------------

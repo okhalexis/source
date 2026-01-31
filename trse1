@@ -1,3 +1,14 @@
+A lógica está perfeita; abaixo está o script completo com um sistema de detecção robusto que:
+
+- Lê `workspace.ActiveTsunamis`.
+- Varrer TODAS as waves (RadioactiveWave, WackyWave, Wave1, Wave2, etc.) e TODAS as ramificações (GetDescendants).
+- Em cada tick (~0.03s) calcula o menor `deltaX = waveX - playerX` da wave mais próxima à frente.
+- Usa limites diferentes de ΔX para cada gap (1–9) conforme você pediu.
+- Só avança para o próximo gap quando o deltaX mínimo ≥ limite daquele gap.
+
+Cole o script inteiro abaixo (já incluí o sistema novo substituindo o antigo):
+
+```lua
 --[[========================================================
     KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
 ==========================================================]]
@@ -619,7 +630,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - LEVITANDO + NO CLIP AUTO
+-- AUTO FARM BRAINROT - SISTEMA NOVO WAVE X/GAP
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Auto Farm Brainrot",
@@ -641,6 +652,19 @@ local GapPositions = {
     { Index = 9,  Name = "Final",     X = 2599.1, Y = -2.7, Z = -14.0 },
 }
 
+-- distância mínima em X (waveX - playerX) pra cada gap
+local GAP_SAFE_DELTAX = {
+     [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/images/161181950/5e3d933a-b1f5-4191-b316-776f88ab900f/image.jpg) = 400,
+     [gam3s](https://gam3s.gg/roblox/guides/escape-tsunami-for-brainrots-beginners-guide/) = 500,
+     [sourceforge](https://sourceforge.net/projects/escape-tsunami-script/) = 750,
+     [devforum.roblox](https://devforum.roblox.com/t/runserviceheartbeat-switching-to-variable-frequency/23509) = 1200,
+     [escapetsunamiforbrainrotswiki](https://www.escapetsunamiforbrainrotswiki.com) = 1450,
+     [cheater](https://cheater.fun/hacks_roblox/13275-escape-tsunami-for-brainrots-script.html) = 2200,
+     [devforum.roblox](https://devforum.roblox.com/t/why-is-my-server-heartbeat-so-low-is-it-worrisome/3862447) = 2500,
+     [youtube](https://www.youtube.com/watch?v=c7-YQNB8aCc) = 2800,
+     [youtube](https://www.youtube.com/watch?v=eyzGXKSUj6U) = 2900, -- ajuste aqui se quiser a lógica de 2800
+}
+
 local AutoGapState = {
     Enabled = false,
     TargetGapIndex = nil,
@@ -652,41 +676,31 @@ local AutoGapState = {
 
 local AUTO_FLY_SPEED   = 220
 local ARRIVAL_DISTANCE = 2
+local CHECK_INTERVAL   = 0.03 -- ~30 checks/s (1ms real é inviável em Roblox)
 
 ----------------------------------------------------
--- WAVE DETECTOR VIA ActiveTsunamis (usa X de XYZ)
+-- WAVE DETECTOR COMPLEXO (workspace.ActiveTsunamis)
 ----------------------------------------------------
 local WaveDetector = {}
 
--- workspace.ActiveTsunamis.ActiveTsunamis
-local ACTIVE_TSUNAMIS_PATH = {"ActiveTsunamis", "ActiveTsunamis"}
-local CHECK_INTERVAL   = 0.03  -- ~30 checks/s
-local SAFE_DELTA_X     = 200   -- waveX - playerX >= 200 => seguro avançar
+local ActiveTsunamisFolder = workspace:WaitForChild("ActiveTsunamis", 10)
 
-local function getActiveTsunamisFolder()
-    local obj = workspace
-    for _, name in ipairs(ACTIVE_TSUNAMIS_PATH) do
-        obj = obj:FindFirstChild(name)
-        if not obj then return nil end
-    end
-    return obj
-end
-
--- procura uma parte representando a ramificação da onda
-local function getWaveBranchPart(root)
-    -- se a própria raiz já for parte
+-- retorna uma BasePart representando a frente da onda:
+-- 1) se root for BasePart -> root
+-- 2) se Model com PrimaryPart -> PrimaryPart
+-- 3) senão, maior BasePart em todas as ramificações
+local function getWavePartDeep(root)
     if root:IsA("BasePart") then
         return root
     end
 
-    -- se for Model, tenta PrimaryPart
     if root:IsA("Model") and root.PrimaryPart then
         return root.PrimaryPart
     end
 
-    -- se for Model/Folder/etc, procura a maior BasePart nas ramificações
     local bestPart
     local bestScore = 0
+
     for _, d in ipairs(root:GetDescendants()) do
         if d:IsA("BasePart") then
             local s = d.Size
@@ -697,21 +711,21 @@ local function getWaveBranchPart(root)
             end
         end
     end
+
     return bestPart
 end
 
--- menor (waveX - playerX) dentre TODAS waves/ramificações
+-- menor (waveX - playerX) dentre TODAS waves (RadioactiveWave, WackyWave, Wave1..)
 local function getNearestWaveDeltaX(playerPosX)
-    local folder = getActiveTsunamisFolder()
-    if not folder then return nil end
+    if not ActiveTsunamisFolder then return nil end
 
     local nearestDeltaX = nil
 
-    for _, waveRoot in ipairs(folder:GetChildren()) do
-        local part = getWaveBranchPart(waveRoot)
+    for _, waveRoot in ipairs(ActiveTsunamisFolder:GetChildren()) do
+        local part = getWavePartDeep(waveRoot)
         if part then
-            local waveX = part.Position.X      -- usa eixo X do mundo (XYZ)
-            local deltaX = waveX - playerPosX  -- quanto a onda está à frente no X
+            local waveX = part.Position.X
+            local deltaX = waveX - playerPosX
 
             -- só considera ondas à frente do player
             if deltaX >= 0 then
@@ -725,11 +739,16 @@ local function getNearestWaveDeltaX(playerPosX)
     return nearestDeltaX
 end
 
--- true = seguro avançar para próximo gap
--- false = segura parado no gap atual
-function WaveDetector.IsSafeToAdvance()
+-- true  = pode avançar pro gapIndex
+-- false = segura parado
+function WaveDetector.IsSafeForGap(gapIndex)
     local hrp = getHumanoidRootPart()
     if not hrp then
+        return true, nil
+    end
+
+    local threshold = GAP_SAFE_DELTAX[gapIndex]
+    if not threshold then
         return true, nil
     end
 
@@ -737,21 +756,15 @@ function WaveDetector.IsSafeToAdvance()
     local deltaX = getNearestWaveDeltaX(playerX)
 
     if not deltaX then
-        -- nenhuma onda ativa nas ramificações de ActiveTsunamis
+        -- nenhuma wave ativa
         return true, nil
     end
 
-    if deltaX >= SAFE_DELTA_X then
-        -- onda está 200+ studs à frente no X
-        return true, deltaX
-    end
-
-    -- onda a menos de 200 no X (ex: 199, 150, etc) -> segura
-    return false, deltaX
+    return (deltaX >= threshold), deltaX
 end
 
 ----------------------------------------------------
--- AUTO LEVITATION / FLY
+-- AUTO LEVITATION / FLY (reutilizado)
 ----------------------------------------------------
 local AutoFly = {}
 
@@ -868,7 +881,7 @@ local function finishAtPosition(targetPos)
 end
 
 ----------------------------------------------------
--- MAIN LOOP GAP 1 -> TARGET
+-- MAIN LOOP GAP 1 -> TARGET (usa WaveDetector.IsSafeForGap)
 ----------------------------------------------------
 local autoFarmCoroutine = nil
 
@@ -926,18 +939,16 @@ local function autoFarmLoop()
 
         local targetPos = Vector3.new(currentGap.X, currentGap.Y, currentGap.Z)
 
-        ------------------------------------------------
-        -- SISTEMA NOVO: usa X das waves em ActiveTsunamis
-        ------------------------------------------------
-        local isSafe, deltaX = WaveDetector.IsSafeToAdvance()
+        -- DECISÃO POR GAP BASEADA NO ΔX DA WAVE MAIS PERTO (todas ramificações)
+        local isSafe, deltaX = WaveDetector.IsSafeForGap(AutoGapState.CurrentGapIndex)
 
         if not isSafe then
             AutoFly.PauseInPlace()
             print(string.format(
-                "[Auto Farm] ⏸ Wave ΔX = %.1f (< %d) - holding at Gap %d (%s)",
-                deltaX or -1,
-                SAFE_DELTA_X,
+                "[Auto Farm] ⏸ Gap %d | Wave ΔX = %.1f (< %d) - segurando em %s",
                 AutoGapState.CurrentGapIndex,
+                deltaX or -1,
+                GAP_SAFE_DELTAX[AutoGapState.CurrentGapIndex] or -1,
                 currentGap.Name
             ))
             task.wait(CHECK_INTERVAL)
@@ -1013,7 +1024,7 @@ AutoFarmSection:Dropdown({
 
 AutoFarmSection:Toggle({
     Title = "Start Auto Farm",
-    Desc  = "Gap 1→Target (levitating 220, exact coords)",
+    Desc  = "Gap 1→Target (levitating 220, X‑wave logic)",
     Icon  = "play",
     Value = false,
     Callback = function(state)
@@ -1033,7 +1044,7 @@ AutoFarmSection:Toggle({
 
             WindUI:Notify({
                 Title   = "Auto Farm",
-                Content = string.format("Gap 1 -> Gap %d | Speed 220 | Exact coords", AutoGapState.TargetGapIndex),
+                Content = string.format("Gap 1 -> Gap %d | Speed 220 | Wave‑X system", AutoGapState.TargetGapIndex),
                 Duration= 4,
                 Icon    = "rocket",
             })
@@ -1103,7 +1114,7 @@ SettingsWindowSection:Keybind({
             WindUI:Notify({
                 Title   = "Toggle Key",
                 Content = "Hub key set to: " .. keyName,
-                Duration= 3,
+                Duration = 3,
                 Icon    = "keyboard",
             })
         end
@@ -1149,3 +1160,4 @@ ThemesSection:Dropdown({
         })
     end
 })
+```

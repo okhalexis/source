@@ -622,25 +622,25 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - DIRETO AO PONTO
+-- AUTO FARM BRAINROT - TELEPORT DIRETO
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
-    Title  = "Auto Farm Brainrot",
+    Title  = "Brainrot Areas",
     Icon   = "cpu",
     Box    = true,
     Opened = true,
 })
 
 local GapPositions = {
-    { Index = 1,  Name = "Common",    X = 199.9,  Y = -2.7, Z = -14.0 },
-    { Index = 2,  Name = "Uncommon",  X = 283.3,  Y = -2.7, Z = -13.7 },
-    { Index = 3,  Name = "Rare",      X = 397.2,  Y = -2.7, Z = -9.2  },
-    { Index = 4,  Name = "Epic",      X = 542.4,  Y = -2.7, Z = -11.7 },
-    { Index = 5,  Name = "Legendary", X = 757.4,  Y = -2.7, Z = -9.8  },
-    { Index = 6,  Name = "Mythical",  X = 1072.3, Y = -2.7, Z = -2.8  },
-    { Index = 7,  Name = "Cosmic",    X = 1549.3, Y = -2.7, Z = -9.1  },
-    { Index = 8,  Name = "Secret",    X = 2252.6, Y = -2.7, Z = -15.1 },
-    { Index = 9,  Name = "Final",     X = 2599.1, Y = -2.7, Z = -15.1 },
+    { Index = 1,  Name = "Common",    Icon = "zap",       X = 199.9,  Y = -2.7, Z = -14.0 },
+    { Index = 2,  Name = "Uncommon",  Icon = "star",      X = 283.3,  Y = -2.7, Z = -13.7 },
+    { Index = 3,  Name = "Rare",      Icon = "gem",       X = 397.2,  Y = -2.7, Z = -9.2  },
+    { Index = 4,  Name = "Epic",      Icon = "sparkles",  X = 542.4,  Y = -2.7, Z = -11.7 },
+    { Index = 5,  Name = "Legendary", Icon = "crown",     X = 757.4,  Y = -2.7, Z = -9.8  },
+    { Index = 6,  Name = "Mythical",  Icon = "flame",     X = 1072.3, Y = -2.7, Z = -2.8  },
+    { Index = 7,  Name = "Cosmic",    Icon = "rocket",    X = 1549.3, Y = -2.7, Z = -9.1  },
+    { Index = 8,  Name = "Secret",    Icon = "ghost",     X = 2252.6, Y = -2.7, Z = -15.1 },
+    { Index = 9,  Name = "Final",     Icon = "check-circle", X = 2599.1, Y = -2.7, Z = -15.1 },
 }
 
 local AutoGapState = {
@@ -653,31 +653,29 @@ local AutoGapState = {
 
 local AUTO_FLY_SPEED = 220
 local WAVE_DETECTION_RANGE = 30
-local ARRIVAL_DISTANCE = 3
+local ARRIVAL_DISTANCE = 4
 
 local WaveDetector = {}
-local wavesCache = {}
 local lastWaveScan = 0
-local WAVE_SCAN_INTERVAL = 0.5
+local wavesCache = {}
 
 function WaveDetector.ScanAllWaves()
-    local currentTime = tick()
-    if currentTime - lastWaveScan < WAVE_SCAN_INTERVAL then return wavesCache end
-    lastWaveScan = currentTime
+    if tick() - lastWaveScan < 0.5 then return wavesCache end
+    lastWaveScan = tick()
     wavesCache = {}
     for _, obj in ipairs(workspace:GetChildren()) do
         local name = obj.Name:lower()
         if name:find("tsunami") or name:find("wave") or name:find("flood") then
-            local part = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or (obj:IsA("BasePart") and obj)
-            if part then table.insert(wavesCache, {Position = part.Position}) end
+            local p = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or (obj:IsA("BasePart") and obj)
+            if p then table.insert(wavesCache, p.Position) end
         end
     end
     return wavesCache
 end
 
-function WaveDetector.HasWaveNearby(playerPos)
-    for _, wave in ipairs(WaveDetector.ScanAllWaves()) do
-        if (wave.Position - playerPos).Magnitude <= WAVE_DETECTION_RANGE then return true end
+function WaveDetector.HasWaveNearby(pPos)
+    for _, wPos in ipairs(WaveDetector.ScanAllWaves()) do
+        if (wPos - pPos).Magnitude <= WAVE_DETECTION_RANGE then return true end
     end
     return false
 end
@@ -705,15 +703,6 @@ function AutoFly.Stop()
     if AutoGapState.AutoFlyGyro then AutoGapState.AutoFlyGyro:Destroy() AutoGapState.AutoFlyGyro = nil end
 end
 
-function AutoFly.FlyToPosition(targetPos)
-    local hrp = getHumanoidRootPart()
-    if not hrp or not AutoGapState.AutoFlyVelocity then return end
-    local dir = (targetPos - hrp.Position)
-    if dir.Magnitude < 0.1 then AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero return end
-    AutoGapState.AutoFlyVelocity.Velocity = dir.Unit * AUTO_FLY_SPEED
-    AutoGapState.AutoFlyGyro.CFrame = CFrame.lookAt(hrp.Position, targetPos)
-end
-
 local autoFarmCoroutine = nil
 
 local function autoFarmLoop()
@@ -729,54 +718,65 @@ local function autoFarmLoop()
         if not hrp then task.wait(0.1) continue end
 
         local targetPos = Vector3.new(targetData.X, targetData.Y, targetData.Z)
-        if (hrp.Position - targetPos).Magnitude < ARRIVAL_DISTANCE then
+        local dist = (hrp.Position - targetPos).Magnitude
+
+        if dist < ARRIVAL_DISTANCE then
             AutoFly.Stop()
             PlayerFlags.NoClipEnabled = false
             disableFullNoClip()
             AutoGapState.Enabled = false
-            WindUI:Notify({Title="Auto Farm", Content="✅ Arrived at "..targetData.Name, Duration=3, Icon="check"})
+            WindUI:Notify({Title="Arrival", Content="Reached "..targetData.Name, Duration=3, Icon="map-pin"})
             break
         end
 
         if WaveDetector.HasWaveNearby(hrp.Position) then
             if AutoGapState.AutoFlyVelocity then AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero end
         else
-            AutoFly.FlyToPosition(targetPos)
+            if AutoGapState.AutoFlyVelocity then
+                AutoGapState.AutoFlyVelocity.Velocity = (targetPos - hrp.Position).Unit * AUTO_FLY_SPEED
+                AutoGapState.AutoFlyGyro.CFrame = CFrame.lookAt(hrp.Position, targetPos)
+            end
         end
         task.wait(0.05)
     end
 end
 
-AutoFarmSection:Dropdown({
-    Title = "Select Target Area",
-    Icon = "map-pin",
-    Values = (function() local t={} for _,v in ipairs(GapPositions) do table.insert(t, v.Name) end return t end)(),
-    Callback = function(v)
-        for _,g in ipairs(GapPositions) do if g.Name == v then AutoGapState.TargetGapIndex = g.Index break end end
-    end
-})
+local function startDirectTravel(index)
+    AutoGapState.TargetGapIndex = index
+    AutoGapState.Enabled = true
+    if autoFarmCoroutine then task.cancel(autoFarmCoroutine) end
+    autoFarmCoroutine = task.spawn(autoFarmLoop)
+    WindUI:Notify({Title="Direct Travel", Content="Flying to area...", Duration=2, Icon="rocket"})
+end
 
-AutoFarmSection:Toggle({
-    Title = "Start Direct Teleport",
-    Desc = "Fly directly to selected area (Speed 220)",
-    Icon = "rocket",
-    Value = false,
-    Callback = function(state)
-        AutoGapState.Enabled = state
-        if state then
-            if not AutoGapState.TargetGapIndex then AutoGapState.Enabled = false return end
-            if autoFarmCoroutine then task.cancel(autoFarmCoroutine) end
-            autoFarmCoroutine = task.spawn(autoFarmLoop)
-        else
-            AutoFly.Stop()
-            PlayerFlags.NoClipEnabled = false
-            disableFullNoClip()
+-- CRIAÇÃO DOS BOTÕES
+for _, gap in ipairs(GapPositions) do
+    AutoFarmSection:Button({
+        Title = gap.Name,
+        Desc  = "Direct travel to " .. gap.Name,
+        Icon  = gap.Icon,
+        Callback = function()
+            startDirectTravel(gap.Index)
         end
+    })
+end
+
+AutoFarmSection:Button({
+    Title = "Stop Movement",
+    Desc  = "Emergency stop and No Clip OFF",
+    Icon  = "octagon",
+    Callback = function()
+        AutoGapState.Enabled = false
+        AutoFly.Stop()
+        PlayerFlags.NoClipEnabled = false
+        disableFullNoClip()
+        if autoFarmCoroutine then task.cancel(autoFarmCoroutine) end
+        WindUI:Notify({Title="Stopped", Content="Movement cancelled.", Duration=2, Icon="square"})
     end
 })
 
 ----------------------------------------------------
--- SELLING PLACEHOLDER / SETTINGS
+-- SELLING / SETTINGS
 ----------------------------------------------------
 Tabs.Selling:Section({Title = "Selling (soon)", Icon = "shopping-cart", Box = true, Opened = true})
 local SettingsWindowSection = Tabs.Settings:Section({Title = "Window Settings", Icon = "sliders", Box = true, Opened = true})

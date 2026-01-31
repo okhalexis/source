@@ -121,8 +121,8 @@ WindUI:AddTheme({
 
     Toggle = Color3.fromHex("#b91c1c"),
     ToggleBar = Color3.fromHex("#fee2e2"),
-    Checkbox = Color3.fromHex("#b91c1c"),
-    CheckboxIcon = Color3.fromHex("#fee2e2"),
+    Checkbox = Color3.fromHex("#be123c"),
+    CheckboxIcon = Color3.fromHex("#ffe4e6"),
     Slider = Color3.fromHex("#b91c1c"),
     SliderThumb = Color3.fromHex("#fee2e2"),
 })
@@ -132,7 +132,7 @@ WindUI:Gradient({
     ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
 }, { Rotation = 45 })
 
-WindUI:SetTheme("Red") -- abre no Red
+WindUI:SetTheme("Red") 
 
 local displayName = LocalPlayer.DisplayName or LocalPlayer.Name
 local username = "@" .. (LocalPlayer.Name or "Player")
@@ -154,7 +154,7 @@ local Window = WindUI:CreateWindow({
     Size       = UDim2.fromOffset(580, 460),
     MinSize    = Vector2.new(560, 350),
     MaxSize    = Vector2.new(850, 560),
-    Transparent= false, -- sem transparência
+    Transparent= false,
     Theme      = "Red",
     Resizable  = true,
     SideBarWidth = 200,
@@ -223,17 +223,16 @@ end
 
 local function getHumanoid()
     local char = getCharacter()
-    if not char then return end
-    return char:FindFirstChildOfClass("Humanoid")
+    return char and char:FindFirstChildOfClass("Humanoid")
 end
 
 local function getHumanoidRootPart()
     local char = getCharacter()
-    if not char then return end
-    return char:FindFirstChild("HumanoidRootPart")
+    return char and char:FindFirstChild("HumanoidRootPart")
 end
 
 local PlayerFlags = {
+    SpeedEnabled   = false,
     SpeedValue     = 22,
     JumpEnabled    = false,
     JumpValue      = 50,
@@ -241,14 +240,10 @@ local PlayerFlags = {
     FlyEnabled     = false,
     FlySpeed       = 50,
     FlyKey         = Enum.KeyCode.F,
-    InstantSteal   = false -- Atributo adicionado
+    InstantSteal   = false
 }
 
-local DEFAULT_WALKSPEED = 22
-local DEFAULT_JUMPPOWER = 50
-local MAX_SPEED = 1000
-
--- HUD Speed
+-- HUD Speed Label
 local function getSpeedLabel()
     local pg = LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return end
@@ -268,19 +263,18 @@ local function updateHudSpeed(val)
     end
 end
 
--- SPEED real do player (Atualizado para pernas rápidas)
-local function forceSpeed()
-    local hum = getHumanoid()
-    if not hum then return end
+-- SISTEMA DE SPEED (LEGS FAST / PRE-SIMULATION BYPASS)
+RunService.PreSimulation:Connect(function()
+    if PlayerFlags.SpeedEnabled then
+        local hum = getHumanoid()
+        if hum then
+            hum.WalkSpeed = PlayerFlags.SpeedValue
+            updateHudSpeed(math.floor(PlayerFlags.SpeedValue))
+        end
+    end
+end)
 
-    local target = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
-    hum.WalkSpeed = target
-    updateHudSpeed(target)
-end
-
-RunService.Heartbeat:Connect(forceSpeed)
-
--- SISTEMA INSTANT STEAL (Otimizado - Zero Lag)
+-- SISTEMA INSTANT STEAL (ZERO LAG)
 ProximityPromptService.PromptShown:Connect(function(prompt)
     if PlayerFlags.InstantSteal then
         prompt.HoldDuration = 0
@@ -288,15 +282,6 @@ ProximityPromptService.PromptShown:Connect(function(prompt)
 end)
 
 -- JUMP
-local function applyJump(rawValue)
-    local hum = getHumanoid()
-    if not hum then return end
-    local value = math.clamp(rawValue, 10, 300)
-    PlayerFlags.JumpValue = value
-    pcall(function() hum.UseJumpPower = true end)
-    hum.JumpPower = value
-end
-
 RunService.Heartbeat:Connect(function()
     local hum = getHumanoid()
     if not hum then return end
@@ -304,191 +289,115 @@ RunService.Heartbeat:Connect(function()
     if PlayerFlags.JumpEnabled then
         hum.JumpPower = PlayerFlags.JumpValue
     else
-        hum.JumpPower = DEFAULT_JUMPPOWER
+        hum.JumpPower = 50
     end
 end)
 
--- FLY
+-- FLY LOGIC (BodyMover)
 local FlyVelocity, FlyGyro
-
-local function startFly()
-    if PlayerFlags.FlyEnabled then return end
-    local hrp = getHumanoidRootPart()
-    local hum = getHumanoid()
-    if not hrp or not hum then return end
-
-    PlayerFlags.FlyEnabled = true
-    hum.PlatformStand = true
-
-    FlyVelocity = Instance.new("BodyVelocity")
-    FlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    FlyVelocity.Velocity = Vector3.zero
-    FlyVelocity.Parent = hrp
-
-    FlyGyro = Instance.new("BodyGyro")
-    FlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    FlyGyro.P = 9e4
-    FlyGyro.CFrame = hrp.CFrame
-    FlyGyro.Parent = hrp
-end
-
 local function stopFly()
-    if not PlayerFlags.FlyEnabled then return end
     PlayerFlags.FlyEnabled = false
-
     local hum = getHumanoid()
     if hum then hum.PlatformStand = false end
     if FlyVelocity then FlyVelocity:Destroy() FlyVelocity = nil end
     if FlyGyro then FlyGyro:Destroy() FlyGyro = nil end
 end
 
+local function startFly()
+    if PlayerFlags.FlyEnabled then return end
+    local hrp, hum = getHumanoidRootPart(), getHumanoid()
+    if not hrp or not hum then return end
+    PlayerFlags.FlyEnabled = true
+    hum.PlatformStand = true
+    FlyVelocity = Instance.new("BodyVelocity", hrp)
+    FlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    FlyGyro = Instance.new("BodyGyro", hrp)
+    FlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+end
+
 RunService.RenderStepped:Connect(function()
-    if not PlayerFlags.FlyEnabled then return end
-    local hrp = getHumanoidRootPart()
-    local hum = getHumanoid()
-    if not hrp or not hum then
-        stopFly()
-        return
-    end
-
+    if not PlayerFlags.FlyEnabled or not FlyVelocity then return end
     local cam = workspace.CurrentCamera
-    if not cam then return end
-
     local moveDir = Vector3.zero
-    local cf = cam.CFrame
-    local forward = cf.LookVector
-    local right = cf.RightVector
-
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += forward end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= forward end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += right end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= right end
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += cam.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
     if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
     if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0,1,0) end
-
-    if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
-    local vel = moveDir * PlayerFlags.FlySpeed
-
-    if FlyVelocity then FlyVelocity.Velocity = vel end
-    if FlyGyro then FlyGyro.CFrame = cf end
+    FlyVelocity.Velocity = moveDir * PlayerFlags.FlySpeed
+    FlyGyro.CFrame = cam.CFrame
 end)
 
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == PlayerFlags.FlyKey then
-        if PlayerFlags.FlyEnabled then
-            stopFly()
-        else
-            startFly()
-        end
+        if PlayerFlags.FlyEnabled then stopFly() else startFly() end
     end
 end)
 
 -- NOCLIP
-local function applyFullNoClip()
-    local char = getCharacter()
-    if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
-    end
-end
-
-local function disableFullNoClip()
-    local char = getCharacter()
-    if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-        end
-    end
-end
-
 RunService.Stepped:Connect(function()
     if PlayerFlags.NoClipEnabled then
-        applyFullNoClip()
+        local char = getCharacter()
+        if char then
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end
     end
 end)
 
 ----------------------------------------------------
 -- UI ELEMENTOS PLAYER
 ----------------------------------------------------
+PlayerSection:Toggle({
+    Title = "Enable Speed",
+    Desc  = "Ativa as pernas rápidas.",
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.SpeedEnabled = state
+        if not state then
+            local hum = getHumanoid()
+            if hum then hum.WalkSpeed = 22 end
+            updateHudSpeed(22)
+        end
+    end
+})
+
 PlayerSection:Slider({
-    Title = "Speed",
-    Desc  = "Velocidade real das pernas (Animado).",
+    Title = "Speed Value",
     Step  = 1,
-    Value = { Min = 1, Max = MAX_SPEED, Default = 22 },
+    Value = { Min = 1, Max = 1000, Default = 22 },
     Callback = function(value)
         PlayerFlags.SpeedValue = value
-        forceSpeed()
     end
 })
 
 PlayerSection:Toggle({
     Title = "Custom Jump",
-    Desc  = "Ativa/desativa controle de pulo.",
-    Icon  = "arrow-up",
     Value = false,
-    Callback = function(state)
-        PlayerFlags.JumpEnabled = state
-        if state then
-            applyJump(PlayerFlags.JumpValue)
-        else
-            applyJump(DEFAULT_JUMPPOWER)
-        end
-    end
+    Callback = function(state) PlayerFlags.JumpEnabled = state end
 })
 
 PlayerSection:Slider({
     Title = "Jump Power",
-    Desc  = "Altura do pulo.",
-    Step  = 1,
-    Value = { Min = 10, Max = 300, Default = 80 },
-    Callback = function(value)
-        PlayerFlags.JumpValue = value
-        if PlayerFlags.JumpEnabled then
-            applyJump(value)
-        end
-    end
+    Value = { Min = 10, Max = 300, Default = 50 },
+    Callback = function(value) PlayerFlags.JumpValue = value end
 })
 
 PlayerSection:Toggle({
     Title = "Fly",
-    Desc  = "Ativa/desativa fly (tecla F).",
-    Icon  = "feather",
-    Value = false,
-    Callback = function(state)
-        if state then startFly() else stopFly() end
-    end
-})
-
-PlayerSection:Slider({
-    Title = "Fly Speed",
-    Desc  = "Velocidade do fly.",
-    Step  = 1,
-    Value = { Min = 10, Max = 500, Default = 50 },
-    Callback = function(value)
-        PlayerFlags.FlySpeed = value
-    end
+    Callback = function(s) if s then startFly() else stopFly() end end
 })
 
 PlayerSection:Toggle({
     Title = "NoClip",
-    Desc  = "Atravessa qualquer parede/objeto.",
-    Icon  = "ghost",
-    Type  = "Checkbox",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.NoClipEnabled = state
-        if not state then
-            disableFullNoClip()
-        end
-    end
+    Callback = function(s) PlayerFlags.NoClipEnabled = s end
 })
 
 ----------------------------------------------------
--- FARM SECTION (Instant Steal Adicionado)
+-- FARM SECTION
 ----------------------------------------------------
 local FarmSection = Tabs.Farm:Section({
     Title = "Farm Engine",
@@ -498,7 +407,7 @@ local FarmSection = Tabs.Farm:Section({
 
 FarmSection:Toggle({
     Title = "Instant Steal",
-    Desc  = "Coleta imediata (Clica e já pega).",
+    Desc  = "Coleta imediata (Sem segurar E).",
     Icon  = "zap",
     Value = false,
     Callback = function(state)
@@ -507,81 +416,23 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- SELLING PLACEHOLDER
+-- SETTINGS
 ----------------------------------------------------
-Tabs.Selling:Section({
-    Title = "Selling (em breve)",
-    Box = true,
-    Opened = true,
-})
+local SettingsSection = Tabs.Settings:Section({ Title = "Window", Box = true })
 
-----------------------------------------------------
--- SETTINGS (Window + Themes + Toggle Keybind)
-----------------------------------------------------
-local SettingsWindowSection = Tabs.Settings:Section({
-    Title = "Window",
-    Box = true,
-    Opened = true,
-})
-
-SettingsWindowSection:Toggle({
-    Title = "Window Transparency",
-    Desc  = "Liga/desliga transparência global.",
-    Value = false,
-    Callback = function(e)
-        Window:ToggleTransparency(e)
-    end
-})
-
-SettingsWindowSection:Keybind({
+SettingsSection:Keybind({
     Title = "Toggle UI Key",
-    Desc  = "Clique e pressione a tecla para abrir/fechar o hub.",
     Value = "RightShift",
-    Callback = function(keyName)
-        if typeof(keyName) == "string" and Enum.KeyCode[keyName] then
-            Window:SetToggleKey(Enum.KeyCode[keyName])
-            WindUI:Notify({
-                Title = "Toggle Key",
-                Content = "Tecla do hub alterada para: " .. keyName,
-                Duration = 3,
-                Icon = "keyboard",
-            })
-        end
-    end
+    Callback = function(k) Window:SetToggleKey(Enum.KeyCode[k]) end
 })
 
-SettingsWindowSection:Button({
-    Title = "Center Window",
-    Callback = function()
-        Window:Toggle()
-        task.wait(0.05)
-        Window:Toggle()
-    end
-})
-
-local ThemesSection = Tabs.Settings:Section({
-    Title = "Themes",
-    Box = true,
-    Opened = true,
-})
-
+local ThemesSection = Tabs.Settings:Section({ Title = "Themes", Box = true })
 local themeNames = {}
-for name in pairs(WindUI:GetThemes()) do
-    table.insert(themeNames, name)
-end
+for name in pairs(WindUI:GetThemes()) do table.insert(themeNames, name) end
 
 ThemesSection:Dropdown({
     Title  = "Theme",
-    Desc   = "Selecione o tema.",
     Values = themeNames,
-    Value  = WindUI:GetCurrentTheme() or "Red",
-    Callback = function(themeName)
-        WindUI:SetTheme(themeName)
-        WindUI:Notify({
-            Title = "Theme",
-            Content = "Tema alterado para: " .. tostring(themeName),
-            Duration = 3,
-            Icon = "palette",
-        })
-    end
+    Value  = "Red",
+    Callback = function(t) WindUI:SetTheme(t) end
 })

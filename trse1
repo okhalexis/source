@@ -556,21 +556,18 @@ local function setPromptInstant(prompt)
 end
 
 local function enableInstantSteal()
-    -- aplica em todos os prompts existentes
     for _, prompt in ipairs(workspace:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
             setPromptInstant(prompt)
         end
     end
 
-    -- aplica em novos prompts
     table.insert(connections,
         ProximityPromptService.PromptShown:Connect(function(prompt)
             setPromptInstant(prompt)
         end)
     )
 
-    -- quando começar a segurar, já completa instantâneo
     table.insert(connections,
         ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
             if not PlayerFlags.InstantSteal then return end
@@ -619,6 +616,265 @@ FarmSection:Toggle({
         end
     end
 })
+
+----------------------------------------------------
+-- AUTO GAP (FARM TAB)
+----------------------------------------------------
+local GapConfig = {
+    Common = { Name = "Common", Gaps = {
+        -- CFrame.new(...),
+    }},
+    Uncommon = { Name = "Uncommon", Gaps = {} },
+    Rare     = { Name = "Rare",     Gaps = {} },
+    Epic     = { Name = "Epic",     Gaps = {} },
+    Legendary= { Name = "Legendary",Gaps = {} },
+    Mythical = { Name = "Mythical", Gaps = {} },
+    Cosmic   = { Name = "Cosmic",   Gaps = {} },
+    Secret   = { Name = "Secret",   Gaps = {} },
+    Celestial= { Name = "Celestial",Gaps = {} },
+}
+
+local AutoGapState = {
+    Enabled        = false,
+    SelectedArea   = nil,
+    SafeDistance   = 120,
+    CurrentGapIdx  = 1,
+}
+
+local function getHRP()
+    local char = getCharacter()
+    if not char then return end
+    return char:FindFirstChild("HumanoidRootPart")
+end
+
+local function getAreaNames()
+    local t = {}
+    for _, data in pairs(GapConfig) do
+        table.insert(t, data.Name)
+    end
+    table.sort(t)
+    return t
+end
+
+local function getAreaByName(name)
+    for _, data in pairs(GapConfig) do
+        if data.Name == name then
+            return data
+        end
+    end
+end
+
+local AutoGapSection = Tabs.Farm:Section({
+    Title  = "Auto Gap",
+    Icon   = "send",
+    Box    = true,
+    Opened = true,
+})
+
+AutoGapSection:Label({
+    Title = "Note :",
+    Desc  = "Also enable God Mode while using this!",
+    Icon  = "alert-triangle",
+    Color = Color3.fromHex("#ef4444"),
+})
+
+local selectedAreaName = "--"
+
+AutoGapSection:Dropdown({
+    Title  = "Select Area",
+    Desc   = "Choose destination",
+    Values = getAreaNames(),
+    Value  = nil,
+    Callback = function(value)
+        selectedAreaName = value
+        AutoGapState.SelectedArea = value
+        AutoGapState.CurrentGapIdx = 1
+
+        WindUI:Notify({
+            Title   = "Auto Gap",
+            Content = "Selected area: " .. tostring(value),
+            Duration= 3,
+            Icon    = "map-pin",
+        })
+    end
+})
+
+AutoGapSection:Slider({
+    Title = "Safe Distance",
+    Desc  = "Minimum distance from wave before moving to next gap.",
+    Step  = 5,
+    Value = { Min = 50, Max = 300, Default = AutoGapState.SafeDistance },
+    Callback = function(value)
+        AutoGapState.SafeDistance = value
+    end
+})
+
+AutoGapSection:Toggle({
+    Title = "Auto Gap",
+    Desc  = "Navigate between gaps avoiding waves.",
+    Icon  = "navigation",
+    Value = false,
+    Callback = function(state)
+        AutoGapState.Enabled = state
+        WindUI:Notify({
+            Title   = "Auto Gap",
+            Content = state and "Auto Gap enabled." or "Auto Gap disabled.",
+            Duration= 3,
+            Icon    = "navigation",
+        })
+    end
+})
+
+-- lógica de wave/gap
+local function getCurrentWave()
+    for _, obj in ipairs(workspace:GetChildren()) do
+        local lname = obj.Name:lower()
+        if (lname:find("tsunami") or lname:find("wave")) and (obj:IsA("BasePart") or obj:IsA("Model")) then
+            return obj
+        end
+    end
+end
+
+local function getWavePositionAndVelocity(wave)
+    if not wave then return end
+    local primary
+    if wave:IsA("Model") then
+        primary = wave.PrimaryPart or wave:FindFirstChildWhichIsA("BasePart")
+    elseif wave:IsA("BasePart") then
+        primary = wave
+    end
+    if not primary then return end
+
+    local pos = primary.Position
+    local vel = primary.AssemblyLinearVelocity or Vector3.zero
+    return pos, vel
+end
+
+local function estimateTimeUntilWaveAtPosition(wavePos, waveVel, targetPos)
+    if not wavePos or not waveVel or not targetPos then return math.huge end
+    local dirZ = waveVel.Z
+    if math.abs(dirZ) < 1 then
+        return math.huge
+    end
+    local distZ = targetPos.Z - wavePos.Z
+    if (dirZ > 0 and distZ < 0) or (dirZ < 0 and distZ > 0) then
+        return math.huge
+    end
+    local speedZ = math.abs(dirZ)
+    local t = math.abs(distZ) / speedZ
+    return t
+end
+
+local function estimateTimeToReachGap(hrpPos, gapPos)
+    local dist = (gapPos - hrpPos).Magnitude
+    local speed = PlayerFlags.FlySpeed or 50
+    if speed <= 0 then speed = 50 end
+    return dist / speed
+end
+
+local AutoGapBodyVel
+
+local function ensureAutoGapBodyVelocity()
+    local hrp = getHRP()
+    if not hrp then return end
+    if AutoGapBodyVel and AutoGapBodyVel.Parent ~= hrp then
+        AutoGapBodyVel:Destroy()
+        AutoGapBodyVel = nil
+    end
+    if not AutoGapBodyVel then
+        AutoGapBodyVel = Instance.new("BodyVelocity")
+        AutoGapBodyVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+        AutoGapBodyVel.Velocity = Vector3.zero
+        AutoGapBodyVel.Parent = hrp
+    end
+    return AutoGapBodyVel, hrp
+end
+
+local function stopAutoGapMovement()
+    if AutoGapBodyVel then
+        AutoGapBodyVel.Velocity = Vector3.zero
+    end
+end
+
+RunService.Heartbeat:Connect(function(dt)
+    if not AutoGapState.Enabled then
+        stopAutoGapMovement()
+        return
+    end
+
+    if not AutoGapState.SelectedArea then
+        stopAutoGapMovement()
+        return
+    end
+
+    local area = getAreaByName(AutoGapState.SelectedArea)
+    if not area or #area.Gaps == 0 then
+        stopAutoGapMovement()
+        return
+    end
+
+    local bodyVel, hrp = ensureAutoGapBodyVelocity()
+    if not bodyVel or not hrp then
+        return
+    end
+
+    local gaps = area.Gaps
+    local idx  = math.clamp(AutoGapState.CurrentGapIdx, 1, #gaps)
+    AutoGapState.CurrentGapIdx = idx
+
+    local currentGapCF = gaps[idx]
+    if typeof(currentGapCF) ~= "CFrame" then
+        return
+    end
+
+    local hrpPos = hrp.Position
+    local targetPos = currentGapCF.Position
+    local distToCurrentGap = (targetPos - hrpPos).Magnitude
+    local insideCurrentGap = distToCurrentGap < 5
+
+    local wave = getCurrentWave()
+    local wavePos, waveVel = getWavePositionAndVelocity(wave)
+
+    local timeWaveToCurrentGap = estimateTimeUntilWaveAtPosition(wavePos, waveVel, targetPos)
+    local timePlayerToCurrentGap = estimateTimeToReachGap(hrpPos, targetPos)
+
+    if not insideCurrentGap then
+        local dir = (targetPos - hrpPos).Unit
+        local speed = PlayerFlags.FlySpeed or 50
+        bodyVel.Velocity = dir * speed
+        return
+    end
+
+    local nextIdx = idx + 1
+    if nextIdx > #gaps then
+        stopAutoGapMovement()
+        return
+    end
+
+    local nextGapCF = gaps[nextIdx]
+    if typeof(nextGapCF) ~= "CFrame" then
+        stopAutoGapMovement()
+        return
+    end
+
+    local nextPos = nextGapCF.Position
+    local timeWaveToNextGap = estimateTimeUntilWaveAtPosition(wavePos, waveVel, nextPos)
+    local timePlayerToNextGap = estimateTimeToReachGap(hrpPos, nextPos)
+
+    local safeSpeed = math.max(math.abs((waveVel and waveVel.Z) or 0), 1)
+    local safeTimeMargin = AutoGapState.SafeDistance / safeSpeed
+
+    local canGoNext = (timePlayerToNextGap + safeTimeMargin) < timeWaveToNextGap
+
+    if canGoNext then
+        AutoGapState.CurrentGapIdx = nextIdx
+        local dir = (nextPos - hrpPos).Unit
+        local speed = PlayerFlags.FlySpeed or 50
+        bodyVel.Velocity = dir * speed
+    else
+        stopAutoGapMovement()
+    end
+end)
 
 ----------------------------------------------------
 -- SELLING PLACEHOLDER

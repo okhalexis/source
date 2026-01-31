@@ -154,7 +154,7 @@ local Window = WindUI:CreateWindow({
     Size       = UDim2.fromOffset(580, 460),
     MinSize    = Vector2.new(560, 350),
     MaxSize    = Vector2.new(850, 560),
-    Transparent= false, -- sem transparência
+    Transparent= false,
     Theme      = "Red",
     Resizable  = true,
     SideBarWidth = 200,
@@ -233,7 +233,7 @@ local function getHumanoidRootPart()
 end
 
 local PlayerFlags = {
-    SpeedValue     = 22,
+    SpeedValue     = 22,   -- valor usado pelo sistema de "empurrão"
     JumpEnabled    = false,
     JumpValue      = 50,
     NoClipEnabled  = false,
@@ -242,7 +242,7 @@ local PlayerFlags = {
     FlyKey         = Enum.KeyCode.F,
 }
 
-local DEFAULT_WALKSPEED = 22
+local DEFAULT_WALKSPEED = 16      -- não vamos mais mexer nisso
 local DEFAULT_JUMPPOWER = 50
 local MAX_SPEED = 1000
 
@@ -266,22 +266,51 @@ local function updateHudSpeed(val)
     end
 end
 
--- SPEED real do player (até 1000)
-local function forceSpeed()
-    local hum = getHumanoid()
-    if not hum then return end
+----------------------------------------------------
+-- SISTEMA NOVO DE SPEED (EMPURRA A CADA 60ms)
+----------------------------------------------------
+local pushingSpeed = false
 
-    -- alguns jogos usam Attribute / ValueObject para speed; tenta travar isso
-    hum:SetAttribute("WalkSpeed", nil)
-    local target = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
+local function startSpeedPush()
+    if pushingSpeed then return end
+    pushingSpeed = true
 
-    hum.WalkSpeed = target
-    updateHudSpeed(target)
+    task.spawn(function()
+        while pushingSpeed do
+            task.wait(0.06) -- 60 ms
+
+            local hum = getHumanoid()
+            local hrp = getHumanoidRootPart()
+            if not hum or not hrp then
+                continue
+            end
+
+            -- direção atual de movimento (WASD)
+            local moveDir = hum.MoveDirection
+            if moveDir.Magnitude > 0 then
+                moveDir = moveDir.Unit
+                -- distância = speed(studs/s) * tempo(0.06s)
+                local speed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
+                local delta = speed * 0.06
+
+                -- empurra na direção que o player está se movendo
+                hrp.CFrame = hrp.CFrame + (moveDir * delta)
+                updateHudSpeed(speed)
+            end
+        end
+    end)
 end
 
-RunService.Heartbeat:Connect(forceSpeed)
+local function stopSpeedPush()
+    pushingSpeed = false
+end
 
+-- Opcional: começar auto
+startSpeedPush()
+
+----------------------------------------------------
 -- JUMP
+----------------------------------------------------
 local function applyJump(rawValue)
     local hum = getHumanoid()
     if not hum then return end
@@ -302,7 +331,9 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+----------------------------------------------------
 -- FLY
+----------------------------------------------------
 local FlyVelocity, FlyGyro
 
 local function startFly()
@@ -378,7 +409,9 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
+----------------------------------------------------
 -- NOCLIP
+----------------------------------------------------
 local function applyFullNoClip()
     local char = getCharacter()
     if not char then return end
@@ -410,12 +443,12 @@ end)
 ----------------------------------------------------
 PlayerSection:Slider({
     Title = "Speed",
-    Desc  = "Velocidade real do player (1–1000).",
+    Desc  = "Velocidade (empurrão a cada 60ms).",
     Step  = 1,
     Value = { Min = 1, Max = MAX_SPEED, Default = 22 },
     Callback = function(value)
         PlayerFlags.SpeedValue = value
-        forceSpeed()
+        updateHudSpeed(value)
     end
 })
 
@@ -460,7 +493,7 @@ PlayerSection:Toggle({
 PlayerSection:Slider({
     Title = "Fly Speed",
     Desc  = "Velocidade do fly.",
-    Step  = 1,
+    Step = 1,
     Value = { Min = 10, Max = 500, Default = 50 },
     Callback = function(value)
         PlayerFlags.FlySpeed = value

@@ -1,5 +1,3 @@
---- START OF FILE text/plain ---
-
 --[[========================================================
     KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
 ==========================================================]]
@@ -221,6 +219,17 @@ local NetPackage = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net"
 local WheelRollRF = NetPackage:WaitForChild("RF/WheelSpin.Roll")
 local WheelCompleteRE = NetPackage:WaitForChild("RE/WheelSpin.Complete")
 
+-- NOVOS NETWORKS (Speed/Carry/Base/Rebirth)
+local RemoteFunctions = ReplicatedStorage:WaitForChild("RemoteFunctions")
+local RemoteEvents = ReplicatedStorage:FindFirstChild("RemoteEvents")
+
+local UpgradeSpeedRF = RemoteFunctions:FindFirstChild("UpgradeSpeed")
+local UpgradeCarryRF = RemoteFunctions:FindFirstChild("UpgradeCarry")
+local UpgradeBaseRF  = RemoteFunctions:FindFirstChild("UpgradeBase")
+local RebirthRF      = RemoteFunctions:FindFirstChild("Rebirth")
+
+local PlotUpgradeRE  = NetPackage:FindFirstChild("RE/Plot.UpgradeBase")
+
 local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
@@ -237,7 +246,9 @@ local function getHumanoidRootPart()
     return char:FindFirstChild("HumanoidRootPart")
 end
 
--- PLAYER FLAGS
+----------------------------------------------------
+-- FLAGS GERAIS (ADICIONANDO AUTO SISTEMAS)
+----------------------------------------------------
 local PlayerFlags = {
     SpeedEnabled   = false,
     SpeedValue     = 22,
@@ -249,15 +260,22 @@ local PlayerFlags = {
     FlyKey         = Enum.KeyCode.F,
     InstantSteal   = false,
     GodMode        = false,
-    
-    -- Injeções Potentes
+
     AutoRadioactive = false,
     RadioactiveDelay = 0.5,
     AutoUFO = false,
     UFODelay = 0.5,
     AutoSpin = false,
     SpinDelay = 1,
-    SpinType = "Radioactive"
+    SpinType = "Radioactive",
+
+    -- NOVOS FLAGS
+    AutoCollectBaseMoney = false,      -- auto coletar money/brainrots da base
+    AutoUpgradeSpeed = false,          -- auto purchase speed (1 em 1)
+    AutoUpgradeCarry = false,          -- auto purchase carry (1 em 1)
+    AutoUpgradeBase = false,           -- upgrade da base/brainrots
+    AutoRebirth = false,               -- auto rebirth
+    AutoRebirthDelay = 2,
 }
 
 local DEFAULT_JUMPPOWER = 50
@@ -888,7 +906,7 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------
--- ABA AUTO (ANTIGA SELLING)
+-- ABA AUTO (NOVOS SISTEMAS: MONEY/SPEED/CARRY/BASE/REBIRTH)
 ----------------------------------------------------
 local AutoTabSection = Tabs.Auto:Section({
     Title  = "Auto Features",
@@ -897,12 +915,207 @@ local AutoTabSection = Tabs.Auto:Section({
     Opened = true,
 })
 
-AutoTabSection:Button({
-    Title = "Selling Soon",
-    Desc  = "Auto sell system in progress.",
-    Icon  = "shopping-cart",
-    Callback = function() end
+----------------------------------------------------------------
+-- Funções helpers para Base / Plot do jogador
+----------------------------------------------------------------
+local function getPlayerPlot()
+    local bases = workspace:FindFirstChild("Bases")
+    if not bases then return nil end
+    -- jogo parece usar GUID de plot; vamos achar pelo Owner/Player
+    for _, plot in ipairs(bases:GetChildren()) do
+        if plot:IsA("Model") or plot:IsA("Folder") then
+            local owner = plot:FindFirstChild("Owner") or plot:FindFirstChild("Player") or plot:FindFirstChild("OwnerValue")
+            if owner and owner.Value == LocalPlayer then
+                return plot
+            end
+        end
+    end
+    return nil
+end
+
+local function fireUpgradeBase(plot)
+    if not plot then return end
+    -- via NetPackage RE/Plot.UpgradeBase, se existir
+    if PlotUpgradeRE then
+        pcall(function()
+            PlotUpgradeRE:FireServer(plot)
+        end)
+    end
+    -- via RemoteFunction.UpgradeBase
+    if UpgradeBaseRF then
+        pcall(function()
+            UpgradeBaseRF:InvokeServer(plot)
+        end)
+    end
+end
+
+----------------------------------------------------------------
+-- AUTO COLETAR MONEY/BRAINROTS NA BASE
+----------------------------------------------------------------
+AutoTabSection:Toggle({
+    Title = "Auto Collect Base Money",
+    Desc  = "Coleta money/brainrots do seu plot/base.",
+    Icon  = "dollar-sign",
+    Value = false,
+    Callback = function(v)
+        PlayerFlags.AutoCollectBaseMoney = v
+    end
 })
+
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoCollectBaseMoney then
+            pcall(function()
+                local plot = getPlayerPlot()
+                if plot then
+                    -- tenta achar parts de coleta ou "Money" / "Collect"
+                    for _, obj in ipairs(plot:GetDescendants()) do
+                        if obj:IsA("ProximityPrompt") then
+                            if obj.Name:lower():find("collect") or obj.Parent.Name:lower():find("collect") or obj.Parent.Name:lower():find("money") then
+                                obj.HoldDuration = 0
+                                fireproximityprompt(obj)
+                            end
+                        elseif obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
+                            local n = obj.Name:lower()
+                            if n:find("money") or n:find("cash") or n:find("brain") then
+                                local hrp = getHumanoidRootPart()
+                                if hrp then
+                                    local old = hrp.CFrame
+                                    hrp.CFrame = obj.CFrame
+                                    firetouchinterest(hrp, obj, 0)
+                                    firetouchinterest(hrp, obj, 1)
+                                    hrp.CFrame = old
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(1)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+----------------------------------------------------------------
+-- AUTO PURCHASE SPEED (1 EM 1)
+----------------------------------------------------------------
+AutoTabSection:Toggle({
+    Title = "Auto Purchase Speed (x1)",
+    Desc  = "Compra upgrade de Speed 1 por 1 na loja.",
+    Icon  = "zap-off",
+    Value = false,
+    Callback = function(v)
+        PlayerFlags.AutoUpgradeSpeed = v
+    end
+})
+
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoUpgradeSpeed and UpgradeSpeedRF then
+            pcall(function()
+                -- a maioria desses jogos aceita (1) ou nenhum argumento para incrementar +1
+                UpgradeSpeedRF:InvokeServer(1)
+            end)
+            task.wait(0.4)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+----------------------------------------------------------------
+-- AUTO PURCHASE CARRY (1 EM 1)
+----------------------------------------------------------------
+AutoTabSection:Toggle({
+    Title = "Auto Purchase Carry (x1)",
+    Desc  = "Compra upgrade de Carry 1 por 1 na loja.",
+    Icon  = "shopping-bag",
+    Value = false,
+    Callback = function(v)
+        PlayerFlags.AutoUpgradeCarry = v
+    end
+})
+
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoUpgradeCarry and UpgradeCarryRF then
+            pcall(function()
+                UpgradeCarryRF:InvokeServer(1)
+            end)
+            task.wait(0.4)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+----------------------------------------------------------------
+-- AUTO UPGRADE BASE / BRAINROTS
+----------------------------------------------------------------
+AutoTabSection:Toggle({
+    Title = "Auto Upgrade Base",
+    Desc  = "Spamma Upgrade da sua Base (Brainrots).",
+    Icon  = "home",
+    Value = false,
+    Callback = function(v)
+        PlayerFlags.AutoUpgradeBase = v
+    end
+})
+
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoUpgradeBase then
+            pcall(function()
+                local plot = getPlayerPlot()
+                if plot then
+                    fireUpgradeBase(plot)
+                end
+            end)
+            task.wait(0.5)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+----------------------------------------------------------------
+-- AUTO REBIRTH
+----------------------------------------------------------------
+AutoTabSection:Toggle({
+    Title = "Auto Rebirth",
+    Desc  = "Automatic Rebirth quando possível.",
+    Icon  = "rotate-ccw",
+    Value = false,
+    Callback = function(v)
+        PlayerFlags.AutoRebirth = v
+    end
+})
+
+AutoTabSection:Slider({
+    Title = "Rebirth Delay",
+    Desc  = "Intervalo entre tentativas de rebirth.",
+    Step  = 0.5,
+    Value = { Min = 0.5, Max = 10, Default = 2 },
+    Callback = function(v)
+        PlayerFlags.AutoRebirthDelay = v
+    end
+})
+
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoRebirth and RebirthRF then
+            pcall(function()
+                -- alguns jogos usam argumentos (quantidade), outros none
+                RebirthRF:InvokeServer()
+            end)
+            task.wait(PlayerFlags.AutoRebirthDelay or 2)
+        else
+            task.wait(1)
+        end
+    end
+end)
 
 ----------------------------------------------------
 -- [ INTERFACE ] ABA EVENTS (RADIOACTIVE / UFO / SPIN)
@@ -1023,5 +1236,3 @@ WindUI:Notify({
     Duration = 5,
     Icon = "check"
 })
-
--- (O resto do seu código original segue aqui até o fim)

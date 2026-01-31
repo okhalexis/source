@@ -77,7 +77,6 @@ WindUI:Localization({
     }
 })
 
--- Tema Red inicial
 WindUI:AddTheme({
     Name = "Red",
     Accent = Color3.fromHex("#ef4444"),
@@ -132,7 +131,7 @@ WindUI:Gradient({
     ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
 }, { Rotation = 45 })
 
-WindUI:SetTheme("Red") -- abre no Red
+WindUI:SetTheme("Red")
 
 local displayName = LocalPlayer.DisplayName or LocalPlayer.Name
 local username = "@" .. (LocalPlayer.Name or "Player")
@@ -154,7 +153,7 @@ local Window = WindUI:CreateWindow({
     Size       = UDim2.fromOffset(580, 460),
     MinSize    = Vector2.new(560, 350),
     MaxSize    = Vector2.new(850, 560),
-    Transparent= false, -- sem transparência
+    Transparent= false,
     Theme      = "Red",
     Resizable  = true,
     SideBarWidth = 200,
@@ -170,7 +169,7 @@ local Window = WindUI:CreateWindow({
         Callback  = function()
             WindUI:Notify({
                 Title = displayName,
-                Content = "User card clicado.",
+                Content = "User card clicked.",
                 Duration = 3,
                 Icon = "user",
             })
@@ -204,40 +203,14 @@ local Tabs = {
 Window:SelectTab(1)
 
 ----------------------------------------------------
--- PLAYER TAB / LÓGICA
+-- SERVICES / HELPERS
 ----------------------------------------------------
-local PlayerSection = Tabs.Player:Section({
-    Title = "Player Core",
-    Box = true,
-    Opened = true,
-})
-
--- Sub‑categorias dobráveis
-local SpeedCategory = PlayerSection:Section({
-    Title = "⚡ Speed",
-    Box = false,
-    Opened = false,
-})
-
-local JumpCategory = PlayerSection:Section({
-    Title = "⬆ Jump",
-    Box = false,
-    Opened = false,
-})
-
-local FlyCategory = PlayerSection:Section({
-    Title = "🕊 Fly",
-    Box = false,
-    Opened = false,
-})
-
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 
 local function getCharacter()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    return char
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
 
 local function getHumanoid()
@@ -253,6 +226,7 @@ local function getHumanoidRootPart()
 end
 
 local PlayerFlags = {
+    SpeedEnabled   = false,
     SpeedValue     = 22,
     JumpEnabled    = false,
     JumpValue      = 50,
@@ -261,13 +235,15 @@ local PlayerFlags = {
     FlySpeed       = 50,
     FlyKey         = Enum.KeyCode.F,
     InstantSteal   = false,
+    GodMode        = false,
 }
 
-local DEFAULT_WALKSPEED = 16
 local DEFAULT_JUMPPOWER = 50
 local MAX_SPEED = 1000
 
--- HUD Speed
+----------------------------------------------------
+-- HUD Speed (opcional)
+----------------------------------------------------
 local function getSpeedLabel()
     local pg = LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return end
@@ -288,55 +264,127 @@ local function updateHudSpeed(val)
 end
 
 ----------------------------------------------------
--- SPEED SUAVE + ANIMAÇÃO
+-- ENHANCED GOD MODE (PLAYER TAB)
 ----------------------------------------------------
-local AnimationId_Run = "rbxassetid://ANIMATION_ID_AQUI" -- coloque seu run anim
-local runTrack
+local GodModeSection = Tabs.Player:Section({
+    Title  = "Enhanced God Mode",
+    Icon   = "heart",
+    Box    = true,
+    Opened = false,
+})
 
-local function setupRunAnimation()
+local function enableGodMode()
     local hum = getHumanoid()
     if not hum then return end
-    if runTrack and runTrack.IsPlaying then return end
-
-    local animator = hum:FindFirstChildOfClass("Animator") or hum:WaitForChild("Animator", 2)
-    if not animator then return end
-
-    local runAnim = Instance.new("Animation")
-    runAnim.AnimationId = AnimationId_Run
-    runTrack = animator:LoadAnimation(runAnim)
-    runTrack.Priority = Enum.AnimationPriority.Movement
+    hum.MaxHealth = math.huge
+    hum.Health = math.huge
 end
 
-local function applySpeed()
+local function disableGodMode()
     local hum = getHumanoid()
     if not hum then return end
-
-    local speed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
-    hum.WalkSpeed = speed
-    updateHudSpeed(speed)
-
-    setupRunAnimation()
-
-    if speed >= 30 then
-        if runTrack and not runTrack.IsPlaying then
-            runTrack:Play(0.15)
-        end
-    else
-        if runTrack and runTrack.IsPlaying then
-            runTrack:Stop(0.15)
-        end
-    end
+    hum.MaxHealth = 100
+    hum.Health = 100
 end
 
 RunService.Heartbeat:Connect(function()
-    local hum = getHumanoid()
-    if not hum then return end
-    hum.WalkSpeed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
+    if PlayerFlags.GodMode then
+        local hum = getHumanoid()
+        if hum then
+            hum.Health = math.huge
+        end
+    end
 end)
 
+GodModeSection:Toggle({
+    Title = "Enhanced God Mode",
+    Desc  = "Infinite health protection.",
+    Icon  = "heart",
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.GodMode = state
+        if state then
+            enableGodMode()
+        else
+            disableGodMode()
+        end
+    end
+})
+
 ----------------------------------------------------
--- JUMP
+-- SPEED HACK (EMPURRA A CADA FRAME)
 ----------------------------------------------------
+local SpeedSection = Tabs.Player:Section({
+    Title  = "Speed Hack",
+    Icon   = "zap",
+    Box    = true,
+    Opened = false,
+})
+
+local speedConnection
+
+local function enableSpeed()
+    if speedConnection then return end
+    speedConnection = RunService.Heartbeat:Connect(function(deltaTime)
+        if not PlayerFlags.SpeedEnabled then return end
+
+        local hum = getHumanoid()
+        local hrp = getHumanoidRootPart()
+        if not hum or not hrp then return end
+
+        local moveDir = hum.MoveDirection
+        if moveDir.Magnitude > 0 then
+            moveDir = moveDir.Unit
+            local speed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
+            local distance = speed * deltaTime
+            hrp.CFrame = hrp.CFrame + (moveDir * distance)
+            updateHudSpeed(speed)
+        end
+    end)
+end
+
+local function disableSpeed()
+    if speedConnection then
+        speedConnection:Disconnect()
+        speedConnection = nil
+    end
+end
+
+SpeedSection:Toggle({
+    Title = "Speed Hack",
+    Desc  = "Smooth speed boost.",
+    Icon  = "zap",
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.SpeedEnabled = state
+        if state then
+            enableSpeed()
+        else
+            disableSpeed()
+        end
+    end
+})
+
+SpeedSection:Slider({
+    Title = "Speed Value",
+    Desc  = "Movement speed value.",
+    Step  = 1,
+    Value = { Min = 1, Max = MAX_SPEED, Default = 22 },
+    Callback = function(value)
+        PlayerFlags.SpeedValue = value
+    end
+})
+
+----------------------------------------------------
+-- JUMP HACK
+----------------------------------------------------
+local JumpSection = Tabs.Player:Section({
+    Title  = "Jump Hack",
+    Icon   = "arrow-up",
+    Box    = true,
+    Opened = false,
+})
+
 local function applyJump(rawValue)
     local hum = getHumanoid()
     if not hum then return end
@@ -357,9 +405,44 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+JumpSection:Toggle({
+    Title = "Custom Jump",
+    Desc  = "Enable custom jump height.",
+    Icon  = "arrow-up",
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.JumpEnabled = state
+        if state then
+            applyJump(PlayerFlags.JumpValue)
+        else
+            applyJump(DEFAULT_JUMPPOWER)
+        end
+    end
+})
+
+JumpSection:Slider({
+    Title = "Jump Power",
+    Desc  = "Jump height value.",
+    Step  = 1,
+    Value = { Min = 10, Max = 300, Default = 80 },
+    Callback = function(value)
+        PlayerFlags.JumpValue = value
+        if PlayerFlags.JumpEnabled then
+            applyJump(value)
+        end
+    end
+})
+
 ----------------------------------------------------
--- FLY
+-- FLY MODE
 ----------------------------------------------------
+local FlySection = Tabs.Player:Section({
+    Title  = "Fly Mode",
+    Icon   = "feather",
+    Box    = true,
+    Opened = false,
+})
+
 local FlyVelocity, FlyGyro
 
 local function startFly()
@@ -435,9 +518,36 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
+FlySection:Toggle({
+    Title = "Fly Mode",
+    Desc  = "Toggle fly (F key).",
+    Icon  = "feather",
+    Value = false,
+    Callback = function(state)
+        if state then startFly() else stopFly() end
+    end
+})
+
+FlySection:Slider({
+    Title = "Fly Speed",
+    Desc  = "Flight speed value.",
+    Step  = 1,
+    Value = { Min = 10, Max = 500, Default = 50 },
+    Callback = function(value)
+        PlayerFlags.FlySpeed = value
+    end
+})
+
 ----------------------------------------------------
--- NOCLIP
+-- NO CLIP
 ----------------------------------------------------
+local NoClipSection = Tabs.Player:Section({
+    Title  = "No Clip",
+    Icon   = "ghost",
+    Box    = true,
+    Opened = false,
+})
+
 local function applyFullNoClip()
     local char = getCharacter()
     if not char then return end
@@ -464,75 +574,9 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-----------------------------------------------------
--- UI ELEMENTOS PLAYER
-----------------------------------------------------
--- SPEED CATEGORY
-SpeedCategory:Slider({
-    Title = "Speed",
-    Desc  = "Player movement speed.",
-    Step  = 1,
-    Value = { Min = 1, Max = MAX_SPEED, Default = 22 },
-    Callback = function(value)
-        PlayerFlags.SpeedValue = value
-        applySpeed()
-    end
-})
-
--- JUMP CATEGORY
-JumpCategory:Toggle({
-    Title = "Custom Jump",
-    Desc  = "Enable custom jump height.",
-    Icon  = "arrow-up",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.JumpEnabled = state
-        if state then
-            applyJump(PlayerFlags.JumpValue)
-        else
-            applyJump(DEFAULT_JUMPPOWER)
-        end
-    end
-})
-
-JumpCategory:Slider({
-    Title = "Jump Power",
-    Desc  = "Jump height.",
-    Step  = 1,
-    Value = { Min = 10, Max = 300, Default = 80 },
-    Callback = function(value)
-        PlayerFlags.JumpValue = value
-        if PlayerFlags.JumpEnabled then
-            applyJump(value)
-        end
-    end
-})
-
--- FLY CATEGORY
-FlyCategory:Toggle({
-    Title = "Fly",
-    Desc  = "Toggle fly (F key).",
-    Icon  = "feather",
-    Value = false,
-    Callback = function(state)
-        if state then startFly() else stopFly() end
-    end
-})
-
-FlyCategory:Slider({
-    Title = "Fly Speed",
-    Desc  = "Flight speed.",
-    Step  = 1,
-    Value = { Min = 10, Max = 500, Default = 50 },
-    Callback = function(value)
-        PlayerFlags.FlySpeed = value
-    end
-})
-
--- NOCLIP (fora de categoria)
-PlayerSection:Toggle({
-    Title = "NoClip",
-    Desc  = "Walk through any wall/object.",
+NoClipSection:Toggle({
+    Title = "No Clip",
+    Desc  = "Walk through any wall.",
     Icon  = "ghost",
     Type  = "Checkbox",
     Value = false,
@@ -553,31 +597,25 @@ local FarmSection = Tabs.Farm:Section({
     Opened = true,
 })
 
--- Instant Steal: transforma segurar E em clique instantâneo
 local connections = {}
 
 local function setPromptInstant(prompt)
-    -- aqui você pode filtrar por prompt.ObjectText / ActionText se quiser só Brainrot
-    -- ex: if not tostring(prompt.ObjectText):lower():find("brainrot") then return end
     prompt.HoldDuration = 0
 end
 
 local function enableInstantSteal()
-    -- todos prompts existentes
     for _, prompt in ipairs(workspace:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
             setPromptInstant(prompt)
         end
     end
 
-    -- quando novos prompts aparecem
     table.insert(connections,
         ProximityPromptService.PromptShown:Connect(function(prompt)
             setPromptInstant(prompt)
         end)
     )
 
-    -- quando o player começa a segurar, já dispara instantaneamente
     table.insert(connections,
         ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
             if not PlayerFlags.InstantSteal then return end
@@ -618,13 +656,13 @@ FarmSection:Toggle({
 -- SELLING PLACEHOLDER
 ----------------------------------------------------
 Tabs.Selling:Section({
-    Title = "Selling (em breve)",
+    Title = "Selling (soon)",
     Box = true,
     Opened = true,
 })
 
 ----------------------------------------------------
--- SETTINGS (Window + Themes + Toggle Keybind)
+-- SETTINGS
 ----------------------------------------------------
 local SettingsWindowSection = Tabs.Settings:Section({
     Title = "Window",
@@ -634,7 +672,7 @@ local SettingsWindowSection = Tabs.Settings:Section({
 
 SettingsWindowSection:Toggle({
     Title = "Window Transparency",
-    Desc  = "Liga/desliga transparência global.",
+    Desc  = "Toggle global transparency.",
     Value = false,
     Callback = function(e)
         Window:ToggleTransparency(e)
@@ -643,14 +681,14 @@ SettingsWindowSection:Toggle({
 
 SettingsWindowSection:Keybind({
     Title = "Toggle UI Key",
-    Desc  = "Clique e pressione a tecla para abrir/fechar o hub.",
+    Desc  = "Press a key to open/close the hub.",
     Value = "RightShift",
     Callback = function(keyName)
         if typeof(keyName) == "string" and Enum.KeyCode[keyName] then
             Window:SetToggleKey(Enum.KeyCode[keyName])
             WindUI:Notify({
                 Title = "Toggle Key",
-                Content = "Tecla do hub alterada para: " .. keyName,
+                Content = "Hub key set to: " .. keyName,
                 Duration = 3,
                 Icon = "keyboard",
             })
@@ -680,14 +718,14 @@ end
 
 ThemesSection:Dropdown({
     Title  = "Theme",
-    Desc   = "Selecione o tema.",
+    Desc   = "Select a theme.",
     Values = themeNames,
     Value  = WindUI:GetCurrentTheme() or "Red",
     Callback = function(themeName)
         WindUI:SetTheme(themeName)
         WindUI:Notify({
             Title = "Theme",
-            Content = "Tema alterado para: " .. tostring(themeName),
+            Content = "Theme changed to: " .. tostring(themeName),
             Duration = 3,
             Icon = "palette",
         })

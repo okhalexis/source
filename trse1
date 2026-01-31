@@ -652,70 +652,116 @@ local AutoGapState = {
 
 local AUTO_FLY_SPEED = 220
 local WAVE_DETECTION_RANGE = 30
-local ARRIVAL_DISTANCE = 2   -- margem pequena pra parar perto e depois snap
+local ARRIVAL_DISTANCE = 2
 
 ----------------------------------------------------
--- WAVE DETECTOR
+-- WAVE DETECTOR ROBUSTO (tsunami / wave / snake / lighting)
 ----------------------------------------------------
 local WaveDetector = {}
 
 local wavesCache = {}
 local lastWaveScan = 0
-local WAVE_SCAN_INTERVAL = 0.5
+local WAVE_SCAN_INTERVAL = 0.3
+
+local WAVE_KEYWORDS = {
+    "tsunami",
+    "wave",
+    "snake",
+    "lighting",
+    "lightning", -- variação comum de escrita
+}
+
+local function isWaveName(name)
+    name = name:lower()
+    for _, kw in ipairs(WAVE_KEYWORDS) do
+        if name:find(kw) then
+            return true
+        end
+    end
+    return false
+end
+
+local function getWavePart(obj)
+    if obj:IsA("BasePart") then
+        return obj
+    end
+
+    if obj:IsA("Model") then
+        if obj.PrimaryPart then
+            return obj.PrimaryPart
+        end
+
+        local bestPart
+        local bestScore = 0
+        for _, d in ipairs(obj:GetDescendants()) do
+            if d:IsA("BasePart") then
+                local s = d.Size
+                local score = s.X * s.Y * s.Z
+                if score > bestScore then
+                    bestScore = score
+                    bestPart = d
+                end
+            end
+        end
+        return bestPart
+    end
+
+    return nil
+end
 
 function WaveDetector.ScanAllWaves()
-    local currentTime = tick()
-    if currentTime - lastWaveScan < WAVE_SCAN_INTERVAL then
+    local now = tick()
+    if now - lastWaveScan < WAVE_SCAN_INTERVAL then
         return wavesCache
     end
 
-    lastWaveScan = currentTime
+    lastWaveScan = now
     wavesCache = {}
 
-    for _, obj in ipairs(workspace:GetChildren()) do
-        local name = obj.Name:lower()
-
-        if name:find("tsunami") or 
-           name:find("wave") or 
-           name:find("water") or 
-           name:find("snake") or 
-           name:find("wacky") or
-           name:find("flood") then
-
-            local part = nil
-            if obj:IsA("Model") then
-                part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-            elseif obj:IsA("BasePart") then
-                part = obj
-            end
-
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if isWaveName(obj.Name) then
+            local part = getWavePart(obj)
             if part then
                 table.insert(wavesCache, {
-                    Name = obj.Name,
+                    Instance = obj,
+                    Part     = part,
                     Position = part.Position,
+                    Name     = obj.Name,
                 })
             end
         end
     end
+
+    -- debug opcional:
+    -- print("[WaveDetector] found waves:", #wavesCache)
 
     return wavesCache
 end
 
 function WaveDetector.HasWaveNearby(playerPos)
     local waves = WaveDetector.ScanAllWaves()
-
     if #waves == 0 then
         return false
     end
 
-    for _, wave in ipairs(waves) do
-        local wavePos = wave.Position
-        local distance = (wavePos - playerPos).Magnitude
+    local nearestDist = math.huge
+    local nearestName = nil
 
-        if distance <= WAVE_DETECTION_RANGE then
-            print(string.format("[Wave Detector] 🚨 Wave nearby! Distance: %.1f studs", distance))
-            return true, distance
+    for _, wave in ipairs(waves) do
+        local dist = (wave.Position - playerPos).Magnitude
+        if dist < nearestDist then
+            nearestDist = dist
+            nearestName = wave.Name
         end
+    end
+
+    if nearestDist <= WAVE_DETECTION_RANGE then
+        print(string.format(
+            "[WaveDetector] 🚨 Wave '%s' nearby at %.1f studs",
+            tostring(nearestName),
+            nearestDist
+        ))
+        return true, nearestDist
     end
 
     return false
@@ -736,16 +782,18 @@ function AutoFly.Start()
     AutoGapState.IsFlying = true
     hum.PlatformStand = true
 
-    AutoGapState.AutoFlyVelocity = Instance.new("BodyVelocity")
-    AutoGapState.AutoFlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero
-    AutoGapState.AutoFlyVelocity.Parent = hrp
+    AutoFlyVelocity = Instance.new("BodyVelocity")
+    AutoFlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    AutoFlyVelocity.Velocity = Vector3.zero
+    AutoFlyVelocity.Parent = hrp
+    AutoGapState.AutoFlyVelocity = AutoFlyVelocity
 
-    AutoGapState.AutoFlyGyro = Instance.new("BodyGyro")
-    AutoGapState.AutoFlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    AutoGapState.AutoFlyGyro.P = 9e4
-    AutoGapState.AutoFlyGyro.CFrame = hrp.CFrame
-    AutoGapState.AutoFlyGyro.Parent = hrp
+    AutoFlyGyro = Instance.new("BodyGyro")
+    AutoFlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    AutoFlyGyro.P = 9e4
+    AutoFlyGyro.CFrame = hrp.CFrame
+    AutoFlyGyro.Parent = hrp
+    AutoGapState.AutoFlyGyro = AutoFlyGyro
 
     print("[Auto Fly] Levitation ON (220)")
     return true
@@ -827,8 +875,7 @@ end
 
 local function snapToExactPosition(targetPos)
     local hrp = getHumanoidRootPart()
-    local hum = getHumanoid()
-    if not hrp or not hum then return end
+    if not hrp then return end
 
     AutoFly.PauseInPlace()
     AutoFly.Stop()

@@ -619,7 +619,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - LÓGICA FINAL CORRETA
+-- AUTO FARM BRAINROT - COM SISTEMA DE EMERGÊNCIA
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Auto Farm Brainrot",
@@ -646,8 +646,12 @@ local AutoGapState = {
     Enabled = false,
     TargetGapIndex = nil,
     CurrentPositionIndex = 0,
+    PreviousPositionIndex = 0, -- Para sistema de rollback
     HasTeleported = false,
 }
+
+-- Distância de segurança para detecção de perigo (studs)
+local DANGER_DISTANCE = 80
 
 --[[========================================================
     SISTEMA DE DETECÇÃO DE WAVES
@@ -657,7 +661,7 @@ local WaveDetector = {}
 
 local wavesCache = {}
 local lastWaveScan = 0
-local WAVE_SCAN_INTERVAL = 0.5
+local WAVE_SCAN_INTERVAL = 0.3 -- Scan mais frequente para segurança
 
 function WaveDetector.ScanAllWaves()
     local currentTime = tick()
@@ -715,9 +719,7 @@ function WaveDetector.GetWaveGapPosition(wavePos)
     return closestGapIndex
 end
 
--- LÓGICA CORRETA:
--- Pode mover se wave está 2+ gaps à frente OU já passou (atrás)
--- Espera se wave está no mesmo gap OU apenas 1 gap à frente
+-- Verifica se pode mover (lógica original)
 function WaveDetector.CanMoveToNextGap(currentGapIndex)
     local waves = WaveDetector.ScanAllWaves()
     
@@ -731,24 +733,14 @@ function WaveDetector.CanMoveToNextGap(currentGapIndex)
         if waveGapIndex then
             local difference = waveGapIndex - currentGapIndex
             
-            -- Wave atrás (já passou) → IGNORA, não importa
             if difference < 0 then
-                -- Não faz nada, continua checando outras waves
-                
-            -- Wave no mesmo gap → ESPERA
+                -- Wave atrás, ignora
             elseif difference == 0 then
-                print(string.format("[Wave Detector] ⚠️ Wave at Gap %d (SAME as player) - WAITING", waveGapIndex))
-                return false
-                
-            -- Wave 1 gap à frente → ESPERA
+                return false -- ESPERA (mesmo gap)
             elseif difference == 1 then
-                print(string.format("[Wave Detector] ⚠️ Wave at Gap %d (1 ahead) - WAITING", waveGapIndex))
-                return false
-                
-            -- Wave 2+ gaps à frente → PODE MOVER (wave está longe)
+                return false -- ESPERA (1 à frente)
             else
-                print(string.format("[Wave Detector] ✅ Wave at Gap %d (%d ahead) - SAFE", waveGapIndex, difference))
-                -- Continua checando outras waves
+                -- PODE MOVER (2+ à frente)
             end
         end
     end
@@ -756,8 +748,28 @@ function WaveDetector.CanMoveToNextGap(currentGapIndex)
     return true
 end
 
+-- NOVO: Verifica se wave está PERIGOSAMENTE PRÓXIMA após teleport
+function WaveDetector.IsInDanger(playerPos)
+    local waves = WaveDetector.ScanAllWaves()
+    
+    if #waves == 0 then
+        return false
+    end
+    
+    for _, wave in ipairs(waves) do
+        local dist = (wave.Position - playerPos).Magnitude
+        
+        if dist < DANGER_DISTANCE then
+            print(string.format("[EMERGENCY] 🚨 Wave VERY CLOSE! Distance: %.1f studs", dist))
+            return true
+        end
+    end
+    
+    return false
+end
+
 --[[========================================================
-    SISTEMA DE MOVIMENTO
+    SISTEMA DE MOVIMENTO COM ROLLBACK
 ==========================================================]]
 
 local function instantTeleport(gap)
@@ -769,8 +781,37 @@ local function instantTeleport(gap)
     return true
 end
 
+-- NOVO: Sistema de rollback (volta pro gap anterior)
+local function emergencyRollback()
+    if AutoGapState.PreviousPositionIndex > 0 then
+        local previousGap = GapPositions[AutoGapState.PreviousPositionIndex]
+        
+        if previousGap then
+            print(string.format("[EMERGENCY] ⚠️ Rolling back to %s (Gap %d)", previousGap.Name, AutoGapState.PreviousPositionIndex))
+            
+            local success = instantTeleport(previousGap)
+            
+            if success then
+                AutoGapState.CurrentPositionIndex = AutoGapState.PreviousPositionIndex
+                AutoGapState.HasTeleported = false
+                
+                WindUI:Notify({
+                    Title   = "Auto Farm",
+                    Content = "🚨 Emergency rollback to " .. previousGap.Name,
+                    Duration= 3,
+                    Icon    = "alert-triangle",
+                })
+                
+                return true
+            end
+        end
+    end
+    
+    return false
+end
+
 --[[========================================================
-    MAIN LOOP
+    MAIN LOOP COM SISTEMA DE EMERGÊNCIA
 ==========================================================]]
 
 local autoFarmCoroutine = nil
@@ -815,7 +856,19 @@ local function autoFarmLoop()
         local distToNext = (currentPos - nextPos).Magnitude
         
         if distToNext < 15 then
-            -- Já chegou
+            -- Chegou, mas verifica se está em perigo
+            if WaveDetector.IsInDanger(currentPos) then
+                -- EMERGÊNCIA: Wave muito próxima, volta pro anterior
+                print("[EMERGENCY] 🚨 Danger detected after arrival! Executing rollback...")
+                
+                if emergencyRollback() then
+                    task.wait(2) -- Espera mais tempo após rollback
+                    continue
+                end
+            end
+            
+            -- Seguro, confirma chegada
+            AutoGapState.PreviousPositionIndex = AutoGapState.CurrentPositionIndex
             AutoGapState.CurrentPositionIndex = nextPositionIndex
             AutoGapState.HasTeleported = false
             print(string.format("[Auto Farm] ✅ Reached %s (Gap %d)", nextGap.Name, nextPositionIndex))
@@ -846,7 +899,18 @@ local function autoFarmLoop()
                 
                 if success then
                     AutoGapState.HasTeleported = true
-                    task.wait(0.3)
+                    task.wait(0.2) -- Pequeno delay
+                    
+                    -- VERIFICA IMEDIATAMENTE APÓS TELEPORT
+                    local newPos = getHumanoidRootPart()
+                    if newPos and WaveDetector.IsInDanger(newPos.Position) then
+                        print("[EMERGENCY] 🚨 Danger detected immediately after teleport! Executing rollback...")
+                        
+                        if emergencyRollback() then
+                            task.wait(2)
+                            continue
+                        end
+                    end
                 end
             end
         else
@@ -926,6 +990,7 @@ AutoFarmSection:Toggle({
             end
             
             AutoGapState.CurrentPositionIndex = 0
+            AutoGapState.PreviousPositionIndex = 0
             AutoGapState.HasTeleported = false
             
             WindUI:Notify({

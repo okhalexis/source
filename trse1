@@ -77,6 +77,7 @@ WindUI:Localization({
     }
 })
 
+-- TEMA ADICIONADO ANTES DO WINDOW
 WindUI:AddTheme({
     Name = "Red",
     Accent = Color3.fromHex("#ef4444"),
@@ -116,7 +117,7 @@ WindUI:AddTheme({
     PopupBackgroundTransparency = 0,
     PopupTitle = Color3.fromHex("#fee2e2"),
     PopupContent = Color3.fromHex("#fecaca"),
-    PopupIcon = Color3.fromHex("fecaca"),
+    PopupIcon = Color3.fromHex("#fecaca"),
 
     Toggle = Color3.fromHex("#b91c1c"),
     ToggleBar = Color3.fromHex("#fee2e2"),
@@ -130,8 +131,6 @@ WindUI:Gradient({
     ["0"]   = { Color = Color3.fromHex("#111827"), Transparency = 0 },
     ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
 }, { Rotation = 45 })
-
-WindUI:SetTheme("Red")
 
 local displayName = LocalPlayer.DisplayName or LocalPlayer.Name
 local username = "@" .. (LocalPlayer.Name or "Player")
@@ -1032,15 +1031,15 @@ end
 
 -- UI Controls
 AutoGapSection:Label({
-    Title = "Warning",
+    Title = "⚠️ Warning",
     Desc  = "Enable God Mode + NoClip before using!",
     Icon  = "alert-triangle",
-    Color = Color3.fromHex("#ef4444"),
 })
 
 AutoGapSection:Dropdown({
     Title  = "Select Area",
     Desc   = "Choose gap area (Common → Celestial)",
+    Icon   = "map",
     Values = getAreaNames(),
     Value  = nil,
     Callback = function(value)
@@ -1062,6 +1061,7 @@ AutoGapSection:Dropdown({
 AutoGapSection:Slider({
     Title = "Movement Speed",
     Desc  = "Speed when moving between gaps.",
+    Icon  = "gauge",
     Step  = 5,
     Value = { Min = 20, Max = 200, Default = 50 },
     Callback = function(value)
@@ -1072,6 +1072,7 @@ AutoGapSection:Slider({
 AutoGapSection:Slider({
     Title = "Safe Distance",
     Desc  = "Minimum distance from tsunami (studs).",
+    Icon  = "shield",
     Step  = 10,
     Value = { Min = 50, Max = 300, Default = 120 },
     Callback = function(value)
@@ -1315,6 +1316,7 @@ end)
 ----------------------------------------------------
 Tabs.Selling:Section({
     Title = "Selling (soon)",
+    Icon = "shopping-cart",
     Box = true,
     Opened = true,
 })
@@ -1323,7 +1325,8 @@ Tabs.Selling:Section({
 -- SETTINGS
 ----------------------------------------------------
 local SettingsWindowSection = Tabs.Settings:Section({
-    Title = "Window",
+    Title = "Window Settings",
+    Icon = "sliders",
     Box = true,
     Opened = true,
 })
@@ -1331,6 +1334,7 @@ local SettingsWindowSection = Tabs.Settings:Section({
 SettingsWindowSection:Toggle({
     Title = "Window Transparency",
     Desc  = "Toggle global transparency.",
+    Icon  = "droplet",
     Value = false,
     Callback = function(e)
         Window:ToggleTransparency(e)
@@ -1340,6 +1344,7 @@ SettingsWindowSection:Toggle({
 SettingsWindowSection:Keybind({
     Title = "Toggle UI Key",
     Desc  = "Press a key to open/close the hub.",
+    Icon  = "keyboard",
     Value = "RightShift",
     Callback = function(keyName)
         if typeof(keyName) == "string" and Enum.KeyCode[keyName] then
@@ -1356,6 +1361,8 @@ SettingsWindowSection:Keybind({
 
 SettingsWindowSection:Button({
     Title = "Center Window",
+    Desc  = "Reposition window to center",
+    Icon  = "align-center",
     Callback = function()
         Window:Toggle()
         task.wait(0.05)
@@ -1365,6 +1372,7 @@ SettingsWindowSection:Button({
 
 local ThemesSection = Tabs.Settings:Section({
     Title = "Themes",
+    Icon = "palette",
     Box = true,
     Opened = true,
 })
@@ -1375,15 +1383,16 @@ for name in pairs(WindUI:GetThemes()) do
 end
 
 ThemesSection:Dropdown({
-    Title  = "Theme",
-    Desc   = "Select a theme.",
+    Title  = "Theme Selector",
+    Desc   = "Select a UI theme.",
+    Icon   = "brush",
     Values = themeNames,
-    Value  = WindUI:GetCurrentTheme() or "Red",
+    Value  = "Red",
     Callback = function(themeName)
         WindUI:SetTheme(themeName)
         WindUI:Notify({
-            Title = "Theme",
-            Content = "Theme changed to: " .. tostring(themeName),
+            Title = "Theme Changed",
+            Content = "Theme set to: " .. tostring(themeName),
             Duration = 3,
             Icon = "palette",
         })

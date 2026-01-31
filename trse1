@@ -619,7 +619,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - COM SISTEMA DE EMERGÊNCIA
+-- AUTO FARM BRAINROT - LÓGICA OTIMIZADA
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Auto Farm Brainrot",
@@ -646,22 +646,23 @@ local AutoGapState = {
     Enabled = false,
     TargetGapIndex = nil,
     CurrentPositionIndex = 0,
-    PreviousPositionIndex = 0, -- Para sistema de rollback
+    PreviousPositionIndex = 0,
     HasTeleported = false,
 }
 
--- Distância de segurança para detecção de perigo (studs)
-local DANGER_DISTANCE = 80
+-- Distâncias configuráveis
+local DANGER_DISTANCE = 80 -- Para rollback
+local MAX_DETECTION_DISTANCE = 200 -- Só detecta waves próximas aos gaps
 
 --[[========================================================
-    SISTEMA DE DETECÇÃO DE WAVES
+    SISTEMA DE DETECÇÃO DE WAVES - OTIMIZADO
 ==========================================================]]
 
 local WaveDetector = {}
 
 local wavesCache = {}
 local lastWaveScan = 0
-local WAVE_SCAN_INTERVAL = 0.3 -- Scan mais frequente para segurança
+local WAVE_SCAN_INTERVAL = 0.5
 
 function WaveDetector.ScanAllWaves()
     local currentTime = tick()
@@ -702,6 +703,7 @@ function WaveDetector.ScanAllWaves()
     return wavesCache
 end
 
+-- Retorna gap index APENAS se wave estiver próxima (< MAX_DETECTION_DISTANCE)
 function WaveDetector.GetWaveGapPosition(wavePos)
     local closestGapIndex = nil
     local shortestDist = math.huge
@@ -716,10 +718,15 @@ function WaveDetector.GetWaveGapPosition(wavePos)
         end
     end
     
-    return closestGapIndex
+    -- SÓ retorna se wave está PRÓXIMA do gap
+    if shortestDist < MAX_DETECTION_DISTANCE then
+        return closestGapIndex, shortestDist
+    end
+    
+    return nil, shortestDist
 end
 
--- Verifica se pode mover (lógica original)
+-- Verifica se pode mover (APENAS considera waves próximas dos gaps)
 function WaveDetector.CanMoveToNextGap(currentGapIndex)
     local waves = WaveDetector.ScanAllWaves()
     
@@ -728,27 +735,36 @@ function WaveDetector.CanMoveToNextGap(currentGapIndex)
     end
     
     for _, wave in ipairs(waves) do
-        local waveGapIndex = WaveDetector.GetWaveGapPosition(wave.Position)
+        local waveGapIndex, distance = WaveDetector.GetWaveGapPosition(wave.Position)
         
+        -- Se waveGapIndex é nil, wave está LONGE de todos os gaps, IGNORA
         if waveGapIndex then
             local difference = waveGapIndex - currentGapIndex
             
             if difference < 0 then
                 -- Wave atrás, ignora
+                print(string.format("[Wave Detector] Wave at Gap %d (behind player) - IGNORED", waveGapIndex))
+                
             elseif difference == 0 then
-                return false -- ESPERA (mesmo gap)
+                print(string.format("[Wave Detector] ⚠️ Wave at Gap %d (SAME, dist: %.1f) - WAITING", waveGapIndex, distance))
+                return false
+                
             elseif difference == 1 then
-                return false -- ESPERA (1 à frente)
+                print(string.format("[Wave Detector] ⚠️ Wave at Gap %d (1 ahead, dist: %.1f) - WAITING", waveGapIndex, distance))
+                return false
+                
             else
-                -- PODE MOVER (2+ à frente)
+                print(string.format("[Wave Detector] ✅ Wave at Gap %d (%d ahead, dist: %.1f) - SAFE", waveGapIndex, difference, distance))
             end
+        else
+            print(string.format("[Wave Detector] Wave detected but FAR from gaps (dist: %.1f) - IGNORED", distance))
         end
     end
     
     return true
 end
 
--- NOVO: Verifica se wave está PERIGOSAMENTE PRÓXIMA após teleport
+-- Verifica se wave está PERIGOSAMENTE PRÓXIMA (para rollback)
 function WaveDetector.IsInDanger(playerPos)
     local waves = WaveDetector.ScanAllWaves()
     
@@ -781,7 +797,6 @@ local function instantTeleport(gap)
     return true
 end
 
--- NOVO: Sistema de rollback (volta pro gap anterior)
 local function emergencyRollback()
     if AutoGapState.PreviousPositionIndex > 0 then
         local previousGap = GapPositions[AutoGapState.PreviousPositionIndex]
@@ -811,7 +826,7 @@ local function emergencyRollback()
 end
 
 --[[========================================================
-    MAIN LOOP COM SISTEMA DE EMERGÊNCIA
+    MAIN LOOP
 ==========================================================]]
 
 local autoFarmCoroutine = nil
@@ -856,13 +871,12 @@ local function autoFarmLoop()
         local distToNext = (currentPos - nextPos).Magnitude
         
         if distToNext < 15 then
-            -- Chegou, mas verifica se está em perigo
+            -- Chegou, verifica perigo
             if WaveDetector.IsInDanger(currentPos) then
-                -- EMERGÊNCIA: Wave muito próxima, volta pro anterior
                 print("[EMERGENCY] 🚨 Danger detected after arrival! Executing rollback...")
                 
                 if emergencyRollback() then
-                    task.wait(2) -- Espera mais tempo após rollback
+                    task.wait(2)
                     continue
                 end
             end
@@ -899,9 +913,9 @@ local function autoFarmLoop()
                 
                 if success then
                     AutoGapState.HasTeleported = true
-                    task.wait(0.2) -- Pequeno delay
+                    task.wait(0.2)
                     
-                    -- VERIFICA IMEDIATAMENTE APÓS TELEPORT
+                    -- Verifica imediatamente após teleport
                     local newPos = getHumanoidRootPart()
                     if newPos and WaveDetector.IsInDanger(newPos.Position) then
                         print("[EMERGENCY] 🚨 Danger detected immediately after teleport! Executing rollback...")
@@ -919,13 +933,6 @@ local function autoFarmLoop()
             
             local currentGapName = GapPositions[math.max(1, AutoGapState.CurrentPositionIndex)].Name
             print(string.format("[Auto Farm] ⏸️ Waiting at %s...", currentGapName))
-            
-            WindUI:Notify({
-                Title   = "Auto Farm",
-                Content = "⏸️ Waiting for wave...",
-                Duration= 2,
-                Icon    = "pause-circle",
-            })
             
             task.wait(1)
         end

@@ -264,7 +264,7 @@ local function updateHudSpeed(val)
 end
 
 ----------------------------------------------------
--- SPEED HACK (EMPURRA A CADA FRAME)
+-- SPEED HACK
 ----------------------------------------------------
 local SpeedSection = Tabs.Player:Section({
     Title  = "Speed Hack",
@@ -544,9 +544,9 @@ NoClipSection:Toggle({
 -- FARM / INSTANT STEAL
 ----------------------------------------------------
 local FarmSection = Tabs.Farm:Section({
-    Title  = "Instant Steal",
-    Icon   = "zap",
-    Box    = true,
+    Title = "Instant Steal",
+    Icon  = "zap",
+    Box   = true,
     Opened = true,
 })
 
@@ -619,7 +619,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - LEVITANDO + NO CLIP AUTO + RANGE 30
+-- AUTO FARM BRAINROT - LEVITANDO + NO CLIP AUTO
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Auto Farm Brainrot",
@@ -628,7 +628,7 @@ local AutoFarmSection = Tabs.Farm:Section({
     Opened = true,
 })
 
--- POSIÇÕES EXATAS DOS GAPS (tudo alinhado na Z = -14.0)
+-- POSIÇÕES EXATAS DOS GAPS (Z = -14.0)
 local GapPositions = {
     { Index = 1,  Name = "Common",    X = 199.9,  Y = -2.7, Z = -14.0 },
     { Index = 2,  Name = "Uncommon",  X = 283.3,  Y = -2.7, Z = -14.0 },
@@ -650,121 +650,104 @@ local AutoGapState = {
     AutoFlyGyro = nil,
 }
 
-local AUTO_FLY_SPEED = 220
-local WAVE_DETECTION_RANGE = 30
+local AUTO_FLY_SPEED   = 220
 local ARRIVAL_DISTANCE = 2
 
 ----------------------------------------------------
--- WAVE DETECTOR ROBUSTO (tsunami / wave / snake / lighting)
+-- WAVE DETECTOR VIA ActiveTsunamis (usa X de XYZ)
 ----------------------------------------------------
 local WaveDetector = {}
 
-local wavesCache = {}
-local lastWaveScan = 0
-local WAVE_SCAN_INTERVAL = 0.3
+-- workspace.ActiveTsunamis.ActiveTsunamis
+local ACTIVE_TSUNAMIS_PATH = {"ActiveTsunamis", "ActiveTsunamis"}
+local CHECK_INTERVAL   = 0.03  -- ~30 checks/s
+local SAFE_DELTA_X     = 200   -- waveX - playerX >= 200 => seguro avançar
 
-local WAVE_KEYWORDS = {
-    "tsunami",
-    "wave",
-    "snake",
-    "lighting",
-    "lightning", -- variação comum de escrita
-}
-
-local function isWaveName(name)
-    name = name:lower()
-    for _, kw in ipairs(WAVE_KEYWORDS) do
-        if name:find(kw) then
-            return true
-        end
+local function getActiveTsunamisFolder()
+    local obj = workspace
+    for _, name in ipairs(ACTIVE_TSUNAMIS_PATH) do
+        obj = obj:FindFirstChild(name)
+        if not obj then return nil end
     end
-    return false
+    return obj
 end
 
-local function getWavePart(obj)
-    if obj:IsA("BasePart") then
-        return obj
+-- procura uma parte representando a ramificação da onda
+local function getWaveBranchPart(root)
+    -- se a própria raiz já for parte
+    if root:IsA("BasePart") then
+        return root
     end
 
-    if obj:IsA("Model") then
-        if obj.PrimaryPart then
-            return obj.PrimaryPart
-        end
+    -- se for Model, tenta PrimaryPart
+    if root:IsA("Model") and root.PrimaryPart then
+        return root.PrimaryPart
+    end
 
-        local bestPart
-        local bestScore = 0
-        for _, d in ipairs(obj:GetDescendants()) do
-            if d:IsA("BasePart") then
-                local s = d.Size
-                local score = s.X * s.Y * s.Z
-                if score > bestScore then
-                    bestScore = score
-                    bestPart = d
+    -- se for Model/Folder/etc, procura a maior BasePart nas ramificações
+    local bestPart
+    local bestScore = 0
+    for _, d in ipairs(root:GetDescendants()) do
+        if d:IsA("BasePart") then
+            local s = d.Size
+            local score = s.X * s.Y * s.Z
+            if score > bestScore then
+                bestScore = score
+                bestPart = d
+            end
+        end
+    end
+    return bestPart
+end
+
+-- menor (waveX - playerX) dentre TODAS waves/ramificações
+local function getNearestWaveDeltaX(playerPosX)
+    local folder = getActiveTsunamisFolder()
+    if not folder then return nil end
+
+    local nearestDeltaX = nil
+
+    for _, waveRoot in ipairs(folder:GetChildren()) do
+        local part = getWaveBranchPart(waveRoot)
+        if part then
+            local waveX = part.Position.X      -- usa eixo X do mundo (XYZ)
+            local deltaX = waveX - playerPosX  -- quanto a onda está à frente no X
+
+            -- só considera ondas à frente do player
+            if deltaX >= 0 then
+                if not nearestDeltaX or deltaX < nearestDeltaX then
+                    nearestDeltaX = deltaX
                 end
             end
         end
-        return bestPart
     end
 
-    return nil
+    return nearestDeltaX
 end
 
-function WaveDetector.ScanAllWaves()
-    local now = tick()
-    if now - lastWaveScan < WAVE_SCAN_INTERVAL then
-        return wavesCache
+-- true = seguro avançar para próximo gap
+-- false = segura parado no gap atual
+function WaveDetector.IsSafeToAdvance()
+    local hrp = getHumanoidRootPart()
+    if not hrp then
+        return true, nil
     end
 
-    lastWaveScan = now
-    wavesCache = {}
+    local playerX = hrp.Position.X
+    local deltaX = getNearestWaveDeltaX(playerX)
 
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if isWaveName(obj.Name) then
-            local part = getWavePart(obj)
-            if part then
-                table.insert(wavesCache, {
-                    Instance = obj,
-                    Part     = part,
-                    Position = part.Position,
-                    Name     = obj.Name,
-                })
-            end
-        end
+    if not deltaX then
+        -- nenhuma onda ativa nas ramificações de ActiveTsunamis
+        return true, nil
     end
 
-    -- debug opcional:
-    -- print("[WaveDetector] found waves:", #wavesCache)
-
-    return wavesCache
-end
-
-function WaveDetector.HasWaveNearby(playerPos)
-    local waves = WaveDetector.ScanAllWaves()
-    if #waves == 0 then
-        return false
+    if deltaX >= SAFE_DELTA_X then
+        -- onda está 200+ studs à frente no X
+        return true, deltaX
     end
 
-    local nearestDist = math.huge
-    local nearestName = nil
-
-    for _, wave in ipairs(waves) do
-        local dist = (wave.Position - playerPos).Magnitude
-        if dist < nearestDist then
-            nearestDist = dist
-            nearestName = wave.Name
-        end
-    end
-
-    if nearestDist <= WAVE_DETECTION_RANGE then
-        print(string.format(
-            "[WaveDetector] 🚨 Wave '%s' nearby at %.1f studs",
-            tostring(nearestName),
-            nearestDist
-        ))
-        return true, nearestDist
-    end
-
-    return false
+    -- onda a menos de 200 no X (ex: 199, 150, etc) -> segura
+    return false, deltaX
 end
 
 ----------------------------------------------------
@@ -782,18 +765,18 @@ function AutoFly.Start()
     AutoGapState.IsFlying = true
     hum.PlatformStand = true
 
-    AutoFlyVelocity = Instance.new("BodyVelocity")
-    AutoFlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    AutoFlyVelocity.Velocity = Vector3.zero
-    AutoFlyVelocity.Parent = hrp
-    AutoGapState.AutoFlyVelocity = AutoFlyVelocity
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bv.Velocity = Vector3.zero
+    bv.Parent = hrp
+    AutoGapState.AutoFlyVelocity = bv
 
-    AutoFlyGyro = Instance.new("BodyGyro")
-    AutoFlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    AutoFlyGyro.P = 9e4
-    AutoFlyGyro.CFrame = hrp.CFrame
-    AutoFlyGyro.Parent = hrp
-    AutoGapState.AutoFlyGyro = AutoFlyGyro
+    local bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    bg.P = 9e4
+    bg.CFrame = hrp.CFrame
+    bg.Parent = hrp
+    AutoGapState.AutoFlyGyro = bg
 
     print("[Auto Fly] Levitation ON (220)")
     return true
@@ -860,8 +843,32 @@ function AutoFly.PauseInPlace()
     end
 end
 
+local function finishAtPosition(targetPos)
+    local hrp = getHumanoidRootPart()
+    local hum = getHumanoid()
+    if not hrp then return end
+
+    if AutoGapState.AutoFlyVelocity then
+        AutoGapState.AutoFlyVelocity:Destroy()
+        AutoGapState.AutoFlyVelocity = nil
+    end
+    if AutoGapState.AutoFlyGyro then
+        AutoGapState.AutoFlyGyro:Destroy()
+        AutoGapState.AutoFlyGyro = nil
+    end
+    AutoGapState.IsFlying = false
+
+    if hum then
+        hum.PlatformStand = false
+    end
+
+    hrp.CFrame = CFrame.new(targetPos)
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.AssemblyAngularVelocity = Vector3.zero
+end
+
 ----------------------------------------------------
--- MAIN LOOP GAP 1 -> TARGET, PARANDO EXATO NAS COORDS
+-- MAIN LOOP GAP 1 -> TARGET
 ----------------------------------------------------
 local autoFarmCoroutine = nil
 
@@ -871,17 +878,6 @@ local function getGapByIndex(idx)
             return gap
         end
     end
-end
-
-local function snapToExactPosition(targetPos)
-    local hrp = getHumanoidRootPart()
-    if not hrp then return end
-
-    AutoFly.PauseInPlace()
-    AutoFly.Stop()
-
-    hrp.CFrame = CFrame.new(targetPos)
-    hrp.Velocity = Vector3.zero
 end
 
 local function autoFarmLoop()
@@ -930,18 +926,24 @@ local function autoFarmLoop()
 
         local targetPos = Vector3.new(currentGap.X, currentGap.Y, currentGap.Z)
 
-        local hasWave, waveDistance = WaveDetector.HasWaveNearby(hrp.Position)
+        ------------------------------------------------
+        -- SISTEMA NOVO: usa X das waves em ActiveTsunamis
+        ------------------------------------------------
+        local isSafe, deltaX = WaveDetector.IsSafeToAdvance()
 
-        if hasWave then
+        if not isSafe then
             AutoFly.PauseInPlace()
             print(string.format(
-                "[Auto Farm] Wave %.1f studs - waiting at Gap %d (%s)",
-                waveDistance, AutoGapState.CurrentGapIndex, currentGap.Name
+                "[Auto Farm] ⏸ Wave ΔX = %.1f (< %d) - holding at Gap %d (%s)",
+                deltaX or -1,
+                SAFE_DELTA_X,
+                AutoGapState.CurrentGapIndex,
+                currentGap.Name
             ))
-            task.wait(1)
+            task.wait(CHECK_INTERVAL)
         else
             if AutoFly.HasArrived(targetPos) then
-                snapToExactPosition(targetPos)
+                finishAtPosition(targetPos)
 
                 print(string.format(
                     "[Auto Farm] Arrived EXACT at Gap %d (%s)",
@@ -959,13 +961,12 @@ local function autoFarmLoop()
                 if AutoGapState.CurrentGapIndex <= AutoGapState.TargetGapIndex then
                     AutoFly.Start()
                 end
-                task.wait(0.3)
+                task.wait(0.2)
             else
                 AutoFly.FlyToPosition(targetPos)
+                task.wait(CHECK_INTERVAL)
             end
         end
-
-        task.wait(0.05)
     end
 
     AutoFly.Stop()
@@ -1066,8 +1067,8 @@ AutoFarmSection:Toggle({
 ----------------------------------------------------
 Tabs.Selling:Section({
     Title = "Selling (soon)",
-    Icon = "shopping-cart",
-    Box = true,
+    Icon  = "shopping-cart",
+    Box   = true,
     Opened = true,
 })
 
@@ -1076,8 +1077,8 @@ Tabs.Selling:Section({
 ----------------------------------------------------
 local SettingsWindowSection = Tabs.Settings:Section({
     Title = "Window Settings",
-    Icon = "sliders",
-    Box = true,
+    Icon  = "sliders",
+    Box   = true,
     Opened = true,
 })
 
@@ -1100,10 +1101,10 @@ SettingsWindowSection:Keybind({
         if typeof(keyName) == "string" and Enum.KeyCode[keyName] then
             Window:SetToggleKey(Enum.KeyCode[keyName])
             WindUI:Notify({
-                Title = "Toggle Key",
+                Title   = "Toggle Key",
                 Content = "Hub key set to: " .. keyName,
-                Duration = 3,
-                Icon = "keyboard",
+                Duration= 3,
+                Icon    = "keyboard",
             })
         end
     end
@@ -1122,8 +1123,8 @@ SettingsWindowSection:Button({
 
 local ThemesSection = Tabs.Settings:Section({
     Title = "Themes",
-    Icon = "palette",
-    Box = true,
+    Icon  = "palette",
+    Box   = true,
     Opened = true,
 })
 

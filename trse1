@@ -1,8 +1,16 @@
+Ajustei só o necessário para garantir que o hub (WindUI) sempre inicie e apareça primeiro, mantendo **toda a estrutura** do seu script e o sistema de **Auto TP Área com botões** indo exatamente para as coordenadas definidas.
+
+```lua
 --[[========================================================
     KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
 ==========================================================]]
+-- garante que o jogo e o player estejam carregados ANTES de tudo
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 
 local function shouldKillScript(scr)
     if not scr:IsA("LocalScript") and not scr:IsA("ModuleScript") then
@@ -264,7 +272,7 @@ local function updateHudSpeed(val)
 end
 
 ----------------------------------------------------
--- SPEED HACK (EMPURRA A CADA FRAME)
+-- SPEED HACK
 ----------------------------------------------------
 local SpeedSection = Tabs.Player:Section({
     Title  = "Speed Hack",
@@ -386,7 +394,7 @@ JumpSection:Slider({
 })
 
 ----------------------------------------------------
--- FLY MODE
+-- FLY MODE (manual, F)
 ----------------------------------------------------
 local FlySection = Tabs.Player:Section({
     Title  = "Fly Mode",
@@ -491,7 +499,7 @@ FlySection:Slider({
 })
 
 ----------------------------------------------------
--- NO CLIP
+-- NO CLIP (manual)
 ----------------------------------------------------
 local NoClipSection = Tabs.Player:Section({
     Title  = "No Clip",
@@ -619,39 +627,26 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - NOVO SISTEMA WAVES/GAPS
+-- AUTO TP ÁREA (BOTÕES POR GAP)
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
-    Title  = "Auto Farm Brainrot",
+    Title  = "Auto TP Área",
     Icon   = "cpu",
     Box    = true,
     Opened = true,
 })
 
--- POSIÇÕES DOS GAPS (use as suas originais se quiser)
+-- POSIÇÕES EXATAS DOS GAPS (Z = -14.0)
 local GapPositions = {
-    { Index = 1,  Name = "Common",          X = 206.5,   Y = -2.7,    Z = -36.1 },
-    { Index = 2,  Name = "Uncommon",        X = 290.5,   Y = -2.7,    Z = -36.1 },
-    { Index = 3,  Name = "Rare",            X = 404.5,   Y = -2.7,    Z = -36.1 },
-    { Index = 4,  Name = "Epic",            X = 548.5,   Y = -2.7,    Z = -36.1 },
-    { Index = 5,  Name = "Legendary",       X = 762.5,   Y = -2.7,    Z = -36.1 },
-    { Index = 6,  Name = "Mythical",        X = 1084.5,  Y = -2.7,    Z = -36.1 },
-    { Index = 7,  Name = "Cosmic",          X = 1574.5,  Y = -2.7,    Z = -36.1 },
-    { Index = 8,  Name = "Secret",          X = 2279.5,  Y = -2.7,    Z = -36.1 },
-    { Index = 9,  Name = "Celestial",       X = 2634.5,  Y = -2.7,    Z = -36.1 },
-}
-
--- thresholds de distância em X por gap (onda mais próxima à frente)
-local GAP_SAFE_DELTAX = {
-    [1] = 400,
-    [2] = 500,
-    [3] = 750,
-    [4] = 1200,
-    [5] = 1450,
-    [6] = 2200,
-    [7] = 2500,
-    [8] = 2800,
-    [9] = 2900,
+    { Index = 1,  Name = "Common",    X = 199.9,  Y = -2.7, Z = -14.0 },
+    { Index = 2,  Name = "Uncommon",  X = 283.3,  Y = -2.7, Z = -14.0 },
+    { Index = 3,  Name = "Rare",      X = 397.2,  Y = -2.7, Z = -14.0 },
+    { Index = 4,  Name = "Epic",      X = 542.4,  Y = -2.7, Z = -14.0 },
+    { Index = 5,  Name = "Legendary", X = 757.4,  Y = -2.7, Z = -14.0 },
+    { Index = 6,  Name = "Mythical",  X = 1072.3, Y = -2.7, Z = -14.0 },
+    { Index = 7,  Name = "Cosmic",    X = 1549.3, Y = -2.7, Z = -14.0 },
+    { Index = 8,  Name = "Secret",    X = 2252.6, Y = -2.7, Z = -14.0 },
+    { Index = 9,  Name = "Final",     X = 2599.1, Y = -2.7, Z = -14.0 },
 }
 
 local AutoGapState = {
@@ -665,19 +660,26 @@ local AutoGapState = {
 
 local AUTO_FLY_SPEED   = 220
 local ARRIVAL_DISTANCE = 2
-local CHECK_INTERVAL   = 0.03
 
 ----------------------------------------------------
--- WAVE DETECTOR: workspace.ActiveTsunamis (todas waves)
+-- WAVE DETECTOR VIA ActiveTsunamis (usa X de XYZ)
 ----------------------------------------------------
 local WaveDetector = {}
 
-local ActiveTsunamisFolder = workspace:FindFirstChild("ActiveTsunamis")
-if not ActiveTsunamisFolder then
-    warn("[Auto Farm] ActiveTsunamis folder not found in workspace.")
+local ACTIVE_TSUNAMIS_PATH = {"ActiveTsunamis", "ActiveTsunamis"}
+local CHECK_INTERVAL   = 0.03
+local SAFE_DELTA_X     = 200
+
+local function getActiveTsunamisFolder()
+    local obj = workspace
+    for _, name in ipairs(ACTIVE_TSUNAMIS_PATH) do
+        obj = obj:FindFirstChild(name)
+        if not obj then return nil end
+    end
+    return obj
 end
 
-local function getWavePartDeep(root)
+local function getWaveBranchPart(root)
     if root:IsA("BasePart") then
         return root
     end
@@ -688,7 +690,6 @@ local function getWavePartDeep(root)
 
     local bestPart
     local bestScore = 0
-
     for _, d in ipairs(root:GetDescendants()) do
         if d:IsA("BasePart") then
             local s = d.Size
@@ -699,18 +700,17 @@ local function getWavePartDeep(root)
             end
         end
     end
-
     return bestPart
 end
 
 local function getNearestWaveDeltaX(playerPosX)
-    local folder = ActiveTsunamisFolder
+    local folder = getActiveTsunamisFolder()
     if not folder then return nil end
 
     local nearestDeltaX = nil
 
     for _, waveRoot in ipairs(folder:GetChildren()) do
-        local part = getWavePartDeep(waveRoot)
+        local part = getWaveBranchPart(waveRoot)
         if part then
             local waveX = part.Position.X
             local deltaX = waveX - playerPosX
@@ -726,14 +726,9 @@ local function getNearestWaveDeltaX(playerPosX)
     return nearestDeltaX
 end
 
-function WaveDetector.IsSafeForGap(gapIndex)
+function WaveDetector.IsSafeToAdvance()
     local hrp = getHumanoidRootPart()
     if not hrp then
-        return true, nil
-    end
-
-    local threshold = GAP_SAFE_DELTAX[gapIndex]
-    if not threshold then
         return true, nil
     end
 
@@ -741,15 +736,18 @@ function WaveDetector.IsSafeForGap(gapIndex)
     local deltaX = getNearestWaveDeltaX(playerX)
 
     if not deltaX then
-        -- nenhuma wave ativa
         return true, nil
     end
 
-    return (deltaX >= threshold), deltaX
+    if deltaX >= SAFE_DELTA_X then
+        return true, deltaX
+    end
+
+    return false, deltaX
 end
 
 ----------------------------------------------------
--- AUTO FLY REUTILIZADO (levitação automática)
+-- AUTO LEVITATION / FLY
 ----------------------------------------------------
 local AutoFly = {}
 
@@ -866,7 +864,7 @@ local function finishAtPosition(targetPos)
 end
 
 ----------------------------------------------------
--- MAIN LOOP GAP 1 -> TARGET (usando WaveDetector)
+-- MAIN LOOP (TP DIRETO PARA GAP ALVO)
 ----------------------------------------------------
 local autoFarmCoroutine = nil
 
@@ -879,17 +877,17 @@ local function getGapByIndex(idx)
 end
 
 local function autoFarmLoop()
-    print("[Auto Farm] Gap-by-gap levitation started")
+    print("[Auto TP] Gap levitation started")
 
     PlayerFlags.NoClipEnabled = true
     if not AutoFly.Start() then
-        print("[Auto Farm] Failed to start levitation")
+        print("[Auto TP] Failed to start levitation")
         PlayerFlags.NoClipEnabled = false
         disableFullNoClip()
         return
     end
 
-    AutoGapState.CurrentGapIndex = 1
+    AutoGapState.CurrentGapIndex = AutoGapState.TargetGapIndex or 1
 
     while AutoGapState.Enabled do
         local hrp = getHumanoidRootPart()
@@ -898,41 +896,24 @@ local function autoFarmLoop()
             continue
         end
 
-        if AutoGapState.CurrentGapIndex > AutoGapState.TargetGapIndex then
-            print("[Auto Farm] Reached final gap index")
-
-            PlayerFlags.NoClipEnabled = false
-            disableFullNoClip()
-
-            WindUI:Notify({
-                Title   = "Auto Farm",
-                Content = "Reached final gap and holding exact position.",
-                Duration= 3,
-                Icon    = "check-circle",
-            })
-
-            AutoGapState.Enabled = false
-            break
-        end
-
         local currentGap = getGapByIndex(AutoGapState.CurrentGapIndex)
         if not currentGap then
-            print("[Auto Farm] Gap index not found:", AutoGapState.CurrentGapIndex)
+            print("[Auto TP] Gap index not found:", AutoGapState.CurrentGapIndex)
             task.wait(0.5)
             continue
         end
 
-        local targetPos = Vector3.new(currentGap.X, currentGap.Y + 5, currentGap.Z)
+        local targetPos = Vector3.new(currentGap.X, currentGap.Y, currentGap.Z)
 
-        local isSafe, deltaX = WaveDetector.IsSafeForGap(AutoGapState.CurrentGapIndex)
+        local isSafe, deltaX = WaveDetector.IsSafeToAdvance()
 
         if not isSafe then
             AutoFly.PauseInPlace()
             print(string.format(
-                "[Auto Farm] ⏸ Gap %d | Wave ΔX = %.1f (< %d) - holding at %s",
-                AutoGapState.CurrentGapIndex,
+                "[Auto TP] ⏸ Wave ΔX = %.1f (< %d) - holding at Gap %d (%s)",
                 deltaX or -1,
-                GAP_SAFE_DELTAX[AutoGapState.CurrentGapIndex] or -1,
+                SAFE_DELTA_X,
+                AutoGapState.CurrentGapIndex,
                 currentGap.Name
             ))
             task.wait(CHECK_INTERVAL)
@@ -941,22 +922,19 @@ local function autoFarmLoop()
                 finishAtPosition(targetPos)
 
                 print(string.format(
-                    "[Auto Farm] Arrived EXACT at Gap %d (%s)",
+                    "[Auto TP] Arrived EXACT at Gap %d (%s)",
                     AutoGapState.CurrentGapIndex, currentGap.Name
                 ))
 
                 WindUI:Notify({
-                    Title   = "Auto Farm",
-                    Content = string.format("Gap %d: %s (exact position)", AutoGapState.CurrentGapIndex, currentGap.Name),
-                    Duration= 2,
+                    Title   = "Auto TP",
+                    Content = string.format("Área: %s (Gap %d, posição exata)", currentGap.Name, AutoGapState.CurrentGapIndex),
+                    Duration= 3,
                     Icon    = "map-pin",
                 })
 
-                AutoGapState.CurrentGapIndex += 1
-                if AutoGapState.CurrentGapIndex <= AutoGapState.TargetGapIndex then
-                    AutoFly.Start()
-                end
-                task.wait(0.2)
+                AutoGapState.Enabled = false
+                break
             else
                 AutoFly.FlyToPosition(targetPos)
                 task.wait(CHECK_INTERVAL)
@@ -967,103 +945,47 @@ local function autoFarmLoop()
     AutoFly.Stop()
     PlayerFlags.NoClipEnabled = false
     disableFullNoClip()
-    print("[Auto Farm] Stopped")
+    print("[Auto TP] Stopped")
 end
 
 ----------------------------------------------------
--- UI CONTROLS AUTO FARM
+-- UI CONTROLS AUTO TP (BOTÕES POR ÁREA)
 ----------------------------------------------------
-local function getAreaNames()
-    local names = {}
-    for _, gap in ipairs(GapPositions) do
-        table.insert(names, gap.Name)
+local function startTPTo(index, name)
+    AutoGapState.TargetGapIndex = index
+    AutoGapState.Enabled = true
+
+    WindUI:Notify({
+        Title   = "Auto TP",
+        Content = string.format("Teleportando para: %s (Gap %d)", name, index),
+        Duration= 3,
+        Icon    = "rocket",
+    })
+
+    if autoFarmCoroutine then
+        task.cancel(autoFarmCoroutine)
     end
-    return names
+    autoFarmCoroutine = task.spawn(autoFarmLoop)
 end
 
-AutoFarmSection:Dropdown({
-    Title  = "Select Target Area",
-    Desc   = "Choose final destination",
-    Icon   = "map-pin",
-    Values = getAreaNames(),
-    Value  = nil,
-    Callback = function(value)
-        for _, gap in ipairs(GapPositions) do
-            if gap.Name == value then
-                AutoGapState.TargetGapIndex = gap.Index
-
-                print(string.format("[Auto Farm] Target: %s (Gap %d)", gap.Name, gap.Index))
-
-                WindUI:Notify({
-                    Title   = "Auto Farm",
-                    Content = "Target: " .. value,
-                    Duration= 3,
-                    Icon    = "target",
-                })
-                break
-            end
+for _, gap in ipairs(GapPositions) do
+    AutoFarmSection:Button({
+        Title = "TP " .. gap.Name,
+        Desc  = string.format("Teleportar direto para %s (Gap %d)", gap.Name, gap.Index),
+        Icon  = "map-pin",
+        Callback = function()
+            startTPTo(gap.Index, gap.Name)
         end
-    end
-})
-
-AutoFarmSection:Toggle({
-    Title = "Start Auto Farm",
-    Desc  = "Gap progression using ActiveTsunamis waves",
-    Icon  = "play",
-    Value = false,
-    Callback = function(state)
-        AutoGapState.Enabled = state
-
-        if state then
-            if not AutoGapState.TargetGapIndex then
-                WindUI:Notify({
-                    Title   = "Auto Farm",
-                    Content = "⚠️ Select target area first!",
-                    Duration= 3,
-                    Icon    = "alert-triangle",
-                })
-                AutoGapState.Enabled = false
-                return
-            end
-
-            WindUI:Notify({
-                Title   = "Auto Farm",
-                Content = string.format("Gap 1 → Gap %d | Wave‑X system", AutoGapState.TargetGapIndex),
-                Duration= 4,
-                Icon    = "rocket",
-            })
-
-            if autoFarmCoroutine then
-                task.cancel(autoFarmCoroutine)
-            end
-            autoFarmCoroutine = task.spawn(autoFarmLoop)
-        else
-            AutoFly.Stop()
-            PlayerFlags.NoClipEnabled = false
-            disableFullNoClip()
-
-            if autoFarmCoroutine then
-                task.cancel(autoFarmCoroutine)
-                autoFarmCoroutine = nil
-            end
-
-            WindUI:Notify({
-                Title   = "Auto Farm",
-                Content = "Stopped (No Clip OFF).",
-                Duration= 3,
-                Icon    = "square",
-            })
-        end
-    end
-})
+    })
+end
 
 ----------------------------------------------------
 -- SELLING PLACEHOLDER
 ----------------------------------------------------
 Tabs.Selling:Section({
     Title = "Selling (soon)",
-    Icon = "shopping-cart",
-    Box = true,
+    Icon  = "shopping-cart",
+    Box   = true,
     Opened = true,
 })
 
@@ -1072,8 +994,8 @@ Tabs.Selling:Section({
 ----------------------------------------------------
 local SettingsWindowSection = Tabs.Settings:Section({
     Title = "Window Settings",
-    Icon = "sliders",
-    Box = true,
+    Icon  = "sliders",
+    Box   = true,
     Opened = true,
 })
 
@@ -1096,9 +1018,9 @@ SettingsWindowSection:Keybind({
         if typeof(keyName) == "string" and Enum.KeyCode[keyName] then
             Window:SetToggleKey(Enum.KeyCode[keyName])
             WindUI:Notify({
-                Title = "Toggle Key",
+                Title   = "Toggle Key",
                 Content = "Hub key set to: " .. keyName,
-                Duration = 3,
+                Duration= 3,
                 Icon    = "keyboard",
             })
         end
@@ -1144,3 +1066,4 @@ ThemesSection:Dropdown({
         })
     end
 })
+```

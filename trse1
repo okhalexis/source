@@ -544,7 +544,8 @@ NoClipSection:Toggle({
 -- FARM / INSTANT STEAL
 ----------------------------------------------------
 local FarmSection = Tabs.Farm:Section({
-    Title  = "⚡ Instant Steal",
+    Title  = "Instant Steal",
+    Icon   = "zap",
     Box    = true,
     Opened = true,
 })
@@ -618,20 +619,19 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO GAP (FARM TAB) - COMPLEXO
+-- AUTO GAP (FARM TAB) - CORRIGIDO
 ----------------------------------------------------
-local GapConfig = {
-    Common = { Name = "🔵 Common", Icon = "circle", Gaps = {
-        -- Exemplo: CFrame.new(100, 50, 200),
-    }},
-    Uncommon = { Name = "🟢 Uncommon", Icon = "circle", Gaps = {} },
-    Rare     = { Name = "🟡 Rare", Icon = "star", Gaps = {} },
-    Epic     = { Name = "🟣 Epic", Icon = "zap", Gaps = {} },
-    Legendary= { Name = "🟠 Legendary", Icon = "award", Gaps = {} },
-    Mythical = { Name = "🔴 Mythical", Icon = "flame", Gaps = {} },
-    Cosmic   = { Name = "⚪ Cosmic", Icon = "moon", Gaps = {} },
-    Secret   = { Name = "⚫ Secret", Icon = "lock", Gaps = {} },
-    Celestial= { Name = "✨ Celestial", Icon = "sparkles", Gaps = {} },
+-- Estrutura corrigida com array ordenado
+local GapDatabase = {
+    { Key = "Common",    Name = "Common",    Icon = "circle",   Gaps = {} },
+    { Key = "Uncommon",  Name = "Uncommon",  Icon = "disc",     Gaps = {} },
+    { Key = "Rare",      Name = "Rare",      Icon = "star",     Gaps = {} },
+    { Key = "Epic",      Name = "Epic",      Icon = "zap",      Gaps = {} },
+    { Key = "Legendary", Name = "Legendary", Icon = "award",    Gaps = {} },
+    { Key = "Mythical",  Name = "Mythical",  Icon = "flame",    Gaps = {} },
+    { Key = "Cosmic",    Name = "Cosmic",    Icon = "moon",     Gaps = {} },
+    { Key = "Secret",    Name = "Secret",    Icon = "lock",     Gaps = {} },
+    { Key = "Celestial", Name = "Celestial", Icon = "sparkles", Gaps = {} },
 }
 
 local AutoGapState = {
@@ -640,8 +640,6 @@ local AutoGapState = {
     SafeDistance   = 120,
     CurrentGapIdx  = 1,
     MovementSpeed  = 50,
-    WaitAtGap      = false,
-    ShowVisualizer = false,
 }
 
 local function getHRP()
@@ -651,31 +649,31 @@ local function getHRP()
 end
 
 local function getAreaNames()
-    local t = {}
-    for _, data in pairs(GapConfig) do
-        table.insert(t, data.Name)
+    local names = {}
+    for _, area in ipairs(GapDatabase) do
+        table.insert(names, area.Name)
     end
-    table.sort(t)
-    return t
+    return names
 end
 
 local function getAreaByName(name)
-    for _, data in pairs(GapConfig) do
-        if data.Name == name then
-            return data
+    for _, area in ipairs(GapDatabase) do
+        if area.Name == name then
+            return area
         end
     end
+    return nil
 end
 
 local AutoGapSection = Tabs.Farm:Section({
-    Title  = "🧭 Auto Gap",
+    Title  = "Auto Gap",
     Icon   = "navigation",
     Box    = true,
     Opened = true,
 })
 
 AutoGapSection:Label({
-    Title = "⚠️ Warning",
+    Title = "Warning",
     Desc  = "Enable God Mode + NoClip before using!",
     Icon  = "alert-triangle",
     Color = Color3.fromHex("#ef4444"),
@@ -683,7 +681,7 @@ AutoGapSection:Label({
 
 AutoGapSection:Dropdown({
     Title  = "Select Area",
-    Desc   = "Choose gap area to navigate (Common → Celestial)",
+    Desc   = "Choose gap area (Common → Celestial)",
     Values = getAreaNames(),
     Value  = nil,
     Callback = function(value)
@@ -714,7 +712,7 @@ AutoGapSection:Slider({
 
 AutoGapSection:Slider({
     Title = "Safe Distance",
-    Desc  = "Minimum distance from tsunami before moving (studs).",
+    Desc  = "Minimum distance from tsunami (studs).",
     Step  = 10,
     Value = { Min = 50, Max = 300, Default = 120 },
     Callback = function(value)
@@ -723,28 +721,8 @@ AutoGapSection:Slider({
 })
 
 AutoGapSection:Toggle({
-    Title = "Wait at Gap",
-    Desc  = "Stay at current gap until tsunami passes before moving.",
-    Icon  = "pause",
-    Value = false,
-    Callback = function(state)
-        AutoGapState.WaitAtGap = state
-    end
-})
-
-AutoGapSection:Toggle({
-    Title = "Show Visualizer",
-    Desc  = "Display gap waypoints (client-side).",
-    Icon  = "eye",
-    Value = false,
-    Callback = function(state)
-        AutoGapState.ShowVisualizer = state
-    end
-})
-
-AutoGapSection:Toggle({
     Title = "Enable Auto Gap",
-    Desc  = "Automatically navigate between gaps avoiding tsunami.",
+    Desc  = "Automatically navigate between gaps.",
     Icon  = "navigation",
     Value = false,
     Callback = function(state)
@@ -760,7 +738,7 @@ AutoGapSection:Toggle({
 
 AutoGapSection:Button({
     Title = "Reset to First Gap",
-    Desc  = "Restart from first gap in selected area.",
+    Desc  = "Restart from gap #1",
     Icon  = "rotate-ccw",
     Callback = function()
         AutoGapState.CurrentGapIdx = 1
@@ -773,7 +751,7 @@ AutoGapSection:Button({
     end
 })
 
--- Helpers Auto Gap
+-- Helper functions
 local function findTsunami()
     for _, obj in ipairs(workspace:GetChildren()) do
         local n = obj.Name:lower()
@@ -795,13 +773,12 @@ end
 local function getTsunamiInfo()
     local tsunami = findTsunami()
     local part = getTsunamiPrimaryPart(tsunami)
-    if not part then return nil, nil, nil end
+    if not part then return nil, nil end
     
     local pos = part.Position
     local vel = part.AssemblyLinearVelocity or Vector3.zero
-    local size = part.Size
     
-    return pos, vel, size
+    return pos, vel
 end
 
 local function estimateCollisionTime(tsunamiPos, tsunamiVel, targetPos)
@@ -819,46 +796,13 @@ local function estimateCollisionTime(tsunamiPos, tsunamiVel, targetPos)
     return math.abs(distZ) / speedZ
 end
 
-local function estimateTravelTime(fromPos, toPos, speed)
+local function estimateTravelTime(fromPos, toPos)
     local dist = (toPos - fromPos).Magnitude
-    local actualSpeed = math.max(speed or AutoGapState.MovementSpeed, 1)
-    return dist / actualSpeed
+    local speed = math.max(AutoGapState.MovementSpeed, 1)
+    return dist / speed
 end
 
 local AutoGapVel, AutoGapGyro
-local GapVisualizers = {}
-
-local function clearVisualizers()
-    for _, obj in ipairs(GapVisualizers) do
-        if obj and obj.Parent then
-            obj:Destroy()
-        end
-    end
-    table.clear(GapVisualizers)
-end
-
-local function createVisualizers(gaps)
-    clearVisualizers()
-    
-    if not AutoGapState.ShowVisualizer then return end
-    
-    for i, gapCF in ipairs(gaps) do
-        if typeof(gapCF) == "CFrame" then
-            local part = Instance.new("Part")
-            part.Name = "GapVisualizer_" .. i
-            part.Size = Vector3.new(4, 1, 4)
-            part.CFrame = gapCF
-            part.Anchored = true
-            part.CanCollide = false
-            part.Transparency = 0.5
-            part.Color = Color3.fromRGB(0, 255, 0)
-            part.Material = Enum.Material.Neon
-            part.Parent = workspace.CurrentCamera
-            
-            table.insert(GapVisualizers, part)
-        end
-    end
-end
 
 local function ensureAutoGapMovers()
     local hrp = getHRP()
@@ -898,11 +842,10 @@ local function stopAutoGapMovement()
     end
 end
 
--- Loop principal Auto Gap
+-- Loop principal
 RunService.Heartbeat:Connect(function(dt)
     if not AutoGapState.Enabled then
         stopAutoGapMovement()
-        clearVisualizers()
         return
     end
 
@@ -923,13 +866,6 @@ RunService.Heartbeat:Connect(function(dt)
     end
 
     local gaps = area.Gaps
-    
-    if AutoGapState.ShowVisualizer and #GapVisualizers == 0 then
-        createVisualizers(gaps)
-    elseif not AutoGapState.ShowVisualizer and #GapVisualizers > 0 then
-        clearVisualizers()
-    end
-    
     local idx = math.clamp(AutoGapState.CurrentGapIdx, 1, #gaps)
     local currentGapCF = gaps[idx]
     
@@ -943,7 +879,7 @@ RunService.Heartbeat:Connect(function(dt)
     local distToGap = (targetPos - hrpPos).Magnitude
     local insideGap = distToGap < 8
 
-    local tsunamiPos, tsunamiVel, tsunamiSize = getTsunamiInfo()
+    local tsunamiPos, tsunamiVel = getTsunamiInfo()
 
     if not insideGap then
         local dir = (targetPos - hrpPos).Unit
@@ -972,18 +908,13 @@ RunService.Heartbeat:Connect(function(dt)
     end
 
     local nextPos = nextGapCF.Position
-    local timeToNext = estimateTravelTime(hrpPos, nextPos, AutoGapState.MovementSpeed)
+    local timeToNext = estimateTravelTime(hrpPos, nextPos)
     local timeWaveToNext = estimateCollisionTime(tsunamiPos, tsunamiVel, nextPos)
 
     local safeSpeed = math.max(math.abs((tsunamiVel and tsunamiVel.Z) or 0), 1)
     local safeMargin = AutoGapState.SafeDistance / safeSpeed
 
     local canMove = (timeToNext + safeMargin) < timeWaveToNext
-
-    if AutoGapState.WaitAtGap and not canMove then
-        stopAutoGapMovement()
-        return
-    end
 
     if canMove then
         AutoGapState.CurrentGapIdx = nextIdx

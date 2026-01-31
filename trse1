@@ -619,7 +619,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - PROGRESSÃO GAP POR GAP
+-- AUTO FARM BRAINROT - RANGE 30 + NO CLIP AUTO
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Auto Farm Brainrot",
@@ -652,11 +652,11 @@ local AutoGapState = {
 
 -- Configurações
 local AUTO_FLY_SPEED = 110
-local FORWARD_RANGE = 80
+local WAVE_DETECTION_RANGE = 30  -- Range de 30 studs (todas as direções)
 local ARRIVAL_DISTANCE = 20
 
 --[[========================================================
-    SISTEMA DE DETECÇÃO DE WAVES - RANGE FRONTAL
+    SISTEMA DE DETECÇÃO DE WAVES - RANGE 30 (360°)
 ==========================================================]]
 
 local WaveDetector = {}
@@ -704,7 +704,8 @@ function WaveDetector.ScanAllWaves()
     return wavesCache
 end
 
-function WaveDetector.HasWaveInFront(playerPos)
+-- NOVO SISTEMA: Range de 30 studs em TODAS as direções (360°)
+function WaveDetector.HasWaveNearby(playerPos)
     local waves = WaveDetector.ScanAllWaves()
     
     if #waves == 0 then
@@ -713,16 +714,12 @@ function WaveDetector.HasWaveInFront(playerPos)
     
     for _, wave in ipairs(waves) do
         local wavePos = wave.Position
-        local deltaX = wavePos.X - playerPos.X
+        local distance = (wavePos - playerPos).Magnitude
         
-        -- Wave está À FRENTE (X maior)
-        if deltaX > 0 then
-            local distance = (wavePos - playerPos).Magnitude
-            
-            if distance <= FORWARD_RANGE then
-                print(string.format("[Wave Detector] 🚨 Wave AHEAD! Distance: %.1f studs", distance))
-                return true, distance
-            end
+        -- Se wave estiver dentro de 30 studs em QUALQUER direção
+        if distance <= WAVE_DETECTION_RANGE then
+            print(string.format("[Wave Detector] 🚨 Wave nearby! Distance: %.1f studs", distance))
+            return true, distance
         end
     end
     
@@ -815,13 +812,17 @@ function AutoFly.PauseInPlace()
 end
 
 --[[========================================================
-    MAIN LOOP - VAI GAP POR GAP ATÉ O ALVO
+    MAIN LOOP - VAI GAP POR GAP + NO CLIP AUTO + RANGE 30
 ==========================================================]]
 
 local autoFarmCoroutine = nil
 
 local function autoFarmLoop()
-    print("[Auto Farm] 🚀 Starting gap-by-gap progression...")
+    print("[Auto Farm] 🚀 Starting gap-by-gap progression with 30-stud wave detection...")
+    print("[Auto Farm] 👻 No Clip AUTO-ACTIVATED")
+    
+    -- ATIVA NO CLIP AUTOMATICAMENTE
+    PlayerFlags.NoClipEnabled = true
     
     if not AutoFly.Start() then
         print("[Auto Farm] ❌ Failed to start fly mode")
@@ -870,19 +871,19 @@ local function autoFarmLoop()
         
         local targetPos = Vector3.new(currentGap.X, currentGap.Y + 5, currentGap.Z)
         
-        -- Verifica se tem wave à frente
-        local hasWave, waveDistance = WaveDetector.HasWaveInFront(hrp.Position)
+        -- Verifica se tem wave PRÓXIMA (range 30 studs em qualquer direção)
+        local hasWave, waveDistance = WaveDetector.HasWaveNearby(hrp.Position)
         
         if hasWave then
-            -- TEM WAVE À FRENTE → FICA PARADO NO GAP ATUAL
+            -- TEM WAVE PRÓXIMA → FICA PARADO NO GAP ATUAL
             AutoFly.PauseInPlace()
             
-            print(string.format("[Auto Farm] ⏸️ Wave ahead (%.1f studs) - Waiting at Gap %d (%s)", 
+            print(string.format("[Auto Farm] ⏸️ Wave detected (%.1f studs) - Waiting at Gap %d (%s)", 
                 waveDistance, AutoGapState.CurrentGapIndex, currentGap.Name))
             
             task.wait(1)
         else
-            -- NÃO TEM WAVE → VOA PRO GAP ATUAL
+            -- NÃO TEM WAVE PRÓXIMA → VOA PRO GAP ATUAL
             
             -- Verifica se já chegou no gap atual
             if AutoFly.HasArrived(targetPos) then
@@ -908,8 +909,12 @@ local function autoFarmLoop()
         task.wait(0.1)
     end
     
+    -- DESATIVA NO CLIP AO PARAR
+    PlayerFlags.NoClipEnabled = false
+    
     AutoFly.Stop()
     print("[Auto Farm] 🛑 Auto farm stopped")
+    print("[Auto Farm] 👻 No Clip AUTO-DEACTIVATED")
 end
 
 --[[========================================================
@@ -951,7 +956,7 @@ AutoFarmSection:Dropdown({
 
 AutoFarmSection:Toggle({
     Title = "Start Auto Farm",
-    Desc  = "Gap-by-gap progression with wave detection",
+    Desc  = "Gap progression + Auto No Clip + 30-stud detection",
     Icon  = "play",
     Value = false,
     Callback = function(state)
@@ -971,7 +976,7 @@ AutoFarmSection:Toggle({
             
             WindUI:Notify({
                 Title   = "Auto Farm",
-                Content = string.format("🚀 Gap 1 → Gap %d", AutoGapState.TargetGapIndex),
+                Content = string.format("🚀 Gap 1 → Gap %d (Auto No Clip ON)", AutoGapState.TargetGapIndex),
                 Duration= 3,
                 Icon    = "rocket",
             })
@@ -983,6 +988,9 @@ AutoFarmSection:Toggle({
         else
             AutoFly.Stop()
             
+            -- DESATIVA NO CLIP AO PARAR
+            PlayerFlags.NoClipEnabled = false
+            
             if autoFarmCoroutine then
                 task.cancel(autoFarmCoroutine)
                 autoFarmCoroutine = nil
@@ -990,7 +998,7 @@ AutoFarmSection:Toggle({
             
             WindUI:Notify({
                 Title   = "Auto Farm",
-                Content = "Stopped.",
+                Content = "Stopped (No Clip OFF).",
                 Duration= 3,
                 Icon    = "square",
             })

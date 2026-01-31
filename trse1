@@ -89,40 +89,33 @@ WindUI:AddTheme({
     Button = Color3.fromHex("#7f1d1d"),
     Icon = Color3.fromHex("#fecaca"),
     Hover = Color3.fromHex("#ffffff"),
-
     WindowBackground = Color3.fromHex("#111827"),
     WindowShadow = Color3.fromHex("#020617"),
-
     DialogBackground = Color3.fromHex("#111827"),
     DialogBackgroundTransparency = 0,
     DialogTitle = Color3.fromHex("#fee2e2"),
     DialogContent = Color3.fromHex("#fecaca"),
     DialogIcon = Color3.fromHex("#fecaca"),
-
     WindowTopbarButtonIcon = Color3.fromHex("fecaca"),
     WindowTopbarTitle = Color3.fromHex("fee2e2"),
     WindowTopbarAuthor = Color3.fromHex("fecaca"),
     WindowTopbarIcon = Color3.fromHex("fecaca"),
-
     TabBackground = Color3.fromHex("#1f2937"),
     TabTitle = Color3.fromHex("#fee2e2"),
     TabIcon = Color3.fromHex("fecaca"),
-
     ElementBackground = Color3.fromHex("#1f2937"),
     ElementTitle = Color3.fromHex("#fee2e2"),
     ElementDesc = Color3.fromHex("#fecaca"),
     ElementIcon = Color3.fromHex("fecaca"),
-
     PopupBackground = Color3.fromHex("#111827"),
     PopupBackgroundTransparency = 0,
     PopupTitle = Color3.fromHex("#fee2e2"),
     PopupContent = Color3.fromHex("#fecaca"),
     PopupIcon = Color3.fromHex("fecaca"),
-
     Toggle = Color3.fromHex("#b91c1c"),
     ToggleBar = Color3.fromHex("#fee2e2"),
-    Checkbox = Color3.fromHex("#be123c"),
-    CheckboxIcon = Color3.fromHex("#ffe4e6"),
+    Checkbox = Color3.fromHex("#b91c1c"),
+    CheckboxIcon = Color3.fromHex("#fee2e2"),
     Slider = Color3.fromHex("#b91c1c"),
     SliderThumb = Color3.fromHex("#fee2e2"),
 })
@@ -138,11 +131,7 @@ local displayName = LocalPlayer.DisplayName or LocalPlayer.Name
 local username = "@" .. (LocalPlayer.Name or "Player")
 
 local okThumb, thumb = pcall(function()
-    return Players:GetUserThumbnailAsync(
-        LocalPlayer.UserId,
-        Enum.ThumbnailType.HeadShot,
-        Enum.ThumbnailSize.Size100x100
-    )
+    return Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
 end)
 local avatarImage = okThumb and thumb or "rbxassetid://0"
 
@@ -152,47 +141,21 @@ local Window = WindUI:CreateWindow({
     Author     = "loc:HUB_AUTHOR",
     Folder     = "MySuperHub",
     Size       = UDim2.fromOffset(580, 460),
-    MinSize    = Vector2.new(560, 350),
-    MaxSize    = Vector2.new(850, 560),
     Transparent= false,
     Theme      = "Red",
     Resizable  = true,
     SideBarWidth = 200,
-    BackgroundImageTransparency = 0.35,
-    HideSearchBar = false,
-    ScrollBarEnabled = true,
     User = {
         Enabled   = true,
         Anonymous = false,
         Name      = displayName,
         Tag       = username,
         Avatar    = avatarImage,
-        Callback  = function()
-            WindUI:Notify({
-                Title = displayName,
-                Content = "User card clicado.",
-                Duration = 3,
-                Icon = "user",
-            })
-        end,
     },
 })
 
 Window:ToggleTransparency(false)
 Window:SetToggleKey(Enum.KeyCode.RightShift)
-Window:SetBackgroundImageTransparency(0.4)
-Window:SetIconSize(22)
-
-Window:EditOpenButton({
-    Title = "Open Hub",
-    Icon = "monitor",
-    CornerRadius = UDim.new(0,16),
-    StrokeThickness = 2,
-    Color = ColorSequence.new(Color3.fromHex("FF0F7B"), Color3.fromHex("F89B29")),
-    OnlyMobile = false,
-    Enabled = true,
-    Draggable = true,
-})
 
 local Tabs = {
     Player   = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
@@ -204,35 +167,14 @@ local Tabs = {
 Window:SelectTab(1)
 
 ----------------------------------------------------
--- PLAYER TAB / LÓGICA
+-- LÓGICA CORE (SISTEMAS NOVOS)
 ----------------------------------------------------
-local PlayerSection = Tabs.Player:Section({
-    Title = "Player Core",
-    Box = true,
-    Opened = true,
-})
-
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 
-local function getCharacter()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    return char
-end
-
-local function getHumanoid()
-    local char = getCharacter()
-    return char and char:FindFirstChildOfClass("Humanoid")
-end
-
-local function getHumanoidRootPart()
-    local char = getCharacter()
-    return char and char:FindFirstChild("HumanoidRootPart")
-end
-
 local PlayerFlags = {
-    SpeedEnabled   = false,
+    SpeedEnabled   = false, -- Nova flag
     SpeedValue     = 22,
     JumpEnabled    = false,
     JumpValue      = 50,
@@ -243,45 +185,28 @@ local PlayerFlags = {
     InstantSteal   = false
 }
 
--- HUD Speed Label
-local function getSpeedLabel()
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then return end
-    local hud = pg:FindFirstChild("HUD")
-    if not hud then return end
-    local bottomLeft = hud:FindFirstChild("BottomLeft")
-    if not bottomLeft then return end
-    local playerSpeed = bottomLeft:FindFirstChild("PlayerSpeed")
-    if not playerSpeed then return end
-    return playerSpeed:FindFirstChild("Speed")
-end
+local function getCharacter() return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait() end
+local function getHumanoid() return getCharacter():FindFirstChildOfClass("Humanoid") end
+local function getHumanoidRootPart() return getCharacter():FindFirstChild("HumanoidRootPart") end
 
-local function updateHudSpeed(val)
-    local lbl = getSpeedLabel()
-    if lbl and lbl:IsA("TextLabel") then
-        lbl.Text = tostring(val)
-    end
-end
-
--- SISTEMA DE SPEED (LEGS FAST / PRE-SIMULATION BYPASS)
+-- SISTEMA DE SPEED (NOVO: PRE-SIMULATION / PERNAS RÁPIDAS)
 RunService.PreSimulation:Connect(function()
     if PlayerFlags.SpeedEnabled then
         local hum = getHumanoid()
         if hum then
             hum.WalkSpeed = PlayerFlags.SpeedValue
-            updateHudSpeed(math.floor(PlayerFlags.SpeedValue))
         end
     end
 end)
 
--- SISTEMA INSTANT STEAL (ZERO LAG)
+-- SISTEMA INSTANT STEAL (NOVO: ZERO LAG)
 ProximityPromptService.PromptShown:Connect(function(prompt)
     if PlayerFlags.InstantSteal then
         prompt.HoldDuration = 0
     end
 end)
 
--- JUMP
+-- JUMP (Mantendo funcional)
 RunService.Heartbeat:Connect(function()
     local hum = getHumanoid()
     if not hum then return end
@@ -293,7 +218,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- FLY LOGIC (BodyMover)
+-- FLY & NOCLIP (Estrutura original preservada)
 local FlyVelocity, FlyGyro
 local function stopFly()
     PlayerFlags.FlyEnabled = false
@@ -329,14 +254,6 @@ RunService.RenderStepped:Connect(function()
     FlyGyro.CFrame = cam.CFrame
 end)
 
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == PlayerFlags.FlyKey then
-        if PlayerFlags.FlyEnabled then stopFly() else startFly() end
-    end
-end)
-
--- NOCLIP
 RunService.Stepped:Connect(function()
     if PlayerFlags.NoClipEnabled then
         local char = getCharacter()
@@ -349,18 +266,19 @@ RunService.Stepped:Connect(function()
 end)
 
 ----------------------------------------------------
--- UI ELEMENTOS PLAYER
+-- UI ELEMENTOS PLAYER (ATUALIZADO)
 ----------------------------------------------------
+local PlayerSection = Tabs.Player:Section({ Title = "Player Core", Box = true, Opened = true })
+
 PlayerSection:Toggle({
     Title = "Enable Speed",
-    Desc  = "Ativa as pernas rápidas.",
+    Desc  = "Ativa as pernas rápidas (Bypass).",
     Value = false,
     Callback = function(state)
         PlayerFlags.SpeedEnabled = state
         if not state then
             local hum = getHumanoid()
             if hum then hum.WalkSpeed = 22 end
-            updateHudSpeed(22)
         end
     end
 })
@@ -383,7 +301,7 @@ PlayerSection:Toggle({
 PlayerSection:Slider({
     Title = "Jump Power",
     Value = { Min = 10, Max = 300, Default = 50 },
-    Callback = function(value) PlayerFlags.JumpValue = value end
+    Callback = function(v) PlayerFlags.JumpValue = v end
 })
 
 PlayerSection:Toggle({
@@ -397,17 +315,13 @@ PlayerSection:Toggle({
 })
 
 ----------------------------------------------------
--- FARM SECTION
+-- FARM SECTION (ATUALIZADO)
 ----------------------------------------------------
-local FarmSection = Tabs.Farm:Section({
-    Title = "Farm Engine",
-    Box = true,
-    Opened = true,
-})
+local FarmSection = Tabs.Farm:Section({ Title = "Farm Engine", Box = true, Opened = true })
 
 FarmSection:Toggle({
     Title = "Instant Steal",
-    Desc  = "Coleta imediata (Sem segurar E).",
+    Desc  = "Pega brainrots na hora (E).",
     Icon  = "zap",
     Value = false,
     Callback = function(state)
@@ -418,9 +332,9 @@ FarmSection:Toggle({
 ----------------------------------------------------
 -- SETTINGS
 ----------------------------------------------------
-local SettingsSection = Tabs.Settings:Section({ Title = "Window", Box = true })
+local SettSection = Tabs.Settings:Section({ Title = "Configurações", Box = true })
 
-SettingsSection:Keybind({
+SettSection:Keybind({
     Title = "Toggle UI Key",
     Value = "RightShift",
     Callback = function(k) Window:SetToggleKey(Enum.KeyCode[k]) end

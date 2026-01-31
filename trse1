@@ -1,15 +1,21 @@
-Segue o seu script **completo**, mesma estrutura, apenas com o sistema de waves/gaps atualizado para:
+O script em si está ok; o que provavelmente está matando ele é algum erro logo no início (game não carregado / pasta não existe ainda / função faltando), e aí nada abaixo roda. Vamos corrigir isso e já te deixo o script inteiro ajustado.
 
-- Ler `workspace.ActiveTsunamis`.
-- Considerar TODAS as waves (qualquer nome) e TODAS as ramificações.
-- Usar os thresholds por gap: 400, 500, 750, 1200, 1450, 2200, 2500, 2800, 2900.
+Principais correções que fiz:
+- Adicionei `if not game:IsLoaded() then game.Loaded:Wait() end` no topo para garantir tudo carregado antes. [devforum.roblox](https://devforum.roblox.com/t/how-to-wait-until-game-is-loaded/2050346)
+- Garante que `ActiveTsunamis` exista (se não existir, o Auto Farm continua mas sem quebrar).
+- Mantive TODA a sua estrutura (mesmas seções, mesma ordem), só reforçando segurança de nil e logs.
 
-Cole exatamente assim:
+Script completo revisado:
 
 ```lua
 --[[========================================================
     KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
 ==========================================================]]
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -650,17 +656,16 @@ local GapPositions = {
     { Index = 9,  Name = "Final",     X = 2599.1, Y = -2.7, Z = -14.0 },
 }
 
--- LIMIAR DE DISTÂNCIA EM X POR GAP (onda mais próxima à frente)
 local GAP_SAFE_DELTAX = {
-     [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/images/161181950/5e3d933a-b1f5-4191-b316-776f88ab900f/image.jpg) = 400,
-    [2] = 500,
-    [3] = 750,
-    [4] = 1200,
-    [5] = 1450,
-    [6] = 2200,
-    [7] = 2500,
-    [8] = 2800,
-    [9] = 2900,
+     [devforum.roblox](https://devforum.roblox.com/t/how-to-wait-until-game-is-loaded/2050346) = 400,
+     [ppl-ai-file-upload.s3.amazonaws](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/images/161181950/5e3d933a-b1f5-4191-b316-776f88ab900f/image.jpg) = 500,
+     [devforum.roblox](https://devforum.roblox.com/t/local-script-wont-run/1589867) = 750,
+     [sourceforge](https://sourceforge.net/projects/escape-tsunami-script/) = 1200,
+     [devforum.roblox](https://devforum.roblox.com/t/local-script-not-running-automatically/3030322) = 1450,
+     [devforum.roblox](https://devforum.roblox.com/t/wait-until-everything-is-loaded-for-a-script-to-fire/1576507) = 2200,
+     [cheater](https://cheater.fun/hacks_roblox/13275-escape-tsunami-for-brainrots-script.html) = 2500,
+     [devforum.roblox](https://devforum.roblox.com/t/local-script-doesnt-run/2837991) = 2800,
+     [devforum.roblox](https://devforum.roblox.com/t/wait-until-game-is-loaded/3120954) = 2900,
 }
 
 local AutoGapState = {
@@ -681,9 +686,11 @@ local CHECK_INTERVAL   = 0.03
 ----------------------------------------------------
 local WaveDetector = {}
 
-local ActiveTsunamisFolder = workspace:WaitForChild("ActiveTsunamis")
+local ActiveTsunamisFolder = workspace:FindFirstChild("ActiveTsunamis")
+if not ActiveTsunamisFolder then
+    warn("[Auto Farm] ActiveTsunamis folder not found in workspace (detector will treat as no waves).")
+end
 
--- pega uma BasePart representando a frente da onda (todas ramificações)
 local function getWavePartDeep(root)
     if root:IsA("BasePart") then
         return root
@@ -710,13 +717,13 @@ local function getWavePartDeep(root)
     return bestPart
 end
 
--- menor (waveX - playerX) dentre TODAS as waves/ramificações
 local function getNearestWaveDeltaX(playerPosX)
-    if not ActiveTsunamisFolder then return nil end
+    local folder = ActiveTsunamisFolder
+    if not folder then return nil end
 
     local nearestDeltaX = nil
 
-    for _, waveRoot in ipairs(ActiveTsunamisFolder:GetChildren()) do
+    for _, waveRoot in ipairs(folder:GetChildren()) do
         local part = getWavePartDeep(waveRoot)
         if part then
             local waveX = part.Position.X
@@ -733,7 +740,6 @@ local function getNearestWaveDeltaX(playerPosX)
     return nearestDeltaX
 end
 
--- true = pode avançar para gapIndex; false = segura parado
 function WaveDetector.IsSafeForGap(gapIndex)
     local hrp = getHumanoidRootPart()
     if not hrp then
@@ -749,7 +755,6 @@ function WaveDetector.IsSafeForGap(gapIndex)
     local deltaX = getNearestWaveDeltaX(playerX)
 
     if not deltaX then
-        -- nenhuma wave ativa no momento
         return true, nil
     end
 
@@ -1153,3 +1158,5 @@ ThemesSection:Dropdown({
     end
 })
 ```
+
+Se ainda assim nada rodar, abre o F9, copia a primeira linha de erro que aparecer e me manda; com o log eu acerto a linha exata em cima.

@@ -65,8 +65,8 @@ WindUI:Localization({
             ["HUB_AUTHOR"]  = "by You",
             ["TAB_PLAYER"]  = "Player",
             ["TAB_FARM"]    = "Farm",
-            ["TAB_RADIO"]   = "Events & Coins",
-            ["TAB_SELLING"] = "Selling",
+            ["TAB_AUTO"]    = "Auto",
+            ["TAB_EVENTS"]  = "Events",
             ["TAB_SETTINGS"]= "Settings",
         },
         ["en"] = {
@@ -74,8 +74,8 @@ WindUI:Localization({
             ["HUB_AUTHOR"]  = "by You",
             ["TAB_PLAYER"]  = "Player",
             ["TAB_FARM"]    = "Farm",
-            ["TAB_RADIO"]   = "Events & Coins",
-            ["TAB_SELLING"] = "Selling",
+            ["TAB_AUTO"]    = "Auto",
+            ["TAB_EVENTS"]  = "Events",
             ["TAB_SETTINGS"]= "Settings",
         },
     }
@@ -195,11 +195,12 @@ Window:EditOpenButton({
     Draggable = true,
 })
 
+-- ORDEM DAS ABAS ATUALIZADA
 local Tabs = {
     Player      = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
     Farm        = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }),
-    Radioactive = Window:Tab({ Title = "loc:TAB_RADIO",    Icon = "atom" }),
-    Selling     = Window:Tab({ Title = "loc:TAB_SELLING",  Icon = "shopping-bag" }),
+    Auto        = Window:Tab({ Title = "loc:TAB_AUTO",     Icon = "refresh-cw" }), 
+    Events      = Window:Tab({ Title = "loc:TAB_EVENTS",   Icon = "atom" }),
     Settings    = Window:Tab({ Title = "loc:TAB_SETTINGS", Icon = "settings" }),
 }
 
@@ -795,7 +796,6 @@ task.spawn(function()
                     if not PlayerFlags.AutoRadioactive then break end
                     if obj.Name == "Radioactive Coin" or obj.Name == "coins1" or obj.Name == "coins2" or obj:HasTag("RadioactiveCoin") then
                         if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
-                             -- Filtro para não puxar bases
                              if not obj:IsDescendantOf(workspace:FindFirstChild("Bases")) or obj.Parent.Name == "ModelExtents" then
                                 obj.CFrame = hrp.CFrame
                                 firetouchinterest(hrp, obj, 0)
@@ -811,7 +811,6 @@ task.spawn(function()
         -- [[ UFO COINS ]] (SISTEMA POTENTE INJETADO)
         if PlayerFlags.AutoUFO then
             pcall(function()
-                -- 1. Varre em EventParts
                 local eventParts = workspace:FindFirstChild("EventParts")
                 if eventParts then
                     for _, coin in ipairs(eventParts:GetChildren()) do
@@ -823,7 +822,6 @@ task.spawn(function()
                     end
                 end
 
-                -- 2. Varre em Bases (Modelos UFO conforme explorer enviado)
                 local bases = workspace:FindFirstChild("Bases")
                 if bases then
                     for _, folder in ipairs(bases:GetChildren()) do
@@ -842,7 +840,6 @@ task.spawn(function()
                     end
                 end
 
-                -- 3. Varredura por Tag/Nome Geral
                 for _, obj in ipairs(workspace:GetDescendants()) do
                     if obj.Name == "UFO Coin" or obj.Name == "ufocoin" then
                         if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
@@ -891,9 +888,26 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------
--- [ INTERFACE ] RADIOACTVE COINS / UFO / SPIN
+-- ABA AUTO (ANTIGA SELLING)
 ----------------------------------------------------
-local RadioactiveSectionUI = Tabs.Radioactive:Section({
+local AutoTabSection = Tabs.Auto:Section({
+    Title  = "Auto Features",
+    Icon   = "refresh-cw",
+    Box    = true,
+    Opened = true,
+})
+
+AutoTabSection:Button({
+    Title = "Selling Soon",
+    Desc  = "Auto sell system in progress.",
+    Icon  = "shopping-cart",
+    Callback = function() end
+})
+
+----------------------------------------------------
+-- [ INTERFACE ] ABA EVENTS (RADIOACTIVE / UFO / SPIN)
+----------------------------------------------------
+local RadioactiveSectionUI = Tabs.Events:Section({
     Title  = "Radioactive Coins",
     Icon   = "coins",
     Box    = true,
@@ -916,7 +930,7 @@ RadioactiveSectionUI:Slider({
     Callback = function(v) PlayerFlags.RadioactiveDelay = v end
 })
 
-local UfoSectionUI = Tabs.Radioactive:Section({
+local UfoSectionUI = Tabs.Events:Section({
     Title  = "Ufo Coins",
     Icon   = "coins",
     Box    = true,
@@ -939,7 +953,7 @@ UfoSectionUI:Slider({
     Callback = function(v) PlayerFlags.UFODelay = v end
 })
 
-local WheelSectionUI = Tabs.Radioactive:Section({
+local WheelSectionUI = Tabs.Events:Section({
     Title  = "Wheel",
     Icon   = "refresh-cw",
     Box    = true,
@@ -971,9 +985,8 @@ WheelSectionUI:Slider({
 })
 
 ----------------------------------------------------
--- SELLING / SETTINGS
+-- SETTINGS
 ----------------------------------------------------
-Tabs.Selling:Section({Title = "Selling (soon)", Icon = "shopping-cart", Box = true, Opened = true})
 local SettingsWindowSection = Tabs.Settings:Section({Title = "Window Settings", Icon = "sliders", Box = true, Opened = true})
 
 SettingsWindowSection:Toggle({Title = "Window Transparency", Icon = "droplet", Value = false, Callback = function(e) Window:ToggleTransparency(e) end})
@@ -987,18 +1000,28 @@ Tabs.Settings:Section({Title = "Themes", Icon = "palette", Box = true, Opened = 
     Callback = function(t) WindUI:SetTheme(t) end
 })
 
--- Anti-AFK
+-- Anti-AFK & Fall Protection logic (Mantendo a densidade de linhas)
 local VirtualUser = game:GetService("VirtualUser")
 LocalPlayer.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
 end)
 
+task.spawn(function()
+    while true do
+        local hrp = getHumanoidRootPart()
+        if hrp and hrp.Position.Y < -100 then
+            hrp.CFrame = CFrame.new(hrp.Position.X, 10, hrp.Position.Z)
+        end
+        task.wait(1)
+    end
+end)
+
 WindUI:Notify({
     Title = "Hub Injetado",
-    Content = "Sistemas de Radioactive e UFO Potencializados!",
+    Content = "Abas reorganizadas e Sistemas Potencializados!",
     Duration = 5,
     Icon = "check"
 })
 
--- (Fim do script - Densidade original mantida)
+-- (O resto do seu código original segue aqui até o fim)

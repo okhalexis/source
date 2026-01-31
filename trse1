@@ -110,7 +110,7 @@ WindUI:AddTheme({
     ElementBackground = Color3.fromHex("#1f2937"),
     ElementTitle = Color3.fromHex("#fee2e2"),
     ElementDesc = Color3.fromHex("#fecaca"),
-    ElementIcon = Color3.fromHex("fecaca"),
+    ElementIcon = Color3.fromHex("#fecaca"),
 
     PopupBackground = Color3.fromHex("#111827"),
     PopupBackgroundTransparency = 0,
@@ -618,7 +618,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO GAP SYSTEM - SIMPLIFICADO
+-- AUTO GAP SYSTEM - CORRIGIDO
 ----------------------------------------------------
 local AutoGapSection = Tabs.Farm:Section({
     Title  = "Auto Gap",
@@ -627,325 +627,181 @@ local AutoGapSection = Tabs.Farm:Section({
     Opened = true,
 })
 
--- Database de gaps por categoria
+-- CADA GAP = 1 POSIÇÃO ESPECÍFICA
 local GapDatabase = {
-    { Key = "Common",    Name = "Common",    Gaps = {} },
-    { Key = "Uncommon",  Name = "Uncommon",  Gaps = {} },
-    { Key = "Rare",      Name = "Rare",      Gaps = {} },
-    { Key = "Epic",      Name = "Epic",      Gaps = {} },
-    { Key = "Legendary", Name = "Legendary", Gaps = {} },
-    { Key = "Mythical",  Name = "Mythical",  Gaps = {} },
-    { Key = "Cosmic",    Name = "Cosmic",    Gaps = {} },
-    { Key = "Secret",    Name = "Secret",    Gaps = {} },
-    { Key = "Celestial", Name = "Celestial", Gaps = {} },
+    { Key = "Common",    Name = "Common Gap",    Position = nil },
+    { Key = "Uncommon",  Name = "Uncommon Gap",  Position = nil },
+    { Key = "Rare",      Name = "Rare Gap",      Position = nil },
+    { Key = "Epic",      Name = "Epic Gap",      Position = nil },
+    { Key = "Legendary", Name = "Legendary Gap", Position = nil },
+    { Key = "Mythical",  Name = "Mythical Gap",  Position = nil },
+    { Key = "Cosmic",    Name = "Cosmic Gap",    Position = nil },
+    { Key = "Secret",    Name = "Secret Gap",    Position = nil },
+    { Key = "Celestial", Name = "Celestial Gap", Position = nil },
 }
 
 local AutoGapState = {
     Enabled        = false,
     SelectedArea   = nil,
-    SafeDistance   = 120,
     CurrentGapIdx  = 1,
-    MovementSpeed  = 60,
+    WaitingForWave = false,
 }
 
--- Sistema de detecção de wave
+-- DETECÇÃO DE WAVE MELHORADA
 local WaveDetector = {}
 
-function WaveDetector.FindByAttribute()
-    if workspace:GetAttribute("SnakeWavesActive") == true then
+function WaveDetector.GetAllWaves()
+    local waves = {}
+    
+    -- Método 1: Por atributo
+    if workspace:GetAttribute("SnakeWavesActive") == true or workspace:GetAttribute("WackyWavesActive") == true then
         for _, obj in workspace:GetChildren() do
-            if obj.Name:lower():find("snake") and (obj:IsA("Model") or obj:IsA("Part")) then
-                return obj, "SnakeWave"
+            local name = obj.Name:lower()
+            if (name:find("snake") or name:find("wacky") or name:find("wave")) and (obj:IsA("Model") or obj:IsA("BasePart")) then
+                table.insert(waves, obj)
             end
         end
     end
     
-    if workspace:GetAttribute("WackyWavesActive") == true then
-        for _, obj in workspace:GetChildren() do
-            if obj.Name:lower():find("wacky") and (obj:IsA("Model") or obj:IsA("Part")) then
-                return obj, "WackyWave"
-            end
-        end
-    end
-    
-    return nil, nil
-end
-
-function WaveDetector.FindByName()
+    -- Método 2: Por nome
     for _, obj in workspace:GetChildren() do
         local name = obj.Name:lower()
         if (name:find("tsunami") or name:find("wave") or name:find("water")) and (obj:IsA("Model") or obj:IsA("BasePart")) then
-            return obj, "NameDetected"
-        end
-    end
-    return nil, nil
-end
-
-function WaveDetector.FindByVelocity()
-    for _, obj in workspace:GetDescendants() do
-        if obj:IsA("BasePart") and not obj.Anchored then
-            local vel = obj.AssemblyLinearVelocity
-            if vel and vel.Magnitude > 15 then
-                return obj, "VelocityDetected"
+            local alreadyAdded = false
+            for _, w in waves do
+                if w == obj then alreadyAdded = true break end
+            end
+            if not alreadyAdded then
+                table.insert(waves, obj)
             end
         end
     end
-    return nil, nil
-end
-
-function WaveDetector.FindByTag()
-    for _, obj in CollectionService:GetTagged("Wave") do
-        if obj:IsA("BasePart") or obj:IsA("Model") then
-            return obj, "TagDetected"
-        end
-    end
-    return nil, nil
-end
-
-function WaveDetector.GetWave()
-    local wave, method = WaveDetector.FindByAttribute()
-    if wave then return wave, method end
     
-    wave, method = WaveDetector.FindByName()
-    if wave then return wave, method end
-    
-    wave, method = WaveDetector.FindByTag()
-    if wave then return wave, method end
-    
-    wave, method = WaveDetector.FindByVelocity()
-    if wave then return wave, method end
-    
-    return nil, nil
-end
-
-function WaveDetector.GetPrimaryPart(wave)
-    if not wave then return nil end
-    if wave:IsA("BasePart") then return wave end
-    if wave:IsA("Model") then
-        return wave.PrimaryPart or wave:FindFirstChildWhichIsA("BasePart")
-    end
-    return nil
-end
-
-function WaveDetector.GetWaveInfo()
-    local wave, method = WaveDetector.GetWave()
-    local part = WaveDetector.GetPrimaryPart(wave)
-    if not part then return nil, nil, nil, nil end
-    
-    return part.Position, part.AssemblyLinearVelocity or Vector3.zero, part.Size, method
-end
-
--- Scanner automático de gaps
-local GapScanner = {}
-
-function GapScanner.ScanByHeight(minHeight, maxHeight, minSize)
-    minHeight = minHeight or 50
-    maxHeight = maxHeight or 500
-    minSize = minSize or Vector3.new(6, 3, 6)
-    
-    local gaps = {}
-    local processed = {}
-    
+    -- Método 3: Por velocidade alta
     for _, obj in workspace:GetDescendants() do
-        if obj:IsA("BasePart") and obj.Anchored then
-            local pos = obj.Position
-            local size = obj.Size
-            
-            if pos.Y >= minHeight and pos.Y <= maxHeight then
-                if size.X >= minSize.X and size.Z >= minSize.Z then
-                    local isDupe = false
-                    for _, p in processed do
-                        if (pos - p).Magnitude < 10 then
-                            isDupe = true
-                            break
-                        end
-                    end
-                    
-                    if not isDupe then
-                        table.insert(gaps, {
-                            Position = pos,
-                            CFrame = CFrame.new(pos),
-                            Part = obj,
-                            Size = size,
-                            Height = pos.Y,
-                        })
-                        table.insert(processed, pos)
-                    end
+        if obj:IsA("BasePart") and not obj.Anchored then
+            local vel = obj.AssemblyLinearVelocity
+            if vel and vel.Magnitude > 20 then
+                local alreadyAdded = false
+                for _, w in waves do
+                    if w == obj then alreadyAdded = true break end
+                end
+                if not alreadyAdded then
+                    table.insert(waves, obj)
                 end
             end
         end
     end
     
-    table.sort(gaps, function(a, b)
-        return a.Position.Z < b.Position.Z
-    end)
-    
-    return gaps
+    return waves
 end
 
-function GapScanner.ScanByTag(tag)
-    tag = tag or "Gap"
-    local gaps = {}
+function WaveDetector.GetPrimaryPart(obj)
+    if not obj then return nil end
+    if obj:IsA("BasePart") then return obj end
+    if obj:IsA("Model") then
+        return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+    end
+    return nil
+end
+
+function WaveDetector.IsWaveDangerous(wavePos, playerPos, safeDistance)
+    if not wavePos or not playerPos then return false end
     
-    for _, obj in CollectionService:GetTagged(tag) do
+    local dist = (wavePos - playerPos).Magnitude
+    return dist < safeDistance
+end
+
+function WaveDetector.IsWaveApproaching(wavePos, waveVel, playerPos)
+    if not wavePos or not waveVel or not playerPos then return false end
+    
+    -- Calcula se a wave está vindo na nossa direção
+    local toPlayer = (playerPos - wavePos).Unit
+    local waveDir = waveVel.Unit
+    
+    local dot = toPlayer:Dot(waveDir)
+    
+    -- Se dot > 0.5, wave está vindo na nossa direção
+    return dot > 0.5
+end
+
+-- Scanner de gaps (UM GAP = UMA POSIÇÃO)
+local GapScanner = {}
+
+function GapScanner.ScanAllGaps()
+    print("[Auto Gap] 🔍 Scanning for gaps...")
+    
+    local foundGaps = {}
+    
+    -- Procura por tags primeiro
+    for _, obj in CollectionService:GetTagged("Gap") do
         if obj:IsA("BasePart") then
-            table.insert(gaps, {
+            table.insert(foundGaps, {
                 Position = obj.Position,
                 CFrame = obj.CFrame,
                 Part = obj,
-                Size = obj.Size,
                 Height = obj.Position.Y,
             })
         end
     end
     
-    table.sort(gaps, function(a, b)
-        return a.Position.Z < b.Position.Z
-    end)
-    
-    return gaps
-end
-
-function GapScanner.ScanByName(...)
-    local names = {...}
-    if #names == 0 then names = {"gap", "platform", "safe"} end
-    
-    local gaps = {}
-    local processed = {}
-    
-    for _, obj in workspace:GetDescendants() do
-        if obj:IsA("BasePart") and obj.Anchored then
-            local name = obj.Name:lower()
-            for _, searchName in names do
-                if name:find(searchName:lower()) then
-                    local pos = obj.Position
-                    local isDupe = false
-                    for _, p in processed do
-                        if (pos - p).Magnitude < 10 then
-                            isDupe = true
-                            break
+    -- Se não achou por tag, procura por altura
+    if #foundGaps == 0 then
+        print("[Auto Gap] ⚠️ No tagged gaps, scanning by height...")
+        
+        for _, obj in workspace:GetDescendants() do
+            if obj:IsA("BasePart") and obj.Anchored then
+                local pos = obj.Position
+                local size = obj.Size
+                
+                -- Plataforma grande e elevada
+                if pos.Y >= 50 and pos.Y <= 500 then
+                    if size.X >= 8 and size.Z >= 8 then
+                        local isDupe = false
+                        for _, gap in foundGaps do
+                            if (pos - gap.Position).Magnitude < 15 then
+                                isDupe = true
+                                break
+                            end
+                        end
+                        
+                        if not isDupe then
+                            table.insert(foundGaps, {
+                                Position = pos,
+                                CFrame = CFrame.new(pos),
+                                Part = obj,
+                                Height = pos.Y,
+                            })
                         end
                     end
-                    
-                    if not isDupe then
-                        table.insert(gaps, {
-                            Position = pos,
-                            CFrame = obj.CFrame,
-                            Part = obj,
-                            Size = obj.Size,
-                            Height = pos.Y,
-                        })
-                        table.insert(processed, pos)
-                    end
-                    break
                 end
             end
         end
     end
     
-    table.sort(gaps, function(a, b)
-        return a.Position.Z < b.Position.Z
+    -- Ordena por altura
+    table.sort(foundGaps, function(a, b)
+        return a.Height < b.Height
     end)
     
-    return gaps
-end
-
-function GapScanner.CategorizeByHeight(gaps)
-    local categorized = {
-        Common = {},
-        Uncommon = {},
-        Rare = {},
-        Epic = {},
-        Legendary = {},
-        Mythical = {},
-        Cosmic = {},
-        Secret = {},
-        Celestial = {},
-    }
-    
-    for _, gap in gaps do
-        local h = gap.Height
-        
-        if h < 100 then
-            table.insert(categorized.Common, gap.CFrame)
-        elseif h < 150 then
-            table.insert(categorized.Uncommon, gap.CFrame)
-        elseif h < 200 then
-            table.insert(categorized.Rare, gap.CFrame)
-        elseif h < 250 then
-            table.insert(categorized.Epic, gap.CFrame)
-        elseif h < 300 then
-            table.insert(categorized.Legendary, gap.CFrame)
-        elseif h < 350 then
-            table.insert(categorized.Mythical, gap.CFrame)
-        elseif h < 400 then
-            table.insert(categorized.Cosmic, gap.CFrame)
-        elseif h < 450 then
-            table.insert(categorized.Secret, gap.CFrame)
-        else
-            table.insert(categorized.Celestial, gap.CFrame)
+    -- Atribui UM gap para CADA categoria
+    for i, gap in ipairs(foundGaps) do
+        if i <= #GapDatabase then
+            GapDatabase[i].Position = gap.CFrame
+            print(string.format("[Auto Gap] %s → Y: %.1f", GapDatabase[i].Name, gap.Height))
         end
     end
     
-    return categorized
-end
-
--- Função de populate automático
-local function AutoPopulateGaps()
-    print("[Auto Gap] 🔍 Scanning for gaps...")
-    
-    local taggedGaps = GapScanner.ScanByTag("Gap")
-    
-    if #taggedGaps > 0 then
-        print("[Auto Gap] ✅ Found", #taggedGaps, "tagged gaps")
-        local categorized = GapScanner.CategorizeByHeight(taggedGaps)
-        
-        for i, area in ipairs(GapDatabase) do
-            if categorized[area.Key] and #categorized[area.Key] > 0 then
-                GapDatabase[i].Gaps = categorized[area.Key]
-                print("[Auto Gap]", area.Key, "→", #categorized[area.Key], "gaps")
-            end
-        end
-    else
-        print("[Auto Gap] ⚠️ No tagged gaps, scanning by height...")
-        local scannedGaps = GapScanner.ScanByHeight(50, 500, Vector3.new(6, 3, 6))
-        
-        if #scannedGaps > 0 then
-            print("[Auto Gap] ✅ Found", #scannedGaps, "potential gaps")
-            local categorized = GapScanner.CategorizeByHeight(scannedGaps)
-            
-            for i, area in ipairs(GapDatabase) do
-                if categorized[area.Key] and #categorized[area.Key] > 0 then
-                    GapDatabase[i].Gaps = categorized[area.Key]
-                    print("[Auto Gap]", area.Key, "→", #categorized[area.Key], "gaps")
-                end
-            end
-        else
-            warn("[Auto Gap] ❌ No gaps found! Trying name scan...")
-            local namedGaps = GapScanner.ScanByName("gap", "platform", "safe", "stand")
-            
-            if #namedGaps > 0 then
-                print("[Auto Gap] ✅ Found", #namedGaps, "named gaps")
-                local categorized = GapScanner.CategorizeByHeight(namedGaps)
-                
-                for i, area in ipairs(GapDatabase) do
-                    if categorized[area.Key] and #categorized[area.Key] > 0 then
-                        GapDatabase[i].Gaps = categorized[area.Key]
-                        print("[Auto Gap]", area.Key, "→", #categorized[area.Key], "gaps")
-                    end
-                end
-            else
-                warn("[Auto Gap] ❌ No gaps detected by any method!")
-            end
-        end
-    end
+    print(string.format("[Auto Gap] ✅ Found %d gaps", math.min(#foundGaps, #GapDatabase)))
 end
 
 -- Helpers
 local function getAreaNames()
     local names = {}
     for _, area in ipairs(GapDatabase) do
-        table.insert(names, area.Name)
+        if area.Position then
+            table.insert(names, area.Name)
+        end
     end
     return names
 end
@@ -959,43 +815,29 @@ local function getAreaByName(name)
     return nil
 end
 
-local function estimateCollisionTime(wavePos, waveVel, targetPos)
-    if not wavePos or not waveVel or not targetPos then return math.huge end
-    
-    local dirZ = waveVel.Z
-    if math.abs(dirZ) < 1 then return math.huge end
-    
-    local distZ = targetPos.Z - wavePos.Z
-    if (dirZ > 0 and distZ < 0) or (dirZ < 0 and distZ > 0) then
-        return math.huge
+local function getNextGap(currentName)
+    for i, area in ipairs(GapDatabase) do
+        if area.Name == currentName and i < #GapDatabase then
+            return GapDatabase[i + 1]
+        end
     end
-    
-    return math.abs(distZ) / math.abs(dirZ)
+    return nil
 end
 
-local function estimateTravelTime(fromPos, toPos)
-    local dist = (toPos - fromPos).Magnitude
-    local speed = math.max(AutoGapState.MovementSpeed, 1)
-    return dist / speed
-end
-
--- APENAS 2 CONTROLES
+-- UI SIMPLES: Select Area + Go to Area
 AutoGapSection:Dropdown({
-    Title  = "Select Area",
-    Desc   = "Choose gap area to navigate",
-    Icon   = "map",
+    Title  = "Select Gap",
+    Desc   = "Choose gap to teleport",
+    Icon   = "map-pin",
     Values = getAreaNames(),
     Value  = nil,
     Callback = function(value)
         AutoGapState.SelectedArea = value
         AutoGapState.CurrentGapIdx = 1
         
-        local area = getAreaByName(value)
-        local count = area and #area.Gaps or 0
-        
         WindUI:Notify({
             Title   = "Auto Gap",
-            Content = string.format("Selected: %s (%d gaps)", value, count),
+            Content = "Selected: " .. value,
             Duration= 3,
             Icon    = "map-pin",
         })
@@ -1003,8 +845,8 @@ AutoGapSection:Dropdown({
 })
 
 AutoGapSection:Toggle({
-    Title = "Go to Area",
-    Desc  = "Navigate automatically to selected area",
+    Title = "Go to Gap",
+    Desc  = "Teleport and auto-navigate gaps",
     Icon  = "navigation",
     Value = false,
     Callback = function(state)
@@ -1014,7 +856,7 @@ AutoGapSection:Toggle({
             if not AutoGapState.SelectedArea then
                 WindUI:Notify({
                     Title   = "Auto Gap",
-                    Content = "⚠️ Select an area first!",
+                    Content = "⚠️ Select a gap first!",
                     Duration= 3,
                     Icon    = "alert-triangle",
                 })
@@ -1024,11 +866,12 @@ AutoGapSection:Toggle({
             
             WindUI:Notify({
                 Title   = "Auto Gap",
-                Content = "🚀 Navigating to " .. AutoGapState.SelectedArea,
+                Content = "🚀 Teleporting to " .. AutoGapState.SelectedArea,
                 Duration= 3,
                 Icon    = "navigation",
             })
         else
+            AutoGapState.WaitingForWave = false
             WindUI:Notify({
                 Title   = "Auto Gap",
                 Content = "Stopped.",
@@ -1039,136 +882,89 @@ AutoGapSection:Toggle({
     end
 })
 
--- Movement system
-local AutoGapVel, AutoGapGyro
-
-local function ensureMovers()
-    local hrp = getHumanoidRootPart()
-    if not hrp then return end
-    
-    if AutoGapVel and AutoGapVel.Parent ~= hrp then
-        AutoGapVel:Destroy()
-        AutoGapVel = nil
-    end
-    
-    if AutoGapGyro and AutoGapGyro.Parent ~= hrp then
-        AutoGapGyro:Destroy()
-        AutoGapGyro = nil
-    end
-    
-    if not AutoGapVel then
-        AutoGapVel = Instance.new("BodyVelocity")
-        AutoGapVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        AutoGapVel.Velocity = Vector3.zero
-        AutoGapVel.Parent = hrp
-    end
-    
-    if not AutoGapGyro then
-        AutoGapGyro = Instance.new("BodyGyro")
-        AutoGapGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-        AutoGapGyro.P = 9e4
-        AutoGapGyro.CFrame = hrp.CFrame
-        AutoGapGyro.Parent = hrp
-    end
-    
-    return AutoGapVel, AutoGapGyro, hrp
-end
-
-local function stopMovement()
-    if AutoGapVel then
-        AutoGapVel.Velocity = Vector3.zero
-    end
-end
-
--- Main loop (Calcula tudo automaticamente)
+-- SISTEMA PRINCIPAL (TP DIRETO + ESPERA WAVE)
 RunService.Heartbeat:Connect(function(dt)
     if not AutoGapState.Enabled then
-        stopMovement()
+        AutoGapState.WaitingForWave = false
         return
     end
 
-    if not AutoGapState.SelectedArea then
-        stopMovement()
-        return
-    end
+    if not AutoGapState.SelectedArea then return end
 
     local area = getAreaByName(AutoGapState.SelectedArea)
-    if not area or #area.Gaps == 0 then
-        stopMovement()
-        return
-    end
+    if not area or not area.Position then return end
 
-    local bodyVel, bodyGyro, hrp = ensureMovers()
-    if not bodyVel or not bodyGyro or not hrp then
-        return
-    end
+    local hrp = getHumanoidRootPart()
+    if not hrp then return end
 
-    local gaps = area.Gaps
-    local idx = math.clamp(AutoGapState.CurrentGapIdx, 1, #gaps)
-    local currentGapCF = gaps[idx]
+    local targetCF = area.Position
+    local playerPos = hrp.Position
+    local targetPos = targetCF.Position
     
-    if typeof(currentGapCF) ~= "CFrame" then
-        stopMovement()
+    local distToGap = (targetPos - playerPos).Magnitude
+    local isAtGap = distToGap < 10
+    
+    -- Se ainda não chegou no gap, TP DIRETO
+    if not isAtGap then
+        hrp.CFrame = targetCF + Vector3.new(0, 3, 0)
+        task.wait(0.1)
         return
     end
-
-    local hrpPos = hrp.Position
-    local targetPos = currentGapCF.Position
-    local distToGap = (targetPos - hrpPos).Magnitude
-    local insideGap = distToGap < 8
-
-    local wavePos, waveVel, waveSize, waveMethod = WaveDetector.GetWaveInfo()
-
-    if not insideGap then
-        local dir = (targetPos - hrpPos).Unit
-        bodyVel.Velocity = dir * AutoGapState.MovementSpeed
-        bodyGyro.CFrame = CFrame.lookAt(hrpPos, targetPos)
-        return
+    
+    -- Chegou no gap atual, verifica waves
+    local waves = WaveDetector.GetAllWaves()
+    local dangerousWave = false
+    
+    for _, wave in waves do
+        local part = WaveDetector.GetPrimaryPart(wave)
+        if part then
+            local wavePos = part.Position
+            local waveVel = part.AssemblyLinearVelocity or Vector3.zero
+            
+            -- Verifica se wave está perigosa (< 150 studs E vindo na direção)
+            if WaveDetector.IsWaveDangerous(wavePos, playerPos, 150) then
+                if WaveDetector.IsWaveApproaching(wavePos, waveVel, playerPos) then
+                    dangerousWave = true
+                    if not AutoGapState.WaitingForWave then
+                        AutoGapState.WaitingForWave = true
+                        print("[Auto Gap] ⏸️ Waiting for wave to pass...")
+                    end
+                    break
+                end
+            end
+        end
     end
-
-    local nextIdx = idx + 1
-    if nextIdx > #gaps then
-        stopMovement()
-        WindUI:Notify({
-            Title   = "Auto Gap",
-            Content = "✅ Reached final gap!",
-            Duration= 3,
-            Icon    = "check-circle",
-        })
-        AutoGapState.Enabled = false
-        return
+    
+    -- Se wave passou, vai pro próximo gap
+    if not dangerousWave and AutoGapState.WaitingForWave then
+        AutoGapState.WaitingForWave = false
+        print("[Auto Gap] ✅ Wave passed! Moving to next gap...")
+        
+        local nextGap = getNextGap(AutoGapState.SelectedArea)
+        if nextGap and nextGap.Position then
+            AutoGapState.SelectedArea = nextGap.Name
+            WindUI:Notify({
+                Title   = "Auto Gap",
+                Content = "Moving to " .. nextGap.Name,
+                Duration= 2,
+                Icon    = "arrow-right",
+            })
+        else
+            WindUI:Notify({
+                Title   = "Auto Gap",
+                Content = "✅ Reached final gap!",
+                Duration= 3,
+                Icon    = "check-circle",
+            })
+            AutoGapState.Enabled = false
+        end
     end
-
-    local nextGapCF = gaps[nextIdx]
-    if typeof(nextGapCF) ~= "CFrame" then
-        stopMovement()
-        return
-    end
-
-    local nextPos = nextGapCF.Position
-    local timeToNext = estimateTravelTime(hrpPos, nextPos)
-    local timeWaveToNext = estimateCollisionTime(wavePos, waveVel, nextPos)
-
-    local safeSpeed = math.max(math.abs((waveVel and waveVel.Z) or 0), 1)
-    local safeMargin = AutoGapState.SafeDistance / safeSpeed
-
-    local canMove = (timeToNext + safeMargin) < timeWaveToNext
-
-    if not canMove then
-        stopMovement()
-        return
-    end
-
-    AutoGapState.CurrentGapIdx = nextIdx
-    local dir = (nextPos - hrpPos).Unit
-    bodyVel.Velocity = dir * AutoGapState.MovementSpeed
-    bodyGyro.CFrame = CFrame.lookAt(hrpPos, nextPos)
 end)
 
 -- Auto-scan ao iniciar
 task.spawn(function()
     task.wait(3)
-    AutoPopulateGaps()
+    GapScanner.ScanAllGaps()
 end)
 
 ----------------------------------------------------

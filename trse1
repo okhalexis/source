@@ -619,7 +619,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - COM AUTOFLY
+-- AUTO FARM BRAINROT - POSIÇÕES ATUALIZADAS
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Auto Farm Brainrot",
@@ -628,18 +628,18 @@ local AutoFarmSection = Tabs.Farm:Section({
     Opened = true,
 })
 
--- POSIÇÕES FIXAS COM FORMATO X, Y, Z
+-- POSIÇÕES ATUALIZADAS
 local GapPositions = {
-    { Index = 1,  Name = "Start Position",  X = 150.03,  Y = 3.26,    Z = -9.30 },
-    { Index = 2,  Name = "Common",          X = 201.99,  Y = -2.74,   Z = -9.46 },
-    { Index = 3,  Name = "Uncommon",        X = 288.75,  Y = -2.74,   Z = -33.45 },
-    { Index = 4,  Name = "Rare",            X = 399.06,  Y = -2.74,   Z = -39.60 },
-    { Index = 5,  Name = "Epic",            X = 544.87,  Y = -2.74,   Z = -34.12 },
-    { Index = 6,  Name = "Legendary",       X = 761.22,  Y = -2.74,   Z = -37.66 },
-    { Index = 7,  Name = "Mythical",        X = 1081.41, Y = -2.74,   Z = -6.72 },
-    { Index = 8,  Name = "Cosmic",          X = 1552.26, Y = -2.74,   Z = -17.41 },
-    { Index = 9,  Name = "Secret",          X = 2272.14, Y = -2.74,   Z = -47.31 },
-    { Index = 10, Name = "Celestial",       X = 2591.95, Y = -2.74,   Z = 12.74 },
+    { Index = 0,  Name = "Start Position",  X = 148.8,   Y = 3.3,     Z = -27.8 },
+    { Index = 1,  Name = "Gap 1",           X = 203.2,   Y = -2.7,    Z = -28.1 },
+    { Index = 2,  Name = "Gap 2",           X = 285.7,   Y = -2.7,    Z = -28.1 },
+    { Index = 3,  Name = "Gap 3",           X = 399.9,   Y = -2.7,    Z = -29.3 },
+    { Index = 4,  Name = "Gap 4",           X = 543.1,   Y = -2.7,    Z = -30.8 },
+    { Index = 5,  Name = "Gap 5",           X = 756.7,   Y = -2.7,    Z = -58.8 },
+    { Index = 6,  Name = "Gap 6",           X = 1074.3,  Y = -2.7,    Z = -60.0 },
+    { Index = 7,  Name = "Gap 7",           X = 1552.5,  Y = -2.7,    Z = -63.8 },
+    { Index = 8,  Name = "Gap 8",           X = 2242.7,  Y = -2.7,    Z = -51.8 },
+    { Index = 9,  Name = "Gap 9",           X = 2601.9,  Y = -2.7,    Z = -55.3 },
 }
 
 local AutoGapState = {
@@ -717,15 +717,12 @@ function AutoFly.FlyToPosition(targetPos)
     local currentPos = hrp.Position
     local direction = (targetPos - currentPos).Unit
     
-    -- Calcula velocidade
     local velocity = direction * AUTO_FLY_SPEED
     
-    -- Aplica velocidade
     if AutoGapState.AutoFlyVelocity then
         AutoGapState.AutoFlyVelocity.Velocity = velocity
     end
     
-    -- Rotaciona para direção do movimento
     if AutoGapState.AutoFlyGyro then
         AutoGapState.AutoFlyGyro.CFrame = CFrame.lookAt(currentPos, targetPos)
     end
@@ -800,7 +797,7 @@ function WaveDetector.GetWaveGapPosition(wavePos)
         
         if dist < shortestDist then
             shortestDist = dist
-            closestGapIndex = i
+            closestGapIndex = gap.Index
         end
     end
     
@@ -863,13 +860,12 @@ end
 ==========================================================]]
 
 local function emergencyRollback()
-    if AutoGapState.PreviousPositionIndex > 0 then
-        local previousGap = GapPositions[AutoGapState.PreviousPositionIndex]
+    if AutoGapState.PreviousPositionIndex >= 0 then
+        local previousGap = GapPositions[AutoGapState.PreviousPositionIndex + 1]
         
         if previousGap then
-            print(string.format("[EMERGENCY] ⚠️ Rolling back to %s (Gap %d)", previousGap.Name, AutoGapState.PreviousPositionIndex))
+            print(string.format("[EMERGENCY] ⚠️ Rolling back to %s (Gap %d)", previousGap.Name, previousGap.Index))
             
-            -- Voa de volta
             local targetPos = Vector3.new(previousGap.X, previousGap.Y + 5, previousGap.Z)
             
             while not AutoFly.HasArrived(targetPos, 20) do
@@ -877,7 +873,7 @@ local function emergencyRollback()
                 task.wait(0.1)
             end
             
-            AutoGapState.CurrentPositionIndex = AutoGapState.PreviousPositionIndex
+            AutoGapState.CurrentPositionIndex = previousGap.Index
             
             WindUI:Notify({
                 Title   = "Auto Farm",
@@ -900,7 +896,6 @@ end
 local autoFarmCoroutine = nil
 
 local function autoFarmLoop()
-    -- Ativa fly no início
     AutoFly.Start()
     
     while AutoGapState.Enabled do
@@ -915,13 +910,13 @@ local function autoFarmLoop()
             continue
         end
         
-        -- Chegou no destino final
         if AutoGapState.CurrentPositionIndex >= AutoGapState.TargetGapIndex then
             AutoFly.Stop()
             
+            local targetGap = GapPositions[AutoGapState.TargetGapIndex + 1]
             WindUI:Notify({
                 Title   = "Auto Farm",
-                Content = "✅ Arrived at " .. GapPositions[AutoGapState.TargetGapIndex].Name,
+                Content = "✅ Arrived at " .. targetGap.Name,
                 Duration= 3,
                 Icon    = "check-circle",
             })
@@ -929,20 +924,17 @@ local function autoFarmLoop()
             break
         end
         
-        -- Calcula próxima posição
         local nextPositionIndex = AutoGapState.CurrentPositionIndex + 1
-        local nextGap = GapPositions[nextPositionIndex]
+        local nextGap = GapPositions[nextPositionIndex + 1]
         
         if not nextGap then
             task.wait(0.5)
             continue
         end
         
-        local targetPos = Vector3.new(nextGap.X, nextGap.Y + 5, nextGap.Z) -- +5 pra voar no ar
+        local targetPos = Vector3.new(nextGap.X, nextGap.Y + 5, nextGap.Z)
         
-        -- Verifica se já chegou
         if AutoFly.HasArrived(targetPos, ARRIVAL_DISTANCE) then
-            -- Verifica perigo
             if WaveDetector.IsInDanger(hrp.Position) then
                 print("[EMERGENCY] 🚨 Danger detected after arrival! Executing rollback...")
                 
@@ -952,10 +944,9 @@ local function autoFarmLoop()
                 end
             end
             
-            -- Seguro, confirma chegada
             AutoGapState.PreviousPositionIndex = AutoGapState.CurrentPositionIndex
-            AutoGapState.CurrentPositionIndex = nextPositionIndex
-            print(string.format("[Auto Farm] ✅ Reached %s (Gap %d)", nextGap.Name, nextPositionIndex))
+            AutoGapState.CurrentPositionIndex = nextGap.Index
+            print(string.format("[Auto Farm] ✅ Reached %s (Gap %d)", nextGap.Name, nextGap.Index))
             
             if AutoGapState.CurrentPositionIndex >= AutoGapState.TargetGapIndex then
                 AutoFly.Stop()
@@ -974,16 +965,13 @@ local function autoFarmLoop()
             continue
         end
         
-        -- Verifica se pode mover
         local canMove = WaveDetector.CanMoveToNextGap(AutoGapState.CurrentPositionIndex)
         
         if canMove then
-            print(string.format("[Auto Farm] ✈️ Flying to %s (Gap %d)", nextGap.Name, nextPositionIndex))
+            print(string.format("[Auto Farm] ✈️ Flying to %s (Gap %d)", nextGap.Name, nextGap.Index))
             
-            -- Voa para posição
             AutoFly.FlyToPosition(targetPos)
             
-            -- Verifica perigo durante voo
             if WaveDetector.IsInDanger(hrp.Position) then
                 print("[EMERGENCY] 🚨 Danger detected during flight! Executing rollback...")
                 
@@ -993,13 +981,12 @@ local function autoFarmLoop()
                 end
             end
         else
-            -- Espera (para de voar)
             if AutoGapState.AutoFlyVelocity then
                 AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero
             end
             
-            local currentGapName = GapPositions[math.max(1, AutoGapState.CurrentPositionIndex)].Name
-            print(string.format("[Auto Farm] ⏸️ Waiting at %s...", currentGapName))
+            local currentGap = GapPositions[math.max(1, AutoGapState.CurrentPositionIndex + 1)]
+            print(string.format("[Auto Farm] ⏸️ Waiting at %s...", currentGap.Name))
             
             task.wait(1)
         end
@@ -1007,7 +994,6 @@ local function autoFarmLoop()
         task.wait(0.1)
     end
     
-    -- Desativa fly no final
     AutoFly.Stop()
 end
 
@@ -1032,7 +1018,7 @@ AutoFarmSection:Dropdown({
     Callback = function(value)
         for i, gap in ipairs(GapPositions) do
             if gap.Name == value then
-                AutoGapState.TargetGapIndex = i
+                AutoGapState.TargetGapIndex = gap.Index
                 
                 WindUI:Notify({
                     Title   = "Auto Farm",
@@ -1069,9 +1055,10 @@ AutoFarmSection:Toggle({
             AutoGapState.CurrentPositionIndex = 0
             AutoGapState.PreviousPositionIndex = 0
             
+            local targetGap = GapPositions[AutoGapState.TargetGapIndex + 1]
             WindUI:Notify({
                 Title   = "Auto Farm",
-                Content = "✈️ Flying to " .. GapPositions[AutoGapState.TargetGapIndex].Name,
+                Content = "✈️ Flying to " .. targetGap.Name,
                 Duration= 3,
                 Icon    = "plane",
             })

@@ -1,4 +1,4 @@
---// Loader WindUI
+--// Loader WindUI (sempre latest)
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 --// Serviços
@@ -7,11 +7,9 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
---// Variáveis Locais do Jogador
 local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
 
---// Ajustes da Lib
+--// Ajustes básicos da Lib
 WindUI:SetNotificationLower(true)
 WindUI:SetFont("rbxassetid://0") 
 
@@ -22,23 +20,25 @@ WindUI:Localization({
     DefaultLanguage = "pt",
     Translations = {
         ["pt"] = {
-            ["HUB_TITLE"]    = "Tsunami Brainrot Hub",
-            ["HUB_AUTHOR"]   = "by You",
-            ["TAB_PLAYER"]   = "Jogador",
-            ["TAB_WORLD"]    = "Mundo",
-            ["TAB_SETTINGS"] = "Configurações",
+            ["HUB_TITLE"]   = "Tsunami Brainrot Hub",
+            ["HUB_AUTHOR"]  = "by You",
+            ["TAB_PLAYER"]  = "Jogador",
+            ["TAB_FARM"]    = "Farm",
+            ["TAB_SELLING"] = "Vendas",
+            ["TAB_SETTINGS"]= "Configurações",
         },
         ["en"] = {
-            ["HUB_TITLE"]    = "Tsunami Brainrot Hub",
-            ["HUB_AUTHOR"]   = "by You",
-            ["TAB_PLAYER"]   = "Player",
-            ["TAB_WORLD"]    = "World",
-            ["TAB_SETTINGS"] = "Settings",
+            ["HUB_TITLE"]   = "Tsunami Brainrot Hub",
+            ["HUB_AUTHOR"]  = "by You",
+            ["TAB_PLAYER"]  = "Player",
+            ["TAB_FARM"]    = "Farm",
+            ["TAB_SELLING"] = "Selling",
+            ["TAB_SETTINGS"]= "Settings",
         },
     }
 })
 
---// Tema Nebula Customizado
+--// Tema Nebula
 WindUI:AddTheme({
     Name = "Nebula",
     Accent = Color3.fromHex("#18181b"),
@@ -80,196 +80,222 @@ WindUI:AddTheme({
     Slider = Color3.fromHex("#52525b"),
     SliderThumb = Color3.fromHex("#FFFFFF"),
 })
+
+WindUI:Gradient({
+    ["0"]   = { Color = Color3.fromHex("#0f172a"), Transparency = 0 },
+    ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
+}, { Rotation = 45 })
+
 WindUI:SetTheme("Nebula")
 
---// ==========================================
---// LÓGICA CORE
---// ==========================================
-
-local Core = {
-    Speed = { Enabled = false, Value = 22, Connection = nil },
-    Jump = { Enabled = false, Value = 50, Connection = nil },
-    Fly = { Enabled = false, Speed = 50, Connection = nil },
-    NoClip = { Enabled = false, Connection = nil }
-}
-
-local function getChar() return LocalPlayer.Character end
-local function getHum() return getChar() and getChar():FindFirstChildOfClass("Humanoid") end
-local function getRoot() return getChar() and getChar():FindFirstChild("HumanoidRootPart") end
-
--- SISTEMA DE SPEED BYPASS (CFrame Delta)
-local function UpdateSpeed()
-    if Core.Speed.Connection then Core.Speed.Connection:Disconnect() end
-    Core.Speed.Connection = RunService.Heartbeat:Connect(function(dt)
-        if Core.Speed.Enabled then
-            local hum = getHum()
-            local root = getRoot()
-            if hum and root and hum.MoveDirection.Magnitude > 0 then
-                -- O bypass funciona mantendo o WalkSpeed real baixo e somando CFrame
-                local extraSpeed = Core.Speed.Value - 16
-                root.CFrame = root.CFrame + (hum.MoveDirection * (extraSpeed * dt))
-            end
-        end
-    end)
-end
-
--- SISTEMA DE JUMP
-local function UpdateJump()
-    if Core.Jump.Connection then Core.Jump.Connection:Disconnect() end
-    Core.Jump.Connection = RunService.Heartbeat:Connect(function()
-        if Core.Jump.Enabled then
-            local hum = getHum()
-            if hum then
-                hum.UseJumpPower = true
-                hum.JumpPower = Core.Jump.Value
-            end
-        end
-    end)
-end
-
--- SISTEMA DE FLY (WASD + Space/Ctrl)
-local FlyKeys = {W=false, A=false, S=false, D=false, Space=false, Ctrl=false}
-UserInputService.InputBegan:Connect(function(i, g) if not g then FlyKeys[i.KeyCode.Name] = true end end)
-UserInputService.InputEnded:Connect(function(i) FlyKeys[i.KeyCode.Name] = false end)
-
-local function ToggleFly(state)
-    Core.Fly.Enabled = state
-    if Core.Fly.Connection then Core.Fly.Connection:Disconnect() end
-    
-    if state then
-        Core.Fly.Connection = RunService.RenderStepped:Connect(function(dt)
-            local root = getRoot()
-            local hum = getHum()
-            if root and hum then
-                hum.PlatformStand = true
-                local vel = Vector3.zero
-                if FlyKeys.W then vel = vel + (Camera.CFrame.LookVector * Core.Fly.Speed) end
-                if FlyKeys.S then vel = vel - (Camera.CFrame.LookVector * Core.Fly.Speed) end
-                if FlyKeys.A then vel = vel - (Camera.CFrame.RightVector * Core.Fly.Speed) end
-                if FlyKeys.D then vel = vel + (Camera.CFrame.RightVector * Core.Fly.Speed) end
-                if FlyKeys.Space then vel = vel + (Vector3.new(0,1,0) * Core.Fly.Speed) end
-                if FlyKeys.LeftControl then vel = vel - (Vector3.new(0,1,0) * Core.Fly.Speed) end
-                root.Velocity = Vector3.zero
-                root.CFrame = root.CFrame + (vel * dt)
-            end
-        end)
-    else
-        local hum = getHum()
-        if hum then hum.PlatformStand = false end
-    end
-end
-
--- SISTEMA DE NOCLIP
-local function ToggleNoClip(state)
-    Core.NoClip.Enabled = state
-    if Core.NoClip.Connection then Core.NoClip.Connection:Disconnect() end
-    if state then
-        Core.NoClip.Connection = RunService.Stepped:Connect(function()
-            local char = getChar()
-            if char then
-                for _, v in pairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") then v.CanCollide = false end
-                end
-            end
-        end)
-    end
-end
-
---// ==========================================
---// INTERFACE
---// ==========================================
-
+--// Window Principal
 local Window = WindUI:CreateWindow({
     Title      = "loc:HUB_TITLE",
     Icon       = "waves",
     Author     = "loc:HUB_AUTHOR",
-    Folder     = "TsunamiHub",
-    Size       = UDim2.fromOffset(550, 420),
+    Folder     = "TsunamiHubConfig",
+    Size       = UDim2.fromOffset(580, 460),
     Transparent= true,
     Theme      = "Nebula",
+    Resizable  = true,
 })
 
+Window:SetToggleKey(Enum.KeyCode.RightShift)
+
+--// Funções de Utilidade
+local function getCharacter() return LocalPlayer.Character end
+local function getHumanoid() return getCharacter() and getCharacter():FindFirstChildOfClass("Humanoid") end
+local function getRoot() return getCharacter() and getCharacter():FindFirstChild("HumanoidRootPart") end
+
+--// Estados Globais
+local PlayerFlags = {
+    SpeedEnabled   = false,
+    SpeedValue     = 16,
+    JumpEnabled    = false,
+    JumpValue      = 50,
+    NoClipEnabled  = false,
+    FlyEnabled     = false,
+    FlySpeed       = 50,
+}
+
+----------------------------------------------------
+-- SISTEMA DE SPEED BYPASS (CFRAME DELTA)
+----------------------------------------------------
+-- Este sistema não muda o WalkSpeed do boneco, ele "empurra" o CFrame manualmente.
+RunService.Heartbeat:Connect(function(dt)
+    local hum = getHumanoid()
+    local root = getRoot()
+    
+    if PlayerFlags.SpeedEnabled and hum and root and not PlayerFlags.FlyEnabled then
+        if hum.MoveDirection.Magnitude > 0 then
+            -- Calculamos a diferença entre a velocidade desejada e a base (16)
+            local extraSpeed = PlayerFlags.SpeedValue - 16
+            if extraSpeed > 0 then
+                root.CFrame = root.CFrame + (hum.MoveDirection * (extraSpeed * dt))
+            end
+        end
+    end
+end)
+
+----------------------------------------------------
+-- SISTEMA DE JUMP POWER
+----------------------------------------------------
+RunService.Heartbeat:Connect(function()
+    local hum = getHumanoid()
+    if hum and PlayerFlags.JumpEnabled then
+        hum.UseJumpPower = true
+        hum.JumpPower = PlayerFlags.JumpValue
+    end
+end)
+
+----------------------------------------------------
+-- SISTEMA DE FLY & NOCLIP
+----------------------------------------------------
+local FlyVelocity
+local FlyGyro
+
+local function stopFly()
+    PlayerFlags.FlyEnabled = false
+    local hum = getHumanoid()
+    if hum then hum.PlatformStand = false end
+    if FlyVelocity then FlyVelocity:Destroy(); FlyVelocity = nil end
+    if FlyGyro then FlyGyro:Destroy(); FlyGyro = nil end
+end
+
+local function startFly()
+    if PlayerFlags.FlyEnabled then return end
+    local hrp = getRoot()
+    local hum = getHumanoid()
+    if not hrp or not hum then return end
+
+    PlayerFlags.FlyEnabled = true
+    hum.PlatformStand = true
+
+    FlyVelocity = Instance.new("BodyVelocity", hrp)
+    FlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    
+    FlyGyro = Instance.new("BodyGyro", hrp)
+    FlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    FlyGyro.P = 9e4
+end
+
+RunService.RenderStepped:Connect(function()
+    if not PlayerFlags.FlyEnabled or not FlyVelocity then return end
+    local cam = Workspace.CurrentCamera
+    local hrp = getRoot()
+    if not cam or not hrp then return end
+
+    local moveDir = Vector3.zero
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += cam.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= Vector3.new(0,1,0) end
+
+    FlyVelocity.Velocity = moveDir.Unit * PlayerFlags.FlySpeed
+    if moveDir == Vector3.zero then FlyVelocity.Velocity = Vector3.zero end
+    FlyGyro.CFrame = cam.CFrame
+end)
+
+-- NoClip Loop
+RunService.Stepped:Connect(function()
+    if PlayerFlags.NoClipEnabled or PlayerFlags.FlyEnabled then
+        local char = getCharacter()
+        if char then
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end
+    end
+end)
+
+----------------------------------------------------
+-- UI: TABS
+----------------------------------------------------
 local Tabs = {
-    Player   = Window:Tab({ Title = "loc:TAB_PLAYER", Icon = "user" }),
-    World    = Window:Tab({ Title = "loc:TAB_WORLD",  Icon = "globe" }),
+    Player   = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
+    Farm     = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }),
+    Selling  = Window:Tab({ Title = "loc:TAB_SELLING",  Icon = "shopping-bag" }),
     Settings = Window:Tab({ Title = "loc:TAB_SETTINGS", Icon = "settings" }),
 }
 
--- SEÇÃO: MOVIMENTAÇÃO (SPEED)
-local SpeedSection = Tabs.Player:Section({ Title = "Movimentação", Box = true })
+-- SEÇÃO JOGADOR
+local SpeedSection = Tabs.Player:Section({ Title = "Movimentação Bypass", Box = true })
 
 SpeedSection:Toggle({
-    Title = "Speed Bypass",
-    Desc  = "Passa pelo Anti-Cheat (Mantém Speed 16 visualmente)",
+    Title = "Speed Bypass (CFrame)",
+    Desc  = "Passa pelo Anti-Cheat. Mantém sua velocidade base em 16.",
     Value = false,
     Callback = function(state)
-        Core.Speed.Enabled = state
-        UpdateSpeed()
+        PlayerFlags.SpeedEnabled = state
     end
 })
 
 SpeedSection:Slider({
     Title = "Velocidade",
-    Value = { Min = 22, Max = 1000, Default = 22 },
-    Callback = function(v) Core.Speed.Value = v end
+    Value = { Min = 16, Max = 1000, Default = 100 },
+    Callback = function(v) PlayerFlags.SpeedValue = v end
 })
 
--- SEÇÃO: PULO
 local JumpSection = Tabs.Player:Section({ Title = "Pulo", Box = true })
 
 JumpSection:Toggle({
-    Title = "Custom Jump",
+    Title = "Pulo Infinito/Custom",
     Value = false,
-    Callback = function(state)
-        Core.Jump.Enabled = state
-        UpdateJump()
-    end
+    Callback = function(state) PlayerFlags.JumpEnabled = state end
 })
 
 JumpSection:Slider({
     Title = "Altura do Pulo",
-    Value = { Min = 50, Max = 500, Default = 50 },
-    Callback = function(v) Core.Jump.Value = v end
+    Value = { Min = 50, Max = 500, Default = 100 },
+    Callback = function(v) PlayerFlags.JumpValue = v end
 })
 
--- SEÇÃO: ABILIDADES
-local SkillSection = Tabs.Player:Section({ Title = "Abilidades Especiais", Box = true })
+local SkillSection = Tabs.Player:Section({ Title = "Habilidades", Box = true })
 
 SkillSection:Toggle({
-    Title = "Fly (Voo)",
-    Callback = function(state) ToggleFly(state) end
+    Title = "Voo (Fly)",
+    Callback = function(state)
+        if state then startFly() else stopFly() end
+    end
+})
+
+SkillSection:Slider({
+    Title = "Velocidade do Voo",
+    Value = { Min = 10, Max = 500, Default = 50 },
+    Callback = function(v) PlayerFlags.FlySpeed = v end
 })
 
 SkillSection:Toggle({
     Title = "NoClip",
-    Callback = function(state) ToggleNoClip(state) end
+    Callback = function(state) PlayerFlags.NoClipEnabled = state end
 })
 
--- SEÇÃO: CONFIGURAÇÕES
-local SettingsSection = Tabs.Settings:Section({ Title = "Configuração do Menu", Box = true })
+-- SEÇÃO SETTINGS
+local SettingSection = Tabs.Settings:Section({ Title = "Menu", Box = true })
 
-SettingsSection:Keybind({
-    Title = "Fechar/Abrir Menu",
+SettingSection:Keybind({
+    Title = "Abrir/Fechar",
     Value = "RightShift",
-    Callback = function(key) Window:SetToggleKey(Enum.KeyCode[key]) end
+    Callback = function(v) Window:SetToggleKey(Enum.KeyCode[v]) end
 })
 
-SettingsSection:Button({
+SettingSection:Button({
     Title = "Destruir Script",
-    Color = Color3.fromRGB(255, 70, 70),
+    Color = Color3.fromRGB(255, 60, 60),
     Callback = function()
-        if Core.Speed.Connection then Core.Speed.Connection:Disconnect() end
-        if Core.Jump.Connection then Core.Jump.Connection:Disconnect() end
-        if Core.Fly.Connection then Core.Fly.Connection:Disconnect() end
-        if Core.NoClip.Connection then Core.NoClip.Connection:Disconnect() end
-        local hum = getHum()
-        if hum then hum.PlatformStand = false; hum.WalkSpeed = 16 end
+        PlayerFlags.SpeedEnabled = false
+        PlayerFlags.FlyEnabled = false
+        stopFly()
         Window:Close()
     end
 })
 
+-- Carregamento Final
+Window:SelectTab(1)
 WindUI:Notify({
-    Title = "Hub Carregado!",
-    Content = "Use com cuidado. Velocidades acima de 100 podem causar instabilidade.",
+    Title = "Sucesso!",
+    Content = "Sistema de Speed Bypass carregado.",
     Duration = 5
 })

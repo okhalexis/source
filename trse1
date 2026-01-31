@@ -541,11 +541,10 @@ NoClipSection:Toggle({
 })
 
 ----------------------------------------------------
--- FARM / INSTANT STEAL
+-- FARM / INSTANT STEAL (APENAS TOGGLE)
 ----------------------------------------------------
 local FarmSection = Tabs.Farm:Section({
-    Title  = "Instant Steal",
-    Icon   = "zap",
+    Title  = "Farm",
     Box    = true,
     Opened = true,
 })
@@ -557,18 +556,21 @@ local function setPromptInstant(prompt)
 end
 
 local function enableInstantSteal()
+    -- aplica em todos os prompts existentes
     for _, prompt in ipairs(workspace:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
             setPromptInstant(prompt)
         end
     end
 
+    -- aplica em novos prompts
     table.insert(connections,
         ProximityPromptService.PromptShown:Connect(function(prompt)
             setPromptInstant(prompt)
         end)
     )
 
+    -- quando começar a segurar, já completa instantâneo
     table.insert(connections,
         ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
             if not PlayerFlags.InstantSteal then return end
@@ -592,7 +594,7 @@ end
 
 FarmSection:Toggle({
     Title = "Instant Steal",
-    Desc  = "Quick Interact with all prompts!",
+    Desc  = "Quick Interact!",
     Icon  = "zap",
     Value = false,
     Callback = function(state)
@@ -617,314 +619,6 @@ FarmSection:Toggle({
         end
     end
 })
-
-----------------------------------------------------
--- AUTO GAP (FARM TAB) - CORRIGIDO
-----------------------------------------------------
--- Estrutura corrigida com array ordenado
-local GapDatabase = {
-    { Key = "Common",    Name = "Common",    Icon = "circle",   Gaps = {} },
-    { Key = "Uncommon",  Name = "Uncommon",  Icon = "disc",     Gaps = {} },
-    { Key = "Rare",      Name = "Rare",      Icon = "star",     Gaps = {} },
-    { Key = "Epic",      Name = "Epic",      Icon = "zap",      Gaps = {} },
-    { Key = "Legendary", Name = "Legendary", Icon = "award",    Gaps = {} },
-    { Key = "Mythical",  Name = "Mythical",  Icon = "flame",    Gaps = {} },
-    { Key = "Cosmic",    Name = "Cosmic",    Icon = "moon",     Gaps = {} },
-    { Key = "Secret",    Name = "Secret",    Icon = "lock",     Gaps = {} },
-    { Key = "Celestial", Name = "Celestial", Icon = "sparkles", Gaps = {} },
-}
-
-local AutoGapState = {
-    Enabled        = false,
-    SelectedArea   = nil,
-    SafeDistance   = 120,
-    CurrentGapIdx  = 1,
-    MovementSpeed  = 50,
-}
-
-local function getHRP()
-    local char = getCharacter()
-    if not char then return end
-    return char:FindFirstChild("HumanoidRootPart")
-end
-
-local function getAreaNames()
-    local names = {}
-    for _, area in ipairs(GapDatabase) do
-        table.insert(names, area.Name)
-    end
-    return names
-end
-
-local function getAreaByName(name)
-    for _, area in ipairs(GapDatabase) do
-        if area.Name == name then
-            return area
-        end
-    end
-    return nil
-end
-
-local AutoGapSection = Tabs.Farm:Section({
-    Title  = "Auto Gap",
-    Icon   = "navigation",
-    Box    = true,
-    Opened = true,
-})
-
-AutoGapSection:Label({
-    Title = "Warning",
-    Desc  = "Enable God Mode + NoClip before using!",
-    Icon  = "alert-triangle",
-    Color = Color3.fromHex("#ef4444"),
-})
-
-AutoGapSection:Dropdown({
-    Title  = "Select Area",
-    Desc   = "Choose gap area (Common → Celestial)",
-    Values = getAreaNames(),
-    Value  = nil,
-    Callback = function(value)
-        AutoGapState.SelectedArea = value
-        AutoGapState.CurrentGapIdx = 1
-        
-        local area = getAreaByName(value)
-        local gapCount = area and #area.Gaps or 0
-        
-        WindUI:Notify({
-            Title   = "Auto Gap",
-            Content = string.format("Selected: %s (%d gaps)", value, gapCount),
-            Duration= 3,
-            Icon    = "map-pin",
-        })
-    end
-})
-
-AutoGapSection:Slider({
-    Title = "Movement Speed",
-    Desc  = "Speed when moving between gaps.",
-    Step  = 5,
-    Value = { Min = 20, Max = 200, Default = 50 },
-    Callback = function(value)
-        AutoGapState.MovementSpeed = value
-    end
-})
-
-AutoGapSection:Slider({
-    Title = "Safe Distance",
-    Desc  = "Minimum distance from tsunami (studs).",
-    Step  = 10,
-    Value = { Min = 50, Max = 300, Default = 120 },
-    Callback = function(value)
-        AutoGapState.SafeDistance = value
-    end
-})
-
-AutoGapSection:Toggle({
-    Title = "Enable Auto Gap",
-    Desc  = "Automatically navigate between gaps.",
-    Icon  = "navigation",
-    Value = false,
-    Callback = function(state)
-        AutoGapState.Enabled = state
-        WindUI:Notify({
-            Title   = "Auto Gap",
-            Content = state and "Auto Gap enabled." or "Auto Gap disabled.",
-            Duration= 3,
-            Icon    = "navigation",
-        })
-    end
-})
-
-AutoGapSection:Button({
-    Title = "Reset to First Gap",
-    Desc  = "Restart from gap #1",
-    Icon  = "rotate-ccw",
-    Callback = function()
-        AutoGapState.CurrentGapIdx = 1
-        WindUI:Notify({
-            Title   = "Auto Gap",
-            Content = "Reset to first gap.",
-            Duration= 2,
-            Icon    = "check",
-        })
-    end
-})
-
--- Helper functions
-local function findTsunami()
-    for _, obj in ipairs(workspace:GetChildren()) do
-        local n = obj.Name:lower()
-        if (n:find("tsunami") or n:find("wave") or n:find("water")) and (obj:IsA("Model") or obj:IsA("BasePart")) then
-            return obj
-        end
-    end
-end
-
-local function getTsunamiPrimaryPart(tsunami)
-    if not tsunami then return end
-    if tsunami:IsA("BasePart") then
-        return tsunami
-    elseif tsunami:IsA("Model") then
-        return tsunami.PrimaryPart or tsunami:FindFirstChildWhichIsA("BasePart")
-    end
-end
-
-local function getTsunamiInfo()
-    local tsunami = findTsunami()
-    local part = getTsunamiPrimaryPart(tsunami)
-    if not part then return nil, nil end
-    
-    local pos = part.Position
-    local vel = part.AssemblyLinearVelocity or Vector3.zero
-    
-    return pos, vel
-end
-
-local function estimateCollisionTime(tsunamiPos, tsunamiVel, targetPos)
-    if not tsunamiPos or not tsunamiVel or not targetPos then return math.huge end
-    
-    local dirZ = tsunamiVel.Z
-    if math.abs(dirZ) < 1 then return math.huge end
-    
-    local distZ = targetPos.Z - tsunamiPos.Z
-    if (dirZ > 0 and distZ < 0) or (dirZ < 0 and distZ > 0) then
-        return math.huge
-    end
-    
-    local speedZ = math.abs(dirZ)
-    return math.abs(distZ) / speedZ
-end
-
-local function estimateTravelTime(fromPos, toPos)
-    local dist = (toPos - fromPos).Magnitude
-    local speed = math.max(AutoGapState.MovementSpeed, 1)
-    return dist / speed
-end
-
-local AutoGapVel, AutoGapGyro
-
-local function ensureAutoGapMovers()
-    local hrp = getHRP()
-    if not hrp then return end
-    
-    if AutoGapVel and AutoGapVel.Parent ~= hrp then
-        AutoGapVel:Destroy()
-        AutoGapVel = nil
-    end
-    
-    if AutoGapGyro and AutoGapGyro.Parent ~= hrp then
-        AutoGapGyro:Destroy()
-        AutoGapGyro = nil
-    end
-    
-    if not AutoGapVel then
-        AutoGapVel = Instance.new("BodyVelocity")
-        AutoGapVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        AutoGapVel.Velocity = Vector3.zero
-        AutoGapVel.Parent = hrp
-    end
-    
-    if not AutoGapGyro then
-        AutoGapGyro = Instance.new("BodyGyro")
-        AutoGapGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-        AutoGapGyro.P = 9e4
-        AutoGapGyro.CFrame = hrp.CFrame
-        AutoGapGyro.Parent = hrp
-    end
-    
-    return AutoGapVel, AutoGapGyro, hrp
-end
-
-local function stopAutoGapMovement()
-    if AutoGapVel then
-        AutoGapVel.Velocity = Vector3.zero
-    end
-end
-
--- Loop principal
-RunService.Heartbeat:Connect(function(dt)
-    if not AutoGapState.Enabled then
-        stopAutoGapMovement()
-        return
-    end
-
-    if not AutoGapState.SelectedArea then
-        stopAutoGapMovement()
-        return
-    end
-
-    local area = getAreaByName(AutoGapState.SelectedArea)
-    if not area or #area.Gaps == 0 then
-        stopAutoGapMovement()
-        return
-    end
-
-    local bodyVel, bodyGyro, hrp = ensureAutoGapMovers()
-    if not bodyVel or not bodyGyro or not hrp then
-        return
-    end
-
-    local gaps = area.Gaps
-    local idx = math.clamp(AutoGapState.CurrentGapIdx, 1, #gaps)
-    local currentGapCF = gaps[idx]
-    
-    if typeof(currentGapCF) ~= "CFrame" then
-        stopAutoGapMovement()
-        return
-    end
-
-    local hrpPos = hrp.Position
-    local targetPos = currentGapCF.Position
-    local distToGap = (targetPos - hrpPos).Magnitude
-    local insideGap = distToGap < 8
-
-    local tsunamiPos, tsunamiVel = getTsunamiInfo()
-
-    if not insideGap then
-        local dir = (targetPos - hrpPos).Unit
-        bodyVel.Velocity = dir * AutoGapState.MovementSpeed
-        bodyGyro.CFrame = CFrame.lookAt(hrpPos, targetPos)
-        return
-    end
-
-    local nextIdx = idx + 1
-    if nextIdx > #gaps then
-        stopAutoGapMovement()
-        WindUI:Notify({
-            Title   = "Auto Gap",
-            Content = "Reached final gap!",
-            Duration= 3,
-            Icon    = "check-circle",
-        })
-        AutoGapState.Enabled = false
-        return
-    end
-
-    local nextGapCF = gaps[nextIdx]
-    if typeof(nextGapCF) ~= "CFrame" then
-        stopAutoGapMovement()
-        return
-    end
-
-    local nextPos = nextGapCF.Position
-    local timeToNext = estimateTravelTime(hrpPos, nextPos)
-    local timeWaveToNext = estimateCollisionTime(tsunamiPos, tsunamiVel, nextPos)
-
-    local safeSpeed = math.max(math.abs((tsunamiVel and tsunamiVel.Z) or 0), 1)
-    local safeMargin = AutoGapState.SafeDistance / safeSpeed
-
-    local canMove = (timeToNext + safeMargin) < timeWaveToNext
-
-    if canMove then
-        AutoGapState.CurrentGapIdx = nextIdx
-        local dir = (nextPos - hrpPos).Unit
-        bodyVel.Velocity = dir * AutoGapState.MovementSpeed
-        bodyGyro.CFrame = CFrame.lookAt(hrpPos, nextPos)
-    else
-        stopAutoGapMovement()
-    end
-end)
 
 ----------------------------------------------------
 -- SELLING PLACEHOLDER

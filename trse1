@@ -619,7 +619,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - LÓGICA OTIMIZADA
+-- AUTO FARM BRAINROT - COM AUTOFLY
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Auto Farm Brainrot",
@@ -647,15 +647,102 @@ local AutoGapState = {
     TargetGapIndex = nil,
     CurrentPositionIndex = 0,
     PreviousPositionIndex = 0,
-    HasTeleported = false,
+    IsFlying = false,
+    AutoFlyVelocity = nil,
+    AutoFlyGyro = nil,
 }
 
--- Distâncias configuráveis
-local DANGER_DISTANCE = 80 -- Para rollback
-local MAX_DETECTION_DISTANCE = 200 -- Só detecta waves próximas aos gaps
+-- Configurações
+local AUTO_FLY_SPEED = 110
+local DANGER_DISTANCE = 80
+local MAX_DETECTION_DISTANCE = 200
+local ARRIVAL_DISTANCE = 15
 
 --[[========================================================
-    SISTEMA DE DETECÇÃO DE WAVES - OTIMIZADO
+    SISTEMA DE AUTO FLY
+==========================================================]]
+
+local AutoFly = {}
+
+function AutoFly.Start()
+    if AutoGapState.IsFlying then return end
+    
+    local hrp = getHumanoidRootPart()
+    local hum = getHumanoid()
+    if not hrp or not hum then return false end
+    
+    AutoGapState.IsFlying = true
+    hum.PlatformStand = true
+    
+    AutoGapState.AutoFlyVelocity = Instance.new("BodyVelocity")
+    AutoGapState.AutoFlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero
+    AutoGapState.AutoFlyVelocity.Parent = hrp
+    
+    AutoGapState.AutoFlyGyro = Instance.new("BodyGyro")
+    AutoGapState.AutoFlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    AutoGapState.AutoFlyGyro.P = 9e4
+    AutoGapState.AutoFlyGyro.CFrame = hrp.CFrame
+    AutoGapState.AutoFlyGyro.Parent = hrp
+    
+    print("[Auto Fly] ✈️ Fly mode activated (Speed: " .. AUTO_FLY_SPEED .. ")")
+    return true
+end
+
+function AutoFly.Stop()
+    if not AutoGapState.IsFlying then return end
+    
+    AutoGapState.IsFlying = false
+    
+    local hum = getHumanoid()
+    if hum then hum.PlatformStand = false end
+    
+    if AutoGapState.AutoFlyVelocity then
+        AutoGapState.AutoFlyVelocity:Destroy()
+        AutoGapState.AutoFlyVelocity = nil
+    end
+    
+    if AutoGapState.AutoFlyGyro then
+        AutoGapState.AutoFlyGyro:Destroy()
+        AutoGapState.AutoFlyGyro = nil
+    end
+    
+    print("[Auto Fly] 🛬 Fly mode deactivated")
+end
+
+function AutoFly.FlyToPosition(targetPos)
+    local hrp = getHumanoidRootPart()
+    if not hrp then return false end
+    
+    local currentPos = hrp.Position
+    local direction = (targetPos - currentPos).Unit
+    
+    -- Calcula velocidade
+    local velocity = direction * AUTO_FLY_SPEED
+    
+    -- Aplica velocidade
+    if AutoGapState.AutoFlyVelocity then
+        AutoGapState.AutoFlyVelocity.Velocity = velocity
+    end
+    
+    -- Rotaciona para direção do movimento
+    if AutoGapState.AutoFlyGyro then
+        AutoGapState.AutoFlyGyro.CFrame = CFrame.lookAt(currentPos, targetPos)
+    end
+    
+    return true
+end
+
+function AutoFly.HasArrived(targetPos, threshold)
+    local hrp = getHumanoidRootPart()
+    if not hrp then return false end
+    
+    local dist = (hrp.Position - targetPos).Magnitude
+    return dist < (threshold or ARRIVAL_DISTANCE)
+end
+
+--[[========================================================
+    SISTEMA DE DETECÇÃO DE WAVES
 ==========================================================]]
 
 local WaveDetector = {}
@@ -703,7 +790,6 @@ function WaveDetector.ScanAllWaves()
     return wavesCache
 end
 
--- Retorna gap index APENAS se wave estiver próxima (< MAX_DETECTION_DISTANCE)
 function WaveDetector.GetWaveGapPosition(wavePos)
     local closestGapIndex = nil
     local shortestDist = math.huge
@@ -718,7 +804,6 @@ function WaveDetector.GetWaveGapPosition(wavePos)
         end
     end
     
-    -- SÓ retorna se wave está PRÓXIMA do gap
     if shortestDist < MAX_DETECTION_DISTANCE then
         return closestGapIndex, shortestDist
     end
@@ -726,7 +811,6 @@ function WaveDetector.GetWaveGapPosition(wavePos)
     return nil, shortestDist
 end
 
--- Verifica se pode mover (APENAS considera waves próximas dos gaps)
 function WaveDetector.CanMoveToNextGap(currentGapIndex)
     local waves = WaveDetector.ScanAllWaves()
     
@@ -737,34 +821,24 @@ function WaveDetector.CanMoveToNextGap(currentGapIndex)
     for _, wave in ipairs(waves) do
         local waveGapIndex, distance = WaveDetector.GetWaveGapPosition(wave.Position)
         
-        -- Se waveGapIndex é nil, wave está LONGE de todos os gaps, IGNORA
         if waveGapIndex then
             local difference = waveGapIndex - currentGapIndex
             
             if difference < 0 then
                 -- Wave atrás, ignora
-                print(string.format("[Wave Detector] Wave at Gap %d (behind player) - IGNORED", waveGapIndex))
-                
             elseif difference == 0 then
-                print(string.format("[Wave Detector] ⚠️ Wave at Gap %d (SAME, dist: %.1f) - WAITING", waveGapIndex, distance))
+                print(string.format("[Wave Detector] ⚠️ Wave at Gap %d (SAME) - WAITING", waveGapIndex))
                 return false
-                
             elseif difference == 1 then
-                print(string.format("[Wave Detector] ⚠️ Wave at Gap %d (1 ahead, dist: %.1f) - WAITING", waveGapIndex, distance))
+                print(string.format("[Wave Detector] ⚠️ Wave at Gap %d (1 ahead) - WAITING", waveGapIndex))
                 return false
-                
-            else
-                print(string.format("[Wave Detector] ✅ Wave at Gap %d (%d ahead, dist: %.1f) - SAFE", waveGapIndex, difference, distance))
             end
-        else
-            print(string.format("[Wave Detector] Wave detected but FAR from gaps (dist: %.1f) - IGNORED", distance))
         end
     end
     
     return true
 end
 
--- Verifica se wave está PERIGOSAMENTE PRÓXIMA (para rollback)
 function WaveDetector.IsInDanger(playerPos)
     local waves = WaveDetector.ScanAllWaves()
     
@@ -785,17 +859,8 @@ function WaveDetector.IsInDanger(playerPos)
 end
 
 --[[========================================================
-    SISTEMA DE MOVIMENTO COM ROLLBACK
+    SISTEMA DE ROLLBACK
 ==========================================================]]
-
-local function instantTeleport(gap)
-    local hrp = getHumanoidRootPart()
-    if not hrp then return false end
-    
-    local pos = Vector3.new(gap.X, gap.Y + 2, gap.Z)
-    hrp.CFrame = CFrame.new(pos)
-    return true
-end
 
 local function emergencyRollback()
     if AutoGapState.PreviousPositionIndex > 0 then
@@ -804,21 +869,24 @@ local function emergencyRollback()
         if previousGap then
             print(string.format("[EMERGENCY] ⚠️ Rolling back to %s (Gap %d)", previousGap.Name, AutoGapState.PreviousPositionIndex))
             
-            local success = instantTeleport(previousGap)
+            -- Voa de volta
+            local targetPos = Vector3.new(previousGap.X, previousGap.Y + 5, previousGap.Z)
             
-            if success then
-                AutoGapState.CurrentPositionIndex = AutoGapState.PreviousPositionIndex
-                AutoGapState.HasTeleported = false
-                
-                WindUI:Notify({
-                    Title   = "Auto Farm",
-                    Content = "🚨 Emergency rollback to " .. previousGap.Name,
-                    Duration= 3,
-                    Icon    = "alert-triangle",
-                })
-                
-                return true
+            while not AutoFly.HasArrived(targetPos, 20) do
+                AutoFly.FlyToPosition(targetPos)
+                task.wait(0.1)
             end
+            
+            AutoGapState.CurrentPositionIndex = AutoGapState.PreviousPositionIndex
+            
+            WindUI:Notify({
+                Title   = "Auto Farm",
+                Content = "🚨 Emergency rollback to " .. previousGap.Name,
+                Duration= 3,
+                Icon    = "alert-triangle",
+            })
+            
+            return true
         end
     end
     
@@ -826,12 +894,15 @@ local function emergencyRollback()
 end
 
 --[[========================================================
-    MAIN LOOP
+    MAIN LOOP COM AUTOFLY
 ==========================================================]]
 
 local autoFarmCoroutine = nil
 
 local function autoFarmLoop()
+    -- Ativa fly no início
+    AutoFly.Start()
+    
     while AutoGapState.Enabled do
         if not AutoGapState.TargetGapIndex then
             task.wait(0.5)
@@ -846,6 +917,8 @@ local function autoFarmLoop()
         
         -- Chegou no destino final
         if AutoGapState.CurrentPositionIndex >= AutoGapState.TargetGapIndex then
+            AutoFly.Stop()
+            
             WindUI:Notify({
                 Title   = "Auto Farm",
                 Content = "✅ Arrived at " .. GapPositions[AutoGapState.TargetGapIndex].Name,
@@ -865,14 +938,12 @@ local function autoFarmLoop()
             continue
         end
         
-        -- Verifica se já está na posição
-        local currentPos = hrp.Position
-        local nextPos = Vector3.new(nextGap.X, nextGap.Y, nextGap.Z)
-        local distToNext = (currentPos - nextPos).Magnitude
+        local targetPos = Vector3.new(nextGap.X, nextGap.Y + 5, nextGap.Z) -- +5 pra voar no ar
         
-        if distToNext < 15 then
-            -- Chegou, verifica perigo
-            if WaveDetector.IsInDanger(currentPos) then
+        -- Verifica se já chegou
+        if AutoFly.HasArrived(targetPos, ARRIVAL_DISTANCE) then
+            -- Verifica perigo
+            if WaveDetector.IsInDanger(hrp.Position) then
                 print("[EMERGENCY] 🚨 Danger detected after arrival! Executing rollback...")
                 
                 if emergencyRollback() then
@@ -884,10 +955,11 @@ local function autoFarmLoop()
             -- Seguro, confirma chegada
             AutoGapState.PreviousPositionIndex = AutoGapState.CurrentPositionIndex
             AutoGapState.CurrentPositionIndex = nextPositionIndex
-            AutoGapState.HasTeleported = false
             print(string.format("[Auto Farm] ✅ Reached %s (Gap %d)", nextGap.Name, nextPositionIndex))
             
             if AutoGapState.CurrentPositionIndex >= AutoGapState.TargetGapIndex then
+                AutoFly.Stop()
+                
                 WindUI:Notify({
                     Title   = "Auto Farm",
                     Content = "✅ Arrived at " .. nextGap.Name,
@@ -906,30 +978,25 @@ local function autoFarmLoop()
         local canMove = WaveDetector.CanMoveToNextGap(AutoGapState.CurrentPositionIndex)
         
         if canMove then
-            if not AutoGapState.HasTeleported then
-                print(string.format("[Auto Farm] 🚀 Teleporting to %s (Gap %d)", nextGap.Name, nextPositionIndex))
+            print(string.format("[Auto Farm] ✈️ Flying to %s (Gap %d)", nextGap.Name, nextPositionIndex))
+            
+            -- Voa para posição
+            AutoFly.FlyToPosition(targetPos)
+            
+            -- Verifica perigo durante voo
+            if WaveDetector.IsInDanger(hrp.Position) then
+                print("[EMERGENCY] 🚨 Danger detected during flight! Executing rollback...")
                 
-                local success = instantTeleport(nextGap)
-                
-                if success then
-                    AutoGapState.HasTeleported = true
-                    task.wait(0.2)
-                    
-                    -- Verifica imediatamente após teleport
-                    local newPos = getHumanoidRootPart()
-                    if newPos and WaveDetector.IsInDanger(newPos.Position) then
-                        print("[EMERGENCY] 🚨 Danger detected immediately after teleport! Executing rollback...")
-                        
-                        if emergencyRollback() then
-                            task.wait(2)
-                            continue
-                        end
-                    end
+                if emergencyRollback() then
+                    task.wait(2)
+                    continue
                 end
             end
         else
-            -- Espera
-            AutoGapState.HasTeleported = false
+            -- Espera (para de voar)
+            if AutoGapState.AutoFlyVelocity then
+                AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero
+            end
             
             local currentGapName = GapPositions[math.max(1, AutoGapState.CurrentPositionIndex)].Name
             print(string.format("[Auto Farm] ⏸️ Waiting at %s...", currentGapName))
@@ -939,6 +1006,9 @@ local function autoFarmLoop()
         
         task.wait(0.1)
     end
+    
+    -- Desativa fly no final
+    AutoFly.Stop()
 end
 
 --[[========================================================
@@ -978,7 +1048,7 @@ AutoFarmSection:Dropdown({
 
 AutoFarmSection:Toggle({
     Title = "Go to Area",
-    Desc  = "Auto navigate to selected area",
+    Desc  = "Auto FLY to selected area (Speed: 110)",
     Icon  = "navigation",
     Value = false,
     Callback = function(state)
@@ -998,13 +1068,12 @@ AutoFarmSection:Toggle({
             
             AutoGapState.CurrentPositionIndex = 0
             AutoGapState.PreviousPositionIndex = 0
-            AutoGapState.HasTeleported = false
             
             WindUI:Notify({
                 Title   = "Auto Farm",
-                Content = "🚀 Starting navigation to " .. GapPositions[AutoGapState.TargetGapIndex].Name,
+                Content = "✈️ Flying to " .. GapPositions[AutoGapState.TargetGapIndex].Name,
                 Duration= 3,
-                Icon    = "navigation",
+                Icon    = "plane",
             })
             
             if autoFarmCoroutine then
@@ -1012,6 +1081,8 @@ AutoFarmSection:Toggle({
             end
             autoFarmCoroutine = task.spawn(autoFarmLoop)
         else
+            AutoFly.Stop()
+            
             if autoFarmCoroutine then
                 task.cancel(autoFarmCoroutine)
                 autoFarmCoroutine = nil

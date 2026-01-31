@@ -270,7 +270,7 @@ local SpeedSection = Tabs.Player:Section({
     Title  = "Speed Hack",
     Icon   = "zap",
     Box    = true,
-    Opened = false,
+    Opened = true,
 })
 
 local speedConnection
@@ -334,7 +334,7 @@ local JumpSection = Tabs.Player:Section({
     Title  = "Jump Hack",
     Icon   = "arrow-up",
     Box    = true,
-    Opened = false,
+    Opened = true,
 })
 
 local function applyJump(rawValue)
@@ -392,7 +392,7 @@ local FlySection = Tabs.Player:Section({
     Title  = "Fly Mode",
     Icon   = "feather",
     Box    = true,
-    Opened = false,
+    Opened = true,
 })
 
 local FlyVelocity, FlyGyro
@@ -497,7 +497,7 @@ local NoClipSection = Tabs.Player:Section({
     Title  = "No Clip",
     Icon   = "ghost",
     Box    = true,
-    Opened = false,
+    Opened = true,
 })
 
 local function applyFullNoClip()
@@ -541,11 +541,20 @@ NoClipSection:Toggle({
 })
 
 ----------------------------------------------------
--- FARM / INSTANT STEAL  (AGORA BOTÃO)
+-- FARM / INSTANT STEAL (categoria + toggle fora)
 ----------------------------------------------------
+-- Categoria visual (título/box) de Instant Steal
+local InstantStealSection = Tabs.Farm:Section({
+    Title  = "Instant Steal",
+    Icon   = "zap",
+    Box    = true,
+    Opened = true,
+})
+
+-- Seção Farm principal com o "botão selecionável"
 local FarmSection = Tabs.Farm:Section({
-    Title = "Instant Steal",
-    Box = true,
+    Title  = "Farm Controls",
+    Box    = true,
     Opened = true,
 })
 
@@ -589,21 +598,32 @@ local function disableInstantSteal()
     table.clear(connections)
 end
 
-FarmSection:Button({
+-- "Botão" selecionável (toggle) fora da categoria Instant Steal
+FarmSection:Toggle({
     Title = "Instant Steal",
     Desc  = "Quick Interact!",
     Icon  = "zap",
-    Callback = function()
-        PlayerFlags.InstantSteal = true
-        disableInstantSteal()
-        enableInstantSteal()
-
-        WindUI:Notify({
-            Title   = "Instant Steal",
-            Content = "Instant Steal enabled (Quick Interact).",
-            Duration= 3,
-            Icon    = "zap",
-        })
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.InstantSteal = state
+        if state then
+            disableInstantSteal()
+            enableInstantSteal()
+            WindUI:Notify({
+                Title   = "Instant Steal",
+                Content = "Instant Steal enabled (Quick Interact).",
+                Duration= 3,
+                Icon    = "zap",
+            })
+        else
+            disableInstantSteal()
+            WindUI:Notify({
+                Title   = "Instant Steal",
+                Content = "Instant Steal disabled.",
+                Duration= 3,
+                Icon    = "zap",
+            })
+        end
     end
 })
 

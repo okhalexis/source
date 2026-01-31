@@ -628,17 +628,17 @@ local AutoFarmSection = Tabs.Farm:Section({
     Opened = true,
 })
 
--- POSIÇÕES EXATAS DOS GAPS (usar exatamente essas coords)
+-- POSIÇÕES EXATAS DOS GAPS (tudo alinhado na Z = -14.0)
 local GapPositions = {
     { Index = 1,  Name = "Common",    X = 199.9,  Y = -2.7, Z = -14.0 },
-    { Index = 2,  Name = "Uncommon",  X = 283.3,  Y = -2.7, Z = -13.7 },
-    { Index = 3,  Name = "Rare",      X = 397.2,  Y = -2.7, Z = -9.2  },
-    { Index = 4,  Name = "Epic",      X = 542.4,  Y = -2.7, Z = -11.7 },
-    { Index = 5,  Name = "Legendary", X = 757.4,  Y = -2.7, Z = -9.8  },
-    { Index = 6,  Name = "Mythical",  X = 1072.3, Y = -2.7, Z = -2.8  },
-    { Index = 7,  Name = "Cosmic",    X = 1549.3, Y = -2.7, Z = -9.1  },
-    { Index = 8,  Name = "Secret",    X = 2252.6, Y = -2.7, Z = -15.1 },
-    { Index = 9,  Name = "Final",     X = 2599.1, Y = -2.7, Z = -15.1 },
+    { Index = 2,  Name = "Uncommon",  X = 283.3,  Y = -2.7, Z = -14.0 },
+    { Index = 3,  Name = "Rare",      X = 397.2,  Y = -2.7, Z = -14.0 },
+    { Index = 4,  Name = "Epic",      X = 542.4,  Y = -2.7, Z = -14.0 },
+    { Index = 5,  Name = "Legendary", X = 757.4,  Y = -2.7, Z = -14.0 },
+    { Index = 6,  Name = "Mythical",  X = 1072.3, Y = -2.7, Z = -14.0 },
+    { Index = 7,  Name = "Cosmic",    X = 1549.3, Y = -2.7, Z = -14.0 },
+    { Index = 8,  Name = "Secret",    X = 2252.6, Y = -2.7, Z = -14.0 },
+    { Index = 9,  Name = "Final",     X = 2599.1, Y = -2.7, Z = -14.0 },
 }
 
 local AutoGapState = {
@@ -830,16 +830,11 @@ local function snapToExactPosition(targetPos)
     local hum = getHumanoid()
     if not hrp or not hum then return end
 
-    -- desliga levitação pra não ficar brigando com CFrame
     AutoFly.PauseInPlace()
     AutoFly.Stop()
 
-    -- força SNAP exato
     hrp.CFrame = CFrame.new(targetPos)
-
-    -- garante que velocidade fique zero depois do snap
     hrp.Velocity = Vector3.zero
-    hum.WalkSpeed = hum.WalkSpeed -- só toca pra atualizar
 end
 
 local function autoFarmLoop()
@@ -865,7 +860,6 @@ local function autoFarmLoop()
         if AutoGapState.CurrentGapIndex > AutoGapState.TargetGapIndex then
             print("[Auto Farm] Reached final gap index")
 
-            -- desligar noclip e travar na posição atual (já foi snapado)
             PlayerFlags.NoClipEnabled = false
             disableFullNoClip()
 
@@ -900,7 +894,6 @@ local function autoFarmLoop()
             task.wait(1)
         else
             if AutoFly.HasArrived(targetPos) then
-                -- chegou "perto": faz SNAP exato na coord do gap
                 snapToExactPosition(targetPos)
 
                 print(string.format(
@@ -916,7 +909,6 @@ local function autoFarmLoop()
                 })
 
                 AutoGapState.CurrentGapIndex += 1
-                -- se ainda não acabou, liga de novo a levitação pro próximo trecho
                 if AutoGapState.CurrentGapIndex <= AutoGapState.TargetGapIndex then
                     AutoFly.Start()
                 end

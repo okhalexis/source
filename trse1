@@ -541,19 +541,10 @@ NoClipSection:Toggle({
 })
 
 ----------------------------------------------------
--- FARM / INSTANT STEAL (categoria + toggle fora)
+-- FARM / INSTANT STEAL (APENAS TOGGLE)
 ----------------------------------------------------
--- Categoria visual (título/box) de Instant Steal
-local InstantStealSection = Tabs.Farm:Section({
-    Title  = "Instant Steal",
-    Icon   = "zap",
-    Box    = true,
-    Opened = true,
-})
-
--- Seção Farm principal com o "botão selecionável"
 local FarmSection = Tabs.Farm:Section({
-    Title  = "Farm Controls",
+    Title  = "Farm",
     Box    = true,
     Opened = true,
 })
@@ -565,18 +556,21 @@ local function setPromptInstant(prompt)
 end
 
 local function enableInstantSteal()
+    -- aplica em todos os prompts existentes
     for _, prompt in ipairs(workspace:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
             setPromptInstant(prompt)
         end
     end
 
+    -- aplica em novos prompts
     table.insert(connections,
         ProximityPromptService.PromptShown:Connect(function(prompt)
             setPromptInstant(prompt)
         end)
     )
 
+    -- quando começar a segurar, já completa instantâneo
     table.insert(connections,
         ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
             if not PlayerFlags.InstantSteal then return end
@@ -598,7 +592,6 @@ local function disableInstantSteal()
     table.clear(connections)
 end
 
--- "Botão" selecionável (toggle) fora da categoria Instant Steal
 FarmSection:Toggle({
     Title = "Instant Steal",
     Desc  = "Quick Interact!",

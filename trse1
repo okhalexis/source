@@ -110,7 +110,7 @@ WindUI:AddTheme({
     ElementBackground = Color3.fromHex("#1f2937"),
     ElementTitle = Color3.fromHex("#fee2e2"),
     ElementDesc = Color3.fromHex("#fecaca"),
-    ElementIcon = Color3.fromHex("#fecaca"),
+    ElementIcon = Color3.fromHex("fecaca"),
 
     PopupBackground = Color3.fromHex("#111827"),
     PopupBackgroundTransparency = 0,
@@ -618,7 +618,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO GAP SYSTEM - CORRIGIDO
+-- AUTO GAP SYSTEM - CORRIGIDO COM NOMES DAS ÁREAS
 ----------------------------------------------------
 local AutoGapSection = Tabs.Farm:Section({
     Title  = "Auto Gap",
@@ -627,23 +627,22 @@ local AutoGapSection = Tabs.Farm:Section({
     Opened = true,
 })
 
--- CADA GAP = 1 POSIÇÃO ESPECÍFICA
+-- Gap 1 = Common, Gap 2 = Uncommon, etc.
 local GapDatabase = {
-    { Key = "Common",    Name = "Common Gap",    Position = nil },
-    { Key = "Uncommon",  Name = "Uncommon Gap",  Position = nil },
-    { Key = "Rare",      Name = "Rare Gap",      Position = nil },
-    { Key = "Epic",      Name = "Epic Gap",      Position = nil },
-    { Key = "Legendary", Name = "Legendary Gap", Position = nil },
-    { Key = "Mythical",  Name = "Mythical Gap",  Position = nil },
-    { Key = "Cosmic",    Name = "Cosmic Gap",    Position = nil },
-    { Key = "Secret",    Name = "Secret Gap",    Position = nil },
-    { Key = "Celestial", Name = "Celestial Gap", Position = nil },
+    { Index = 1, Name = "Common",    Position = nil },
+    { Index = 2, Name = "Uncommon",  Position = nil },
+    { Index = 3, Name = "Rare",      Position = nil },
+    { Index = 4, Name = "Epic",      Position = nil },
+    { Index = 5, Name = "Legendary", Position = nil },
+    { Index = 6, Name = "Mythical",  Position = nil },
+    { Index = 7, Name = "Cosmic",    Position = nil },
+    { Index = 8, Name = "Secret",    Position = nil },
+    { Index = 9, Name = "Celestial", Position = nil },
 }
 
 local AutoGapState = {
     Enabled        = false,
     SelectedArea   = nil,
-    CurrentGapIdx  = 1,
     WaitingForWave = false,
 }
 
@@ -715,17 +714,15 @@ end
 function WaveDetector.IsWaveApproaching(wavePos, waveVel, playerPos)
     if not wavePos or not waveVel or not playerPos then return false end
     
-    -- Calcula se a wave está vindo na nossa direção
     local toPlayer = (playerPos - wavePos).Unit
     local waveDir = waveVel.Unit
     
     local dot = toPlayer:Dot(waveDir)
     
-    -- Se dot > 0.5, wave está vindo na nossa direção
     return dot > 0.5
 end
 
--- Scanner de gaps (UM GAP = UMA POSIÇÃO)
+-- Scanner de gaps
 local GapScanner = {}
 
 function GapScanner.ScanAllGaps()
@@ -754,7 +751,6 @@ function GapScanner.ScanAllGaps()
                 local pos = obj.Position
                 local size = obj.Size
                 
-                -- Plataforma grande e elevada
                 if pos.Y >= 50 and pos.Y <= 500 then
                     if size.X >= 8 and size.Z >= 8 then
                         local isDupe = false
@@ -784,15 +780,15 @@ function GapScanner.ScanAllGaps()
         return a.Height < b.Height
     end)
     
-    -- Atribui UM gap para CADA categoria
+    -- Atribui UM gap para CADA área (Gap 1 = Common, Gap 2 = Uncommon, etc.)
     for i, gap in ipairs(foundGaps) do
         if i <= #GapDatabase then
             GapDatabase[i].Position = gap.CFrame
-            print(string.format("[Auto Gap] %s → Y: %.1f", GapDatabase[i].Name, gap.Height))
+            print(string.format("[Auto Gap] Gap %d (%s) → Y: %.1f", i, GapDatabase[i].Name, gap.Height))
         end
     end
     
-    print(string.format("[Auto Gap] ✅ Found %d gaps", math.min(#foundGaps, #GapDatabase)))
+    print(string.format("[Auto Gap] ✅ Found %d gaps total", math.min(#foundGaps, #GapDatabase)))
 end
 
 -- Helpers
@@ -818,7 +814,9 @@ end
 local function getNextGap(currentName)
     for i, area in ipairs(GapDatabase) do
         if area.Name == currentName and i < #GapDatabase then
-            return GapDatabase[i + 1]
+            if GapDatabase[i + 1].Position then
+                return GapDatabase[i + 1]
+            end
         end
     end
     return nil
@@ -826,14 +824,13 @@ end
 
 -- UI SIMPLES: Select Area + Go to Area
 AutoGapSection:Dropdown({
-    Title  = "Select Gap",
-    Desc   = "Choose gap to teleport",
+    Title  = "Select Area",
+    Desc   = "Choose area to teleport (Common, Rare, Epic...)",
     Icon   = "map-pin",
-    Values = getAreaNames(),
+    Values = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial"},
     Value  = nil,
     Callback = function(value)
         AutoGapState.SelectedArea = value
-        AutoGapState.CurrentGapIdx = 1
         
         WindUI:Notify({
             Title   = "Auto Gap",
@@ -845,7 +842,7 @@ AutoGapSection:Dropdown({
 })
 
 AutoGapSection:Toggle({
-    Title = "Go to Gap",
+    Title = "Go to Area",
     Desc  = "Teleport and auto-navigate gaps",
     Icon  = "navigation",
     Value = false,
@@ -856,7 +853,7 @@ AutoGapSection:Toggle({
             if not AutoGapState.SelectedArea then
                 WindUI:Notify({
                     Title   = "Auto Gap",
-                    Content = "⚠️ Select a gap first!",
+                    Content = "⚠️ Select an area first!",
                     Duration= 3,
                     Icon    = "alert-triangle",
                 })
@@ -892,7 +889,10 @@ RunService.Heartbeat:Connect(function(dt)
     if not AutoGapState.SelectedArea then return end
 
     local area = getAreaByName(AutoGapState.SelectedArea)
-    if not area or not area.Position then return end
+    if not area or not area.Position then 
+        print("[Auto Gap] ⚠️ Area not found or not scanned yet")
+        return 
+    end
 
     local hrp = getHumanoidRootPart()
     if not hrp then return end

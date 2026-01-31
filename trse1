@@ -1,3 +1,5 @@
+--- START OF FILE Paste January 31, 2026 - 2:12PM ---
+
 
 --[[========================================================
     KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
@@ -620,7 +622,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO FARM BRAINROT - LEVITANDO + NO CLIP AUTO + RANGE 30
+-- AUTO FARM BRAINROT - DIRETO AO PONTO
 ----------------------------------------------------
 local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Auto Farm Brainrot",
@@ -629,7 +631,6 @@ local AutoFarmSection = Tabs.Farm:Section({
     Opened = true,
 })
 
--- POSIÇÕES EXATAS DOS GAPS (subsolo Y: -2.7)
 local GapPositions = {
     { Index = 1,  Name = "Common",    X = 199.9,  Y = -2.7, Z = -14.0 },
     { Index = 2,  Name = "Uncommon",  X = 283.3,  Y = -2.7, Z = -13.7 },
@@ -644,466 +645,149 @@ local GapPositions = {
 
 local AutoGapState = {
     Enabled = false,
-    TargetGapIndex = nil,   -- até qual gap vai
-    CurrentGapIndex = 1,    -- qual gap está indo agora
+    TargetGapIndex = nil,
     IsFlying = false,
     AutoFlyVelocity = nil,
     AutoFlyGyro = nil,
 }
 
--- Configurações
-local AUTO_FLY_SPEED = 220      -- velocidade fixa de 220
-local WAVE_DETECTION_RANGE = 30 -- range da wave 30 studs
-local ARRIVAL_DISTANCE = 10     -- distância para considerar chegada
-
---[[========================================================
-    SISTEMA DE DETECÇÃO DE WAVES - RANGE 30 (360°)
-==========================================================]]
+local AUTO_FLY_SPEED = 220
+local WAVE_DETECTION_RANGE = 30
+local ARRIVAL_DISTANCE = 3
 
 local WaveDetector = {}
-
 local wavesCache = {}
 local lastWaveScan = 0
 local WAVE_SCAN_INTERVAL = 0.5
 
 function WaveDetector.ScanAllWaves()
     local currentTime = tick()
-    if currentTime - lastWaveScan < WAVE_SCAN_INTERVAL then
-        return wavesCache
-    end
-
+    if currentTime - lastWaveScan < WAVE_SCAN_INTERVAL then return wavesCache end
     lastWaveScan = currentTime
     wavesCache = {}
-
     for _, obj in ipairs(workspace:GetChildren()) do
         local name = obj.Name:lower()
-
-        if name:find("tsunami") or 
-           name:find("wave") or 
-           name:find("water") or 
-           name:find("snake") or 
-           name:find("wacky") or
-           name:find("flood") then
-
-            local part = nil
-            if obj:IsA("Model") then
-                part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-            elseif obj:IsA("BasePart") then
-                part = obj
-            end
-
-            if part then
-                table.insert(wavesCache, {
-                    Name = obj.Name,
-                    Position = part.Position,
-                })
-            end
+        if name:find("tsunami") or name:find("wave") or name:find("flood") then
+            local part = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or (obj:IsA("BasePart") and obj)
+            if part then table.insert(wavesCache, {Position = part.Position}) end
         end
     end
-
     return wavesCache
 end
 
 function WaveDetector.HasWaveNearby(playerPos)
-    local waves = WaveDetector.ScanAllWaves()
-
-    if #waves == 0 then
-        return false
+    for _, wave in ipairs(WaveDetector.ScanAllWaves()) do
+        if (wave.Position - playerPos).Magnitude <= WAVE_DETECTION_RANGE then return true end
     end
-
-    for _, wave in ipairs(waves) do
-        local wavePos = wave.Position
-        local distance = (wavePos - playerPos).Magnitude
-
-        if distance <= WAVE_DETECTION_RANGE then
-            print(string.format("[Wave Detector] 🚨 Wave nearby! Distance: %.1f studs", distance))
-            return true, distance
-        end
-    end
-
     return false
 end
-
---[[========================================================
-    SISTEMA DE LEVITATION FLY (AUTO)
-==========================================================]]
 
 local AutoFly = {}
 
 function AutoFly.Start()
     if AutoGapState.IsFlying then return true end
-
-    local hrp = getHumanoidRootPart()
-    local hum = getHumanoid()
+    local hrp, hum = getHumanoidRootPart(), getHumanoid()
     if not hrp or not hum then return false end
-
     AutoGapState.IsFlying = true
     hum.PlatformStand = true
-
-    AutoGapState.AutoFlyVelocity = Instance.new("BodyVelocity")
+    AutoGapState.AutoFlyVelocity = Instance.new("BodyVelocity", hrp)
     AutoGapState.AutoFlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero
-    AutoGapState.AutoFlyVelocity.Parent = hrp
-
-    AutoGapState.AutoFlyGyro = Instance.new("BodyGyro")
+    AutoGapState.AutoFlyGyro = Instance.new("BodyGyro", hrp)
     AutoGapState.AutoFlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    AutoGapState.AutoFlyGyro.P = 9e4
-    AutoGapState.AutoFlyGyro.CFrame = hrp.CFrame
-    AutoGapState.AutoFlyGyro.Parent = hrp
-
-    print("[Auto Fly] ✈️ Levitation activated (Speed: " .. AUTO_FLY_SPEED .. ")")
     return true
 end
 
 function AutoFly.Stop()
-    if not AutoGapState.IsFlying then return end
-
     AutoGapState.IsFlying = false
-
     local hum = getHumanoid()
     if hum then hum.PlatformStand = false end
-
-    if AutoGapState.AutoFlyVelocity then
-        AutoGapState.AutoFlyVelocity:Destroy()
-        AutoGapState.AutoFlyVelocity = nil
-    end
-
-    if AutoGapState.AutoFlyGyro then
-        AutoGapState.AutoFlyGyro:Destroy()
-        AutoGapState.AutoFlyGyro = nil
-    end
-
-    print("[Auto Fly] 🛬 Levitation deactivated")
+    if AutoGapState.AutoFlyVelocity then AutoGapState.AutoFlyVelocity:Destroy() AutoGapState.AutoFlyVelocity = nil end
+    if AutoGapState.AutoFlyGyro then AutoGapState.AutoFlyGyro:Destroy() AutoGapState.AutoFlyGyro = nil end
 end
 
 function AutoFly.FlyToPosition(targetPos)
     local hrp = getHumanoidRootPart()
-    if not hrp then return false end
-
-    local currentPos = hrp.Position
-    local direction = (targetPos - currentPos)
-    if direction.Magnitude == 0 then
-        if AutoGapState.AutoFlyVelocity then
-            AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero
-        end
-        return true
-    end
-
-    direction = direction.Unit
-    local velocity = direction * AUTO_FLY_SPEED
-
-    if AutoGapState.AutoFlyVelocity then
-        AutoGapState.AutoFlyVelocity.Velocity = velocity
-    end
-
-    if AutoGapState.AutoFlyGyro then
-        AutoGapState.AutoFlyGyro.CFrame = CFrame.lookAt(currentPos, targetPos)
-    end
-
-    return true
+    if not hrp or not AutoGapState.AutoFlyVelocity then return end
+    local dir = (targetPos - hrp.Position)
+    if dir.Magnitude < 0.1 then AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero return end
+    AutoGapState.AutoFlyVelocity.Velocity = dir.Unit * AUTO_FLY_SPEED
+    AutoGapState.AutoFlyGyro.CFrame = CFrame.lookAt(hrp.Position, targetPos)
 end
 
-function AutoFly.HasArrived(targetPos)
-    local hrp = getHumanoidRootPart()
-    if not hrp then return false end
-
-    local dist = (hrp.Position - targetPos).Magnitude
-    return dist < ARRIVAL_DISTANCE
-end
-
-function AutoFly.PauseInPlace()
-    if AutoGapState.AutoFlyVelocity then
-        AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero
-    end
-end
-
-----------------------------------------------------
--- MAIN LOOP - LEVITAÇÃO GAP POR GAP + NO CLIP AUTO
-----------------------------------------------------
 local autoFarmCoroutine = nil
 
-local function getGapByIndex(idx)
-    for _, gap in ipairs(GapPositions) do
-        if gap.Index == idx then
-            return gap
-        end
-    end
-end
-
 local function autoFarmLoop()
-    print("[Auto Farm] 🚀 Starting levitation gap-by-gap progression...")
-    print("[Auto Farm] 📍 Going from Gap 1 to Gap " .. AutoGapState.TargetGapIndex)
-    print("[Auto Farm] 👻 No Clip AUTO-ACTIVATED")
+    local targetData = nil
+    for _, g in ipairs(GapPositions) do if g.Index == AutoGapState.TargetGapIndex then targetData = g break end end
+    if not targetData then return end
 
-    -- ativa no clip automático durante o trajeto
     PlayerFlags.NoClipEnabled = true
-
-    if not AutoFly.Start() then
-        print("[Auto Farm] ❌ Failed to start levitation mode")
-        PlayerFlags.NoClipEnabled = false
-        disableFullNoClip()
-        return
-    end
-
-    -- começa SEMPRE do Gap 1 e vai subindo até o alvo
-    AutoGapState.CurrentGapIndex = 1
+    AutoFly.Start()
 
     while AutoGapState.Enabled do
         local hrp = getHumanoidRootPart()
-        if not hrp then
-            task.wait(0.5)
-            continue
-        end
+        if not hrp then task.wait(0.1) continue end
 
-        -- se já passou do gap alvo, PARA e FICA na posição
-        if AutoGapState.CurrentGapIndex > AutoGapState.TargetGapIndex then
-            print("[Auto Farm] ✅ Reached final gap, holding position.")
-
-            -- para levitação e no clip
+        local targetPos = Vector3.new(targetData.X, targetData.Y, targetData.Z)
+        if (hrp.Position - targetPos).Magnitude < ARRIVAL_DISTANCE then
             AutoFly.Stop()
             PlayerFlags.NoClipEnabled = false
             disableFullNoClip()
-
-            WindUI:Notify({
-                Title   = "Auto Farm",
-                Content = "✅ Reached final gap! No Clip OFF.",
-                Duration= 3,
-                Icon    = "check-circle",
-            })
-
             AutoGapState.Enabled = false
+            WindUI:Notify({Title="Auto Farm", Content="✅ Arrived at "..targetData.Name, Duration=3, Icon="check"})
             break
         end
 
-        local currentGap = getGapByIndex(AutoGapState.CurrentGapIndex)
-        if not currentGap then
-            print("[Auto Farm] ❌ Gap not found, index:", AutoGapState.CurrentGapIndex)
-            task.wait(0.5)
-            continue
-        end
-
-        -- vai direto para a posição Y: -2.7 (subsolo)
-        local targetPos = Vector3.new(
-            currentGap.X,
-            currentGap.Y,
-            currentGap.Z
-        )
-
-        -- verifica wave próxima (30 studs em qualquer direção)
-        local hasWave, waveDistance = WaveDetector.HasWaveNearby(hrp.Position)
-
-        if hasWave then
-            -- wave perto → segura parado no gap atual
-            AutoFly.PauseInPlace()
-
-            print(string.format(
-                "[Auto Farm] ⏸️ Wave detected (%.1f studs) - Holding at Gap %d (%s)",
-                waveDistance, AutoGapState.CurrentGapIndex, currentGap.Name
-            ))
-
-            task.wait(1)
+        if WaveDetector.HasWaveNearby(hrp.Position) then
+            if AutoGapState.AutoFlyVelocity then AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero end
         else
-            -- sem wave → avança para o próximo gap da rota
-            if AutoFly.HasArrived(targetPos) then
-                print(string.format(
-                    "[Auto Farm] ✅ Arrived at Gap %d (%s)",
-                    AutoGapState.CurrentGapIndex, currentGap.Name
-                ))
-
-                WindUI:Notify({
-                    Title   = "Auto Farm",
-                    Content = string.format("📍 Gap %d: %s", AutoGapState.CurrentGapIndex, currentGap.Name),
-                    Duration= 2,
-                    Icon    = "map-pin",
-                })
-
-                -- avança para o próximo gap
-                AutoGapState.CurrentGapIndex += 1
-                task.wait(0.5)
-            else
-                -- continua voando para o gap atual
-                AutoFly.FlyToPosition(targetPos)
-            end
+            AutoFly.FlyToPosition(targetPos)
         end
-
-        task.wait(0.1)
+        task.wait(0.05)
     end
-
-    print("[Auto Farm] 🛑 Auto farm stopped")
-end
-
-----------------------------------------------------
--- UI CONTROLS
-----------------------------------------------------
-local function getAreaNames()
-    local names = {}
-    for _, gap in ipairs(GapPositions) do
-        table.insert(names, gap.Name)
-    end
-    return names
 end
 
 AutoFarmSection:Dropdown({
-    Title  = "Select Target Area",
-    Desc   = "Choose where to go (Gap 1 → Target)",
-    Icon   = "map-pin",
-    Values = getAreaNames(),
-    Value  = nil,
-    Callback = function(value)
-        for _, gap in ipairs(GapPositions) do
-            if gap.Name == value then
-                AutoGapState.TargetGapIndex = gap.Index
-
-                print(string.format("[Auto Farm] 🎯 Target: %s (Gap %d)", gap.Name, gap.Index))
-
-                WindUI:Notify({
-                    Title   = "Auto Farm",
-                    Content = string.format("🎯 Target: %s (Gap %d)", value, gap.Index),
-                    Duration= 3,
-                    Icon    = "target",
-                })
-                break
-            end
-        end
+    Title = "Select Target Area",
+    Icon = "map-pin",
+    Values = (function() local t={} for _,v in ipairs(GapPositions) do table.insert(t, v.Name) end return t end)(),
+    Callback = function(v)
+        for _,g in ipairs(GapPositions) do if g.Name == v then AutoGapState.TargetGapIndex = g.Index break end end
     end
 })
 
 AutoFarmSection:Toggle({
-    Title = "Start Auto Farm",
-    Desc  = "Levitate Gap 1→Target (Speed 220 + Auto No Clip)",
-    Icon  = "play",
+    Title = "Start Direct Teleport",
+    Desc = "Fly directly to selected area (Speed 220)",
+    Icon = "rocket",
     Value = false,
     Callback = function(state)
         AutoGapState.Enabled = state
-
         if state then
-            if not AutoGapState.TargetGapIndex then
-                WindUI:Notify({
-                    Title   = "Auto Farm",
-                    Content = "⚠️ Select target area first!",
-                    Duration= 3,
-                    Icon    = "alert-triangle",
-                })
-                AutoGapState.Enabled = false
-                return
-            end
-
-            WindUI:Notify({
-                Title   = "Auto Farm",
-                Content = string.format("🚀 Gap 1 → Gap %d | Speed 220 | Auto No Clip ON", AutoGapState.TargetGapIndex),
-                Duration= 4,
-                Icon    = "rocket",
-            })
-
-            if autoFarmCoroutine then
-                task.cancel(autoFarmCoroutine)
-            end
+            if not AutoGapState.TargetGapIndex then AutoGapState.Enabled = false return end
+            if autoFarmCoroutine then task.cancel(autoFarmCoroutine) end
             autoFarmCoroutine = task.spawn(autoFarmLoop)
         else
-            -- parada manual: desliga tudo e mantém player onde ele estiver
             AutoFly.Stop()
             PlayerFlags.NoClipEnabled = false
             disableFullNoClip()
-
-            if autoFarmCoroutine then
-                task.cancel(autoFarmCoroutine)
-                autoFarmCoroutine = nil
-            end
-
-            WindUI:Notify({
-                Title   = "Auto Farm",
-                Content = "🛑 Stopped (No Clip OFF).",
-                Duration= 3,
-                Icon    = "square",
-            })
         end
     end
 })
 
 ----------------------------------------------------
--- SELLING PLACEHOLDER
+-- SELLING PLACEHOLDER / SETTINGS
 ----------------------------------------------------
-Tabs.Selling:Section({
-    Title = "Selling (soon)",
-    Icon = "shopping-cart",
-    Box = true,
-    Opened = true,
-})
+Tabs.Selling:Section({Title = "Selling (soon)", Icon = "shopping-cart", Box = true, Opened = true})
+local SettingsWindowSection = Tabs.Settings:Section({Title = "Window Settings", Icon = "sliders", Box = true, Opened = true})
 
-----------------------------------------------------
--- SETTINGS
-----------------------------------------------------
-local SettingsWindowSection = Tabs.Settings:Section({
-    Title = "Window Settings",
-    Icon = "sliders",
-    Box = true,
-    Opened = true,
-})
-
-SettingsWindowSection:Toggle({
-    Title = "Window Transparency",
-    Desc  = "Toggle global transparency.",
-    Icon  = "droplet",
-    Value = false,
-    Callback = function(e)
-        Window:ToggleTransparency(e)
-    end
-})
-
-SettingsWindowSection:Keybind({
-    Title = "Toggle UI Key",
-    Desc  = "Press a key to open/close the hub.",
-    Icon  = "keyboard",
-    Value = "RightShift",
-    Callback = function(keyName)
-        if typeof(keyName) == "string" and Enum.KeyCode[keyName] then
-            Window:SetToggleKey(Enum.KeyCode[keyName])
-            WindUI:Notify({
-                Title = "Toggle Key",
-                Content = "Hub key set to: " .. keyName,
-                Duration = 3,
-                Icon = "keyboard",
-            })
-        end
-    end
-})
-
-SettingsWindowSection:Button({
-    Title = "Center Window",
-    Desc  = "Reposition window to center",
-    Icon  = "align-center",
-    Callback = function()
-        Window:Toggle()
-        task.wait(0.05)
-        Window:Toggle()
-    end
-})
-
-local ThemesSection = Tabs.Settings:Section({
-    Title = "Themes",
-    Icon = "palette",
-    Box = true,
-    Opened = true,
-})
+SettingsWindowSection:Toggle({Title = "Window Transparency", Icon = "droplet", Value = false, Callback = function(e) Window:ToggleTransparency(e) end})
+SettingsWindowSection:Keybind({Title = "Toggle UI Key", Icon = "keyboard", Value = "RightShift", Callback = function(k) if Enum.KeyCode[k] then Window:SetToggleKey(Enum.KeyCode[k]) end end})
+SettingsWindowSection:Button({Title = "Center Window", Icon = "align-center", Callback = function() Window:Toggle() task.wait(0.05) Window:Toggle() end})
 
 local themeNames = {}
-for name in pairs(WindUI:GetThemes()) do
-    table.insert(themeNames, name)
-end
-
-ThemesSection:Dropdown({
-    Title  = "Theme Selector",
-    Desc   = "Select a UI theme.",
-    Icon   = "brush",
-    Values = themeNames,
-    Value  = "Red",
-    Callback = function(themeName)
-        WindUI:SetTheme(themeName)
-        WindUI:Notify({
-            Title = "Theme Changed",
-            Content = "Theme set to: " .. tostring(themeName),
-            Duration = 3,
-            Icon = "palette",
-        })
-    end
+for name in pairs(WindUI:GetThemes()) do table.insert(themeNames, name) end
+Tabs.Settings:Section({Title = "Themes", Icon = "palette", Box = true, Opened = true}):Dropdown({
+    Title = "Theme Selector", Icon = "brush", Values = themeNames, Value = "Red",
+    Callback = function(t) WindUI:SetTheme(t) end
 })

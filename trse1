@@ -1,5 +1,3 @@
---- START OF FILE Paste January 31, 2026 - 2:12PM ---
-
 --[[========================================================
     KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
 ==========================================================]]
@@ -49,7 +47,7 @@ task.spawn(function()
 end)
 
 --[[========================================================
-    HUB / CONTROLE PLAYER
+    HUB / CONTROLE PLAYER - CONFIGURAÇÕES DE UI
 ==========================================================]]
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 WindUI:SetNotificationLower(true)
@@ -65,7 +63,7 @@ WindUI:Localization({
             ["HUB_AUTHOR"]  = "by You",
             ["TAB_PLAYER"]  = "Player",
             ["TAB_FARM"]    = "Farm",
-            ["TAB_RADIO"]   = "Radioactive Coins",
+            ["TAB_RADIO"]   = "Events & Coins",
             ["TAB_SELLING"] = "Selling",
             ["TAB_SETTINGS"]= "Settings",
         },
@@ -74,7 +72,7 @@ WindUI:Localization({
             ["HUB_AUTHOR"]  = "by You",
             ["TAB_PLAYER"]  = "Player",
             ["TAB_FARM"]    = "Farm",
-            ["TAB_RADIO"]   = "Radioactive Coins",
+            ["TAB_RADIO"]   = "Events & Coins",
             ["TAB_SELLING"] = "Selling",
             ["TAB_SETTINGS"]= "Settings",
         },
@@ -206,13 +204,19 @@ local Tabs = {
 Window:SelectTab(1)
 
 ----------------------------------------------------
--- SERVICES / HELPERS
+-- SERVICES / HELPERS / NETWORKING
 ----------------------------------------------------
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local CollectionService = game:GetService("CollectionService")
 local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Networking de Rede (Decompiled Paths)
+local NetPackage = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net")
+local WheelRollRF = NetPackage:WaitForChild("RF/WheelSpin.Roll")
+local WheelCompleteRE = NetPackage:WaitForChild("RE/WheelSpin.Complete")
 
 local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -230,6 +234,7 @@ local function getHumanoidRootPart()
     return char:FindFirstChild("HumanoidRootPart")
 end
 
+-- EXPANSÃO DOS PLAYER FLAGS (NOVOS SISTEMAS)
 local PlayerFlags = {
     SpeedEnabled   = false,
     SpeedValue     = 22,
@@ -242,6 +247,15 @@ local PlayerFlags = {
     InstantSteal   = false,
     GodMode        = false,
     RadioactiveMagnet = false,
+    
+    -- Injeções Potentes (Imagem solicitada)
+    AutoRadioactive = false,
+    RadioactiveDelay = 1,
+    AutoUFO = false,
+    UFODelay = 1,
+    AutoSpin = false,
+    SpinDelay = 1,
+    SpinType = "Radioactive" -- Radioactive, UFO, Money
 }
 
 local DEFAULT_JUMPPOWER = 50
@@ -779,98 +793,169 @@ AutoFarmSection:Button({
 })
 
 ----------------------------------------------------
--- RADIOACTIVE COINS MAGNET
+-- [ NOVO SISTEMA ] LOGICA DE AUTO-COLETA E SPIN
 ----------------------------------------------------
-local RadioactiveSection = Tabs.Radioactive:Section({
-    Title  = "Radioactive Collector",
-    Icon   = "magnet",
+
+-- Loop de Coleta de Moedas (Radioactive & UFO)
+task.spawn(function()
+    while true do
+        local hrp = getHumanoidRootPart()
+        if not hrp then task.wait(1) continue end
+
+        -- Coleta Radioactive
+        if PlayerFlags.AutoRadioactive then
+            pcall(function()
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if not PlayerFlags.AutoRadioactive then break end
+                    -- Busca em caminhos citados: Bases, Aura Farma, Lucky
+                    if obj.Name == "RadioactiveCoin" or obj.Name == "coins1" or obj.Name == "coins2" then
+                        local target = obj:IsA("BasePart") and obj or obj.PrimaryPart
+                        if target then
+                            target.CFrame = hrp.CFrame
+                            firetouchinterest(hrp, target, 0)
+                            firetouchinterest(hrp, target, 1)
+                        end
+                    end
+                end
+            end)
+            task.wait(PlayerFlags.RadioactiveDelay)
+        end
+
+        -- Coleta UFO
+        if PlayerFlags.AutoUFO then
+            pcall(function()
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if not PlayerFlags.AutoUFO then break end
+                    if obj.Name == "UFOCoin" or obj.Name == "ufocoin" then
+                        local target = obj:IsA("BasePart") and obj or obj.PrimaryPart
+                        if target then
+                            target.CFrame = hrp.CFrame
+                            firetouchinterest(hrp, target, 0)
+                            firetouchinterest(hrp, target, 1)
+                        end
+                    end
+                end
+            end)
+            task.wait(PlayerFlags.UFODelay)
+        end
+
+        if not PlayerFlags.AutoRadioactive and not PlayerFlags.AutoUFO then
+            task.wait(1)
+        end
+    end
+end)
+
+-- Loop de Auto Spin (Network Injection)
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoSpin then
+            pcall(function()
+                -- Chama a Função de Rolar a Roleta (Decompiled Net RF)
+                -- WheelRollRF:InvokeServer(Tipo, IsFastSpin)
+                local success, _, _, token = WheelRollRF:InvokeServer(PlayerFlags.SpinType, true)
+                
+                if success and token then
+                    -- Confirma a conclusão para receber o prêmio (Decompiled Net RE)
+                    task.wait(0.5)
+                    WheelCompleteRE:FireServer(token)
+                end
+            end)
+            task.wait(PlayerFlags.SpinDelay)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Explorer Modifier (In-Range Hack)
+task.spawn(function()
+    while true do
+        pcall(function()
+            -- Força o jogo a achar que estamos perto da roleta
+            LocalPlayer:SetAttribute("InRangeOfWheel", true)
+        end)
+        task.wait(2)
+    end
+end)
+
+----------------------------------------------------
+-- [ INTERFACE ] RADIOACTVE COINS / UFO / SPIN (ESTILO IMAGEM)
+----------------------------------------------------
+local CoinsSectionUI = Tabs.Radioactive:Section({
+    Title  = "Coins",
+    Icon   = "coins",
     Box    = true,
     Opened = true,
 })
 
---[[ 
-    O Magnet funciona detectando moedas que spawnam em caminhos específicos 
-    como workspace.Bases e Aura Farma, puxando-as para o HumanoidRootPart.
-]]
-local function radioactiveCollectorLoop()
-    while task.wait(0.3) do
-        if not PlayerFlags.RadioactiveMagnet then continue end
-        
-        local hrp = getHumanoidRootPart()
-        if not hrp then continue end
-
-        -- Percorre o workspace buscando as moedas especificadas
-        for _, object in ipairs(workspace:GetDescendants()) do
-            if not PlayerFlags.RadioactiveMagnet then break end
-            
-            -- Filtra pelos nomes de moedas conhecidos no jogo
-            if object.Name == "coins1" or object.Name == "coins2" or object.Name == "RadioactiveCoin" then
-                pcall(function()
-                    if object:IsA("BasePart") then
-                        object.CFrame = hrp.CFrame
-                    elseif object:IsA("Model") then
-                        -- Se for um modelo (como moedas com efeitos), move o PrimaryPart ou usa MoveTo
-                        if object.PrimaryPart then
-                            object:SetPrimaryPartCFrame(hrp.CFrame)
-                        else
-                            object:MoveTo(hrp.Position)
-                        end
-                    end
-                end)
-            end
-        end
-    end
-end
-
-task.spawn(radioactiveCollectorLoop)
-
-RadioactiveSection:Toggle({
-    Title = "Radioactive Magnet",
-    Desc  = "Pulls all spawned Radioactive Coins to you instantly!",
-    Icon  = "magnet",
+CoinsSectionUI:Toggle({
+    Title = "Auto Collect Radioactive Coins",
+    Desc  = "Pulls all radioactive coins to you.",
+    Icon  = "zap",
     Value = false,
-    Callback = function(state)
-        PlayerFlags.RadioactiveMagnet = state
-        if state then
-            WindUI:Notify({
-                Title = "Radioactive Coins",
-                Content = "Magnet is now ACTIVE. Searching for coins...",
-                Duration = 4,
-                Icon = "atom",
-            })
-        else
-            WindUI:Notify({
-                Title = "Radioactive Coins",
-                Content = "Magnet is now DISABLED.",
-                Duration = 3,
-                Icon = "atom",
-            })
-        end
-    end
+    Callback = function(v) PlayerFlags.AutoRadioactive = v end
 })
 
-RadioactiveSection:Button({
-    Title = "Check Active Event",
-    Desc  = "Verifies if Radioactive event is currently running",
-    Icon  = "info",
-    Callback = function()
-        local shared = game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
-        if shared and shared:FindFirstChild("Config") and shared.Config:FindFirstChild("EventCoins") then
-            WindUI:Notify({
-                Title = "Event Info",
-                Content = "Radioactive Event config found in storage.",
-                Duration = 5,
-                Icon = "info",
-            })
-        else
-            WindUI:Notify({
-                Title = "Event Info",
-                Content = "Could not verify event status in ReplicatedStorage.",
-                Duration = 5,
-                Icon = "alert-triangle",
-            })
-        end
-    end
+CoinsSectionUI:Slider({
+    Title = "Delay",
+    Desc  = "Collection speed interval.",
+    Step  = 0.1,
+    Value = { Min = 0.1, Max = 5, Default = 1 },
+    Callback = function(v) PlayerFlags.RadioactiveDelay = v end
+})
+
+local Coins2SectionUI = Tabs.Radioactive:Section({
+    Title  = "Coins 2",
+    Icon   = "rocket",
+    Box    = true,
+    Opened = true,
+})
+
+Coins2SectionUI:Toggle({
+    Title = "Auto Collect UFO Coins",
+    Desc  = "Pulls all UFO coins to you.",
+    Icon  = "rocket",
+    Value = false,
+    Callback = function(v) PlayerFlags.AutoUFO = v end
+})
+
+Coins2SectionUI:Slider({
+    Title = "Delay",
+    Desc  = "Collection speed interval.",
+    Step  = 0.1,
+    Value = { Min = 0.1, Max = 5, Default = 1 },
+    Callback = function(v) PlayerFlags.UFODelay = v end
+})
+
+local WheelSectionUI = Tabs.Radioactive:Section({
+    Title  = "Wheel",
+    Icon   = "refresh-cw",
+    Box    = true,
+    Opened = true,
+})
+
+WheelSectionUI:Dropdown({
+    Title = "Select Wheel Type",
+    Desc  = "Which roleta to spin?",
+    Values = {"Radioactive", "UFO", "Money"},
+    Value = "Radioactive",
+    Callback = function(v) PlayerFlags.SpinType = v end
+})
+
+WheelSectionUI:Toggle({
+    Title = "Auto Spin Wheel",
+    Desc  = "Gira a roleta automaticamente.",
+    Icon  = "refresh-ccw",
+    Value = false,
+    Callback = function(v) PlayerFlags.AutoSpin = v end
+})
+
+WheelSectionUI:Slider({
+    Title = "Delay",
+    Desc  = "Spin speed interval.",
+    Step  = 0.1,
+    Value = { Min = 0.1, Max = 10, Default = 1 },
+    Callback = function(v) PlayerFlags.SpinDelay = v end
 })
 
 ----------------------------------------------------
@@ -888,4 +973,11 @@ for name in pairs(WindUI:GetThemes()) do table.insert(themeNames, name) end
 Tabs.Settings:Section({Title = "Themes", Icon = "palette", Box = true, Opened = true}):Dropdown({
     Title = "Theme Selector", Icon = "brush", Values = themeNames, Value = "Red",
     Callback = function(t) WindUI:SetTheme(t) end
+})
+
+WindUI:Notify({
+    Title = "Hub Injetado",
+    Content = "Sistemas Potentes de Coleta e Spin ativos!",
+    Duration = 5,
+    Icon = "check"
 })

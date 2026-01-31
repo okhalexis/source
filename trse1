@@ -1,14 +1,3 @@
-Para garantir que ele colete EXATAMENTE na peça verde onde ficam os números (o `CollectMoneyGui`), vou ajustar o script para buscar especificamente essa peça pela presença do GUI, e não apenas pelo nome. Também vou melhorar o "toque" virtual para garantir que o jogo registre que você pisou nela.
-
-Aqui está a versão corrigida e mais robusta do sistema de Auto Collect, inserida no seu script completo.
-
-**O que mudou nessa versão:**
-1.  **Busca Inteligente:** Ele procura dentro de cada Slot por qualquer peça que contenha o `CollectMoneyGui` (os números), garantindo que é a peça certa (verde).
-2.  **Toque Físico:** O teleporte agora espera um pouquinho mais em cima da peça para o servidor confirmar o toque.
-
-Substitua TODO o seu script por este:
-
-```lua
 --[[========================================================
     KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
 ==========================================================]]
@@ -812,24 +801,23 @@ AutoFarmSection:Button({
 -- [ SISTEMA POTENTE CORRIGIDO ] LOGICA DE AUTO-COLETA
 ----------------------------------------------------
 
--- Loop de Coleta CIRÚRGICA
+-- Loop de Coleta CIRÚRGICA (Radioactive + UFO)
 task.spawn(function()
     while true do
         local hrp = getHumanoidRootPart()
         if not hrp then task.wait(1) continue end
 
-        -- [[ RADIOACTIVE COINS ]]
         if PlayerFlags.AutoRadioactive then
             pcall(function()
                 for _, obj in ipairs(workspace:GetDescendants()) do
                     if not PlayerFlags.AutoRadioactive then break end
-                    if obj.Name == "Radioactive Coin" or obj.Name == "coins1" or obj.Name == "coins2" or obj:HasTag("RadioactiveCoin") then
+                    if obj.Name == "Radioactive Coin" or obj.Name == "coins1" or obj.Name == "coins2" or (obj:IsA("Instance") and obj:HasTag("RadioactiveCoin")) then
                         if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
-                             if not obj:IsDescendantOf(workspace:FindFirstChild("Bases")) or obj.Parent.Name == "ModelExtents" then
+                            if not obj:IsDescendantOf(workspace:FindFirstChild("Bases")) or obj.Parent.Name == "ModelExtents" then
                                 obj.CFrame = hrp.CFrame
                                 firetouchinterest(hrp, obj, 0)
                                 firetouchinterest(hrp, obj, 1)
-                             end
+                            end
                         end
                     end
                 end
@@ -837,16 +825,15 @@ task.spawn(function()
             task.wait(PlayerFlags.RadioactiveDelay)
         end
 
-        -- [[ UFO COINS ]]
         if PlayerFlags.AutoUFO then
             pcall(function()
                 local eventParts = workspace:FindFirstChild("EventParts")
                 if eventParts then
                     for _, coin in ipairs(eventParts:GetChildren()) do
                         if coin.Name:lower():find("ufo") and coin:IsA("BasePart") then
-                             coin.CFrame = hrp.CFrame
-                             firetouchinterest(hrp, coin, 0)
-                             firetouchinterest(hrp, coin, 1)
+                            coin.CFrame = hrp.CFrame
+                            firetouchinterest(hrp, coin, 0)
+                            firetouchinterest(hrp, coin, 1)
                         end
                     end
                 end
@@ -972,29 +959,70 @@ local function fireUpgradeBase(plot)
 end
 
 ----------------------------------------------------------------
--- AUTO COLETAR CASH DOS BRAINROTS (Slots -> Collect -> CollectMoneyGui)
+-- AUTO COLETAR CASH DOS BRAINROTS
+--  • MODO 1: RF de coleta (NetPackage RF/...)
+--  • MODO 2: Pisar na parte verde CollectMoneyGui
 ----------------------------------------------------------------
+-- candidatos de RF de coleta (nomes lógicos)
+local CollectRFNames = {
+    "Plot.CollectMoney",
+    "Plot.Collect",
+    "Base.CollectMoney",
+    "Base.Collect",
+    "Brainrot.CollectMoney",
+    "Brainrot.Collect",
+    "Slots.CollectMoney",
+    "Slots.Collect",
+}
+
+local foundCollectRF = nil
+
+local function getCollectRemoteFunctionByLogicalName(name)
+    local fullName = "RF/"..name
+    local rf = NetPackage:FindFirstChild(fullName)
+    if rf and rf:IsA("RemoteFunction") then
+        return rf
+    end
+    return nil
+end
+
+local function tryDiscoverCollectRF()
+    if foundCollectRF then return foundCollectRF end
+
+    for _, logicalName in ipairs(CollectRFNames) do
+        local rf = getCollectRemoteFunctionByLogicalName(logicalName)
+        if rf then
+            local ok = pcall(function()
+                rf:InvokeServer()
+            end)
+            if ok then
+                foundCollectRF = rf
+                break
+            end
+        end
+    end
+
+    return foundCollectRF
+end
+
 local function getPlayerSlotsFolder()
     local baseModel = getPlayerBaseByDistance()
-    if not baseModel then return nil end
-
+    if not baseModel then return nil, nil end
     local slots = baseModel:FindFirstChild("Slots")
-    return slots
+    return slots, baseModel
 end
 
 local function getCollectPartFromSlot(slot)
     if not slot then return nil end
 
-    -- Estratégia: achar a peça verde (Collect) que tem o GUI "CollectMoneyGui"
     local collect = slot:FindFirstChild("Collect")
     if collect and collect:IsA("BasePart") and collect:FindFirstChildOfClass("TouchInterest") then
         return collect
     end
 
-    -- Busca por qualquer parte que tenha o GUI de dinheiro (Confirmando ser a parte verde)
     for _, obj in ipairs(slot:GetDescendants()) do
         if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
-            if obj:FindFirstChild("CollectMoneyGui") or obj:FindFirstChild("MoneyGui") or obj:FindFirstChild("Collect") then
+            if obj:FindFirstChild("CollectMoneyGui") then
                 return obj
             end
         end
@@ -1009,12 +1037,11 @@ local function remoteStepOnCollectPart(collectPart)
 
     local oldCF = hrp.CFrame
     local cf = collectPart.CFrame
-    -- Fica um pouco acima para garantir que não colida e seja ejetado
     local targetCF = CFrame.new(cf.Position + Vector3.new(0, 3, 0))
 
     pcall(function()
         hrp.CFrame = targetCF
-        task.wait(0.15) -- Espera um pouco mais pra garantir o registro do toque
+        task.wait(0.15)
         firetouchinterest(hrp, collectPart, 0)
         firetouchinterest(hrp, collectPart, 1)
         task.wait(0.1)
@@ -1026,7 +1053,7 @@ PlayerFlags.AutoCollectBaseMoney = PlayerFlags.AutoCollectBaseMoney or false
 
 AutoTabSection:Toggle({
     Title = "Auto Collect Cash Brainrots",
-    Desc  = "Percorre Slots.Slot1, Slot2, ... e pisa no Collect 1 por 1.",
+    Desc  = "Tenta RF de coleta + pisa na parte verde (CollectMoneyGui).",
     Icon  = "dollar-sign",
     Value = false,
     Callback = function(v)
@@ -1038,20 +1065,46 @@ task.spawn(function()
     while true do
         if PlayerFlags.AutoCollectBaseMoney then
             pcall(function()
-                local slotsFolder = getPlayerSlotsFolder()
+                local slotsFolder, baseModel = getPlayerSlotsFolder()
                 if not slotsFolder then
                     task.wait(1)
                     return
                 end
 
+                -- MODO 1: tentar RemoteFunction de coleta
+                local rf = tryDiscoverCollectRF()
+                if rf then
+                    for _, slot in ipairs(slotsFolder:GetChildren()) do
+                        if not PlayerFlags.AutoCollectBaseMoney then break end
+                        if not slot.Name:lower():find("slot") then continue end
+
+                        pcall(function()
+                            local slotId = slot.Name
+                            local ok = pcall(function()
+                                rf:InvokeServer(baseModel, slotId)
+                            end)
+                            if not ok then
+                                ok = pcall(function()
+                                    rf:InvokeServer(slotId)
+                                end)
+                                if not ok then
+                                    rf:InvokeServer()
+                                end
+                            end
+                        end)
+
+                        task.wait(0.05)
+                    end
+                end
+
+                -- MODO 2: fallback, pisar na parte verde de cada slot
                 for _, slot in ipairs(slotsFolder:GetChildren()) do
                     if not PlayerFlags.AutoCollectBaseMoney then break end
-
                     if slot.Name:lower():find("slot") then
                         local collectPart = getCollectPartFromSlot(slot)
                         if collectPart then
                             remoteStepOnCollectPart(collectPart)
-                            task.wait(0.2) -- Delay entre cada brainrot para não bugar
+                            task.wait(0.2)
                         end
                     end
                 end
@@ -1344,4 +1397,3 @@ WindUI:Notify({
     Duration = 5,
     Icon = "check"
 })
-```

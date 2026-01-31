@@ -628,7 +628,7 @@ local AutoFarmSection = Tabs.Farm:Section({
     Opened = true,
 })
 
--- POSIÇÕES EXATAS DOS GAPS (subsolo Y: -2.7)
+-- POSIÇÕES EXATAS DOS GAPS (usar exatamente essas coords)
 local GapPositions = {
     { Index = 1,  Name = "Common",    X = 199.9,  Y = -2.7, Z = -14.0 },
     { Index = 2,  Name = "Uncommon",  X = 283.3,  Y = -2.7, Z = -13.7 },
@@ -643,22 +643,20 @@ local GapPositions = {
 
 local AutoGapState = {
     Enabled = false,
-    TargetGapIndex = nil,   -- até qual gap vai
-    CurrentGapIndex = 1,    -- qual gap está indo agora
+    TargetGapIndex = nil,
+    CurrentGapIndex = 1,
     IsFlying = false,
     AutoFlyVelocity = nil,
     AutoFlyGyro = nil,
 }
 
--- Configurações
-local AUTO_FLY_SPEED = 220      -- velocidade fixa de 220
-local WAVE_DETECTION_RANGE = 30 -- range da wave 30 studs
-local ARRIVAL_DISTANCE = 10     -- distância para considerar chegada
+local AUTO_FLY_SPEED = 220
+local WAVE_DETECTION_RANGE = 30
+local ARRIVAL_DISTANCE = 2   -- margem pequena pra parar perto e depois snap
 
---[[========================================================
-    SISTEMA DE DETECÇÃO DE WAVES - RANGE 30 (360°)
-==========================================================]]
-
+----------------------------------------------------
+-- WAVE DETECTOR
+----------------------------------------------------
 local WaveDetector = {}
 
 local wavesCache = {}
@@ -723,10 +721,9 @@ function WaveDetector.HasWaveNearby(playerPos)
     return false
 end
 
---[[========================================================
-    SISTEMA DE LEVITATION FLY (AUTO)
-==========================================================]]
-
+----------------------------------------------------
+-- AUTO LEVITATION / FLY
+----------------------------------------------------
 local AutoFly = {}
 
 function AutoFly.Start()
@@ -750,7 +747,7 @@ function AutoFly.Start()
     AutoGapState.AutoFlyGyro.CFrame = hrp.CFrame
     AutoGapState.AutoFlyGyro.Parent = hrp
 
-    print("[Auto Fly] ✈️ Levitation activated (Speed: " .. AUTO_FLY_SPEED .. ")")
+    print("[Auto Fly] Levitation ON (220)")
     return true
 end
 
@@ -772,7 +769,7 @@ function AutoFly.Stop()
         AutoGapState.AutoFlyGyro = nil
     end
 
-    print("[Auto Fly] 🛬 Levitation deactivated")
+    print("[Auto Fly] Levitation OFF")
 end
 
 function AutoFly.FlyToPosition(targetPos)
@@ -780,19 +777,19 @@ function AutoFly.FlyToPosition(targetPos)
     if not hrp then return false end
 
     local currentPos = hrp.Position
-    local direction = (targetPos - currentPos)
-    if direction.Magnitude == 0 then
+    local offset = (targetPos - currentPos)
+    if offset.Magnitude < 0.001 then
         if AutoGapState.AutoFlyVelocity then
             AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero
         end
         return true
     end
 
-    direction = direction.Unit
-    local velocity = direction * AUTO_FLY_SPEED
+    local dir = offset.Unit
+    local vel = dir * AUTO_FLY_SPEED
 
     if AutoGapState.AutoFlyVelocity then
-        AutoGapState.AutoFlyVelocity.Velocity = velocity
+        AutoGapState.AutoFlyVelocity.Velocity = vel
     end
 
     if AutoGapState.AutoFlyGyro then
@@ -805,9 +802,8 @@ end
 function AutoFly.HasArrived(targetPos)
     local hrp = getHumanoidRootPart()
     if not hrp then return false end
-
     local dist = (hrp.Position - targetPos).Magnitude
-    return dist < ARRIVAL_DISTANCE
+    return dist <= ARRIVAL_DISTANCE
 end
 
 function AutoFly.PauseInPlace()
@@ -817,7 +813,7 @@ function AutoFly.PauseInPlace()
 end
 
 ----------------------------------------------------
--- MAIN LOOP - LEVITAÇÃO GAP POR GAP + NO CLIP AUTO
+-- MAIN LOOP GAP 1 -> TARGET, PARANDO EXATO NAS COORDS
 ----------------------------------------------------
 local autoFarmCoroutine = nil
 
@@ -829,22 +825,34 @@ local function getGapByIndex(idx)
     end
 end
 
+local function snapToExactPosition(targetPos)
+    local hrp = getHumanoidRootPart()
+    local hum = getHumanoid()
+    if not hrp or not hum then return end
+
+    -- desliga levitação pra não ficar brigando com CFrame
+    AutoFly.PauseInPlace()
+    AutoFly.Stop()
+
+    -- força SNAP exato
+    hrp.CFrame = CFrame.new(targetPos)
+
+    -- garante que velocidade fique zero depois do snap
+    hrp.Velocity = Vector3.zero
+    hum.WalkSpeed = hum.WalkSpeed -- só toca pra atualizar
+end
+
 local function autoFarmLoop()
-    print("[Auto Farm] 🚀 Starting levitation gap-by-gap progression...")
-    print("[Auto Farm] 📍 Going from Gap 1 to Gap " .. AutoGapState.TargetGapIndex)
-    print("[Auto Farm] 👻 No Clip AUTO-ACTIVATED")
+    print("[Auto Farm] Gap-by-gap levitation started")
 
-    -- ativa no clip automático durante o trajeto
     PlayerFlags.NoClipEnabled = true
-
     if not AutoFly.Start() then
-        print("[Auto Farm] ❌ Failed to start levitation mode")
+        print("[Auto Farm] Failed to start levitation")
         PlayerFlags.NoClipEnabled = false
         disableFullNoClip()
         return
     end
 
-    -- começa SEMPRE do Gap 1 e vai subindo até o alvo
     AutoGapState.CurrentGapIndex = 1
 
     while AutoGapState.Enabled do
@@ -854,18 +862,16 @@ local function autoFarmLoop()
             continue
         end
 
-        -- se já passou do gap alvo, PARA e FICA na posição
         if AutoGapState.CurrentGapIndex > AutoGapState.TargetGapIndex then
-            print("[Auto Farm] ✅ Reached final gap, holding position.")
+            print("[Auto Farm] Reached final gap index")
 
-            -- para levitação e no clip
-            AutoFly.Stop()
+            -- desligar noclip e travar na posição atual (já foi snapado)
             PlayerFlags.NoClipEnabled = false
             disableFullNoClip()
 
             WindUI:Notify({
                 Title   = "Auto Farm",
-                Content = "✅ Reached final gap! No Clip OFF.",
+                Content = "Reached final gap and holding exact position.",
                 Duration= 3,
                 Icon    = "check-circle",
             })
@@ -876,63 +882,61 @@ local function autoFarmLoop()
 
         local currentGap = getGapByIndex(AutoGapState.CurrentGapIndex)
         if not currentGap then
-            print("[Auto Farm] ❌ Gap not found, index:", AutoGapState.CurrentGapIndex)
+            print("[Auto Farm] Gap index not found:", AutoGapState.CurrentGapIndex)
             task.wait(0.5)
             continue
         end
 
-        -- vai direto para a posição Y: -2.7 (subsolo)
-        local targetPos = Vector3.new(
-            currentGap.X,
-            currentGap.Y,
-            currentGap.Z
-        )
+        local targetPos = Vector3.new(currentGap.X, currentGap.Y, currentGap.Z)
 
-        -- verifica wave próxima (30 studs em qualquer direção)
         local hasWave, waveDistance = WaveDetector.HasWaveNearby(hrp.Position)
 
         if hasWave then
-            -- wave perto → segura parado no gap atual
             AutoFly.PauseInPlace()
-
             print(string.format(
-                "[Auto Farm] ⏸️ Wave detected (%.1f studs) - Holding at Gap %d (%s)",
+                "[Auto Farm] Wave %.1f studs - waiting at Gap %d (%s)",
                 waveDistance, AutoGapState.CurrentGapIndex, currentGap.Name
             ))
-
             task.wait(1)
         else
-            -- sem wave → avança para o próximo gap da rota
             if AutoFly.HasArrived(targetPos) then
+                -- chegou "perto": faz SNAP exato na coord do gap
+                snapToExactPosition(targetPos)
+
                 print(string.format(
-                    "[Auto Farm] ✅ Arrived at Gap %d (%s)",
+                    "[Auto Farm] Arrived EXACT at Gap %d (%s)",
                     AutoGapState.CurrentGapIndex, currentGap.Name
                 ))
 
                 WindUI:Notify({
                     Title   = "Auto Farm",
-                    Content = string.format("📍 Gap %d: %s", AutoGapState.CurrentGapIndex, currentGap.Name),
+                    Content = string.format("Gap %d: %s (exact position)", AutoGapState.CurrentGapIndex, currentGap.Name),
                     Duration= 2,
                     Icon    = "map-pin",
                 })
 
-                -- avança para o próximo gap
                 AutoGapState.CurrentGapIndex += 1
-                task.wait(0.5)
+                -- se ainda não acabou, liga de novo a levitação pro próximo trecho
+                if AutoGapState.CurrentGapIndex <= AutoGapState.TargetGapIndex then
+                    AutoFly.Start()
+                end
+                task.wait(0.3)
             else
-                -- continua voando para o gap atual
                 AutoFly.FlyToPosition(targetPos)
             end
         end
 
-        task.wait(0.1)
+        task.wait(0.05)
     end
 
-    print("[Auto Farm] 🛑 Auto farm stopped")
+    AutoFly.Stop()
+    PlayerFlags.NoClipEnabled = false
+    disableFullNoClip()
+    print("[Auto Farm] Stopped")
 end
 
 ----------------------------------------------------
--- UI CONTROLS
+-- UI CONTROLS AUTO FARM
 ----------------------------------------------------
 local function getAreaNames()
     local names = {}
@@ -944,7 +948,7 @@ end
 
 AutoFarmSection:Dropdown({
     Title  = "Select Target Area",
-    Desc   = "Choose where to go (Gap 1 → Target)",
+    Desc   = "Gap 1 -> Target area",
     Icon   = "map-pin",
     Values = getAreaNames(),
     Value  = nil,
@@ -953,11 +957,11 @@ AutoFarmSection:Dropdown({
             if gap.Name == value then
                 AutoGapState.TargetGapIndex = gap.Index
 
-                print(string.format("[Auto Farm] 🎯 Target: %s (Gap %d)", gap.Name, gap.Index))
+                print(string.format("[Auto Farm] Target: %s (Gap %d)", gap.Name, gap.Index))
 
                 WindUI:Notify({
                     Title   = "Auto Farm",
-                    Content = string.format("🎯 Target: %s (Gap %d)", value, gap.Index),
+                    Content = string.format("Target: %s (Gap %d)", value, gap.Index),
                     Duration= 3,
                     Icon    = "target",
                 })
@@ -969,7 +973,7 @@ AutoFarmSection:Dropdown({
 
 AutoFarmSection:Toggle({
     Title = "Start Auto Farm",
-    Desc  = "Levitate Gap 1→Target (Speed 220 + Auto No Clip)",
+    Desc  = "Gap 1→Target (levitating 220, exact coords)",
     Icon  = "play",
     Value = false,
     Callback = function(state)
@@ -979,7 +983,7 @@ AutoFarmSection:Toggle({
             if not AutoGapState.TargetGapIndex then
                 WindUI:Notify({
                     Title   = "Auto Farm",
-                    Content = "⚠️ Select target area first!",
+                    Content = "Select target area first.",
                     Duration= 3,
                     Icon    = "alert-triangle",
                 })
@@ -989,7 +993,7 @@ AutoFarmSection:Toggle({
 
             WindUI:Notify({
                 Title   = "Auto Farm",
-                Content = string.format("🚀 Gap 1 → Gap %d | Speed 220 | Auto No Clip ON", AutoGapState.TargetGapIndex),
+                Content = string.format("Gap 1 -> Gap %d | Speed 220 | Exact coords", AutoGapState.TargetGapIndex),
                 Duration= 4,
                 Icon    = "rocket",
             })
@@ -999,7 +1003,6 @@ AutoFarmSection:Toggle({
             end
             autoFarmCoroutine = task.spawn(autoFarmLoop)
         else
-            -- parada manual: desliga tudo e mantém player onde ele estiver
             AutoFly.Stop()
             PlayerFlags.NoClipEnabled = false
             disableFullNoClip()
@@ -1011,7 +1014,7 @@ AutoFarmSection:Toggle({
 
             WindUI:Notify({
                 Title   = "Auto Farm",
-                Content = "🛑 Stopped (No Clip OFF).",
+                Content = "Stopped (No Clip OFF).",
                 Duration= 3,
                 Icon    = "square",
             })

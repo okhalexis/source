@@ -541,11 +541,10 @@ NoClipSection:Toggle({
 })
 
 ----------------------------------------------------
--- SEÇÃO: ⚡ INSTANT STEAL
+-- FARM / INSTANT STEAL
 ----------------------------------------------------
-local InstantStealSection = Tabs.Farm:Section({
+local FarmSection = Tabs.Farm:Section({
     Title  = "⚡ Instant Steal",
-    Icon   = "zap",
     Box    = true,
     Opened = true,
 })
@@ -590,9 +589,9 @@ local function disableInstantSteal()
     table.clear(connections)
 end
 
-InstantStealSection:Toggle({
-    Title = "Enable Instant Steal",
-    Desc  = "Quick Interact with all ProximityPrompts!",
+FarmSection:Toggle({
+    Title = "Instant Steal",
+    Desc  = "Quick Interact with all prompts!",
     Icon  = "zap",
     Value = false,
     Callback = function(state)
@@ -619,26 +618,20 @@ InstantStealSection:Toggle({
 })
 
 ----------------------------------------------------
--- SEÇÃO: 🧭 AUTO GAP (COMPLEXO)
+-- AUTO GAP (FARM TAB) - COMPLEXO
 ----------------------------------------------------
-local AutoGapSection = Tabs.Farm:Section({
-    Title  = "🧭 Auto Gap",
-    Icon   = "navigation",
-    Box    = true,
-    Opened = true,
-})
-
--- Config de gaps com CFrames (você popula com os valores do mapa)
-local GapDatabase = {
-    { Name = "Common",    Gaps = {} },
-    { Name = "Uncommon",  Gaps = {} },
-    { Name = "Rare",      Gaps = {} },
-    { Name = "Epic",      Gaps = {} },
-    { Name = "Legendary", Gaps = {} },
-    { Name = "Mythical",  Gaps = {} },
-    { Name = "Cosmic",    Gaps = {} },
-    { Name = "Secret",    Gaps = {} },
-    { Name = "Celestial", Gaps = {} },
+local GapConfig = {
+    Common = { Name = "🔵 Common", Icon = "circle", Gaps = {
+        -- Exemplo: CFrame.new(100, 50, 200),
+    }},
+    Uncommon = { Name = "🟢 Uncommon", Icon = "circle", Gaps = {} },
+    Rare     = { Name = "🟡 Rare", Icon = "star", Gaps = {} },
+    Epic     = { Name = "🟣 Epic", Icon = "zap", Gaps = {} },
+    Legendary= { Name = "🟠 Legendary", Icon = "award", Gaps = {} },
+    Mythical = { Name = "🔴 Mythical", Icon = "flame", Gaps = {} },
+    Cosmic   = { Name = "⚪ Cosmic", Icon = "moon", Gaps = {} },
+    Secret   = { Name = "⚫ Secret", Icon = "lock", Gaps = {} },
+    Celestial= { Name = "✨ Celestial", Icon = "sparkles", Gaps = {} },
 }
 
 local AutoGapState = {
@@ -646,43 +639,63 @@ local AutoGapState = {
     SelectedArea   = nil,
     SafeDistance   = 120,
     CurrentGapIdx  = 1,
-    WaitForWave    = false,
+    MovementSpeed  = 50,
+    WaitAtGap      = false,
+    ShowVisualizer = false,
 }
+
+local function getHRP()
+    local char = getCharacter()
+    if not char then return end
+    return char:FindFirstChild("HumanoidRootPart")
+end
 
 local function getAreaNames()
     local t = {}
-    for _, area in ipairs(GapDatabase) do
-        table.insert(t, area.Name)
+    for _, data in pairs(GapConfig) do
+        table.insert(t, data.Name)
     end
+    table.sort(t)
     return t
 end
 
 local function getAreaByName(name)
-    for _, area in ipairs(GapDatabase) do
-        if area.Name == name then
-            return area
+    for _, data in pairs(GapConfig) do
+        if data.Name == name then
+            return data
         end
     end
 end
 
+local AutoGapSection = Tabs.Farm:Section({
+    Title  = "🧭 Auto Gap",
+    Icon   = "navigation",
+    Box    = true,
+    Opened = true,
+})
+
 AutoGapSection:Label({
-    Title = "⚠️ Note:",
-    Desc  = "Enable God Mode & NoClip while using Auto Gap!",
+    Title = "⚠️ Warning",
+    Desc  = "Enable God Mode + NoClip before using!",
     Icon  = "alert-triangle",
     Color = Color3.fromHex("#ef4444"),
 })
 
 AutoGapSection:Dropdown({
     Title  = "Select Area",
-    Desc   = "Choose which area gaps to navigate (Common → Celestial).",
+    Desc   = "Choose gap area to navigate (Common → Celestial)",
     Values = getAreaNames(),
     Value  = nil,
     Callback = function(value)
         AutoGapState.SelectedArea = value
         AutoGapState.CurrentGapIdx = 1
+        
+        local area = getAreaByName(value)
+        local gapCount = area and #area.Gaps or 0
+        
         WindUI:Notify({
             Title   = "Auto Gap",
-            Content = "Selected area: " .. tostring(value),
+            Content = string.format("Selected: %s (%d gaps)", value, gapCount),
             Duration= 3,
             Icon    = "map-pin",
         })
@@ -690,8 +703,18 @@ AutoGapSection:Dropdown({
 })
 
 AutoGapSection:Slider({
+    Title = "Movement Speed",
+    Desc  = "Speed when moving between gaps.",
+    Step  = 5,
+    Value = { Min = 20, Max = 200, Default = 50 },
+    Callback = function(value)
+        AutoGapState.MovementSpeed = value
+    end
+})
+
+AutoGapSection:Slider({
     Title = "Safe Distance",
-    Desc  = "Minimum safe distance from tsunami before moving to next gap (studs).",
+    Desc  = "Minimum distance from tsunami before moving (studs).",
     Step  = 10,
     Value = { Min = 50, Max = 300, Default = 120 },
     Callback = function(value)
@@ -700,8 +723,28 @@ AutoGapSection:Slider({
 })
 
 AutoGapSection:Toggle({
+    Title = "Wait at Gap",
+    Desc  = "Stay at current gap until tsunami passes before moving.",
+    Icon  = "pause",
+    Value = false,
+    Callback = function(state)
+        AutoGapState.WaitAtGap = state
+    end
+})
+
+AutoGapSection:Toggle({
+    Title = "Show Visualizer",
+    Desc  = "Display gap waypoints (client-side).",
+    Icon  = "eye",
+    Value = false,
+    Callback = function(state)
+        AutoGapState.ShowVisualizer = state
+    end
+})
+
+AutoGapSection:Toggle({
     Title = "Enable Auto Gap",
-    Desc  = "Automatically navigate between gaps, avoiding tsunami waves.",
+    Desc  = "Automatically navigate between gaps avoiding tsunami.",
     Icon  = "navigation",
     Value = false,
     Callback = function(state)
@@ -715,11 +758,26 @@ AutoGapSection:Toggle({
     end
 })
 
+AutoGapSection:Button({
+    Title = "Reset to First Gap",
+    Desc  = "Restart from first gap in selected area.",
+    Icon  = "rotate-ccw",
+    Callback = function()
+        AutoGapState.CurrentGapIdx = 1
+        WindUI:Notify({
+            Title   = "Auto Gap",
+            Content = "Reset to first gap.",
+            Duration= 2,
+            Icon    = "check",
+        })
+    end
+})
+
 -- Helpers Auto Gap
 local function findTsunami()
     for _, obj in ipairs(workspace:GetChildren()) do
         local n = obj.Name:lower()
-        if (n:find("tsunami") or n:find("wave")) and (obj:IsA("Model") or obj:IsA("BasePart")) then
+        if (n:find("tsunami") or n:find("wave") or n:find("water")) and (obj:IsA("Model") or obj:IsA("BasePart")) then
             return obj
         end
     end
@@ -737,49 +795,104 @@ end
 local function getTsunamiInfo()
     local tsunami = findTsunami()
     local part = getTsunamiPrimaryPart(tsunami)
-    if not part then return nil, nil end
+    if not part then return nil, nil, nil end
+    
     local pos = part.Position
     local vel = part.AssemblyLinearVelocity or Vector3.zero
-    return pos, vel
+    local size = part.Size
+    
+    return pos, vel, size
 end
 
 local function estimateCollisionTime(tsunamiPos, tsunamiVel, targetPos)
     if not tsunamiPos or not tsunamiVel or not targetPos then return math.huge end
+    
     local dirZ = tsunamiVel.Z
     if math.abs(dirZ) < 1 then return math.huge end
+    
     local distZ = targetPos.Z - tsunamiPos.Z
     if (dirZ > 0 and distZ < 0) or (dirZ < 0 and distZ > 0) then
         return math.huge
     end
+    
     local speedZ = math.abs(dirZ)
     return math.abs(distZ) / speedZ
 end
 
-local function estimateTravelTime(fromPos, toPos)
+local function estimateTravelTime(fromPos, toPos, speed)
     local dist = (toPos - fromPos).Magnitude
-    local speed = math.max(PlayerFlags.FlySpeed or 50, 1)
-    return dist / speed
+    local actualSpeed = math.max(speed or AutoGapState.MovementSpeed, 1)
+    return dist / actualSpeed
 end
 
-local AutoGapVel
+local AutoGapVel, AutoGapGyro
+local GapVisualizers = {}
 
-local function ensureAutoGapVelocity()
-    local hrp = getHumanoidRootPart()
+local function clearVisualizers()
+    for _, obj in ipairs(GapVisualizers) do
+        if obj and obj.Parent then
+            obj:Destroy()
+        end
+    end
+    table.clear(GapVisualizers)
+end
+
+local function createVisualizers(gaps)
+    clearVisualizers()
+    
+    if not AutoGapState.ShowVisualizer then return end
+    
+    for i, gapCF in ipairs(gaps) do
+        if typeof(gapCF) == "CFrame" then
+            local part = Instance.new("Part")
+            part.Name = "GapVisualizer_" .. i
+            part.Size = Vector3.new(4, 1, 4)
+            part.CFrame = gapCF
+            part.Anchored = true
+            part.CanCollide = false
+            part.Transparency = 0.5
+            part.Color = Color3.fromRGB(0, 255, 0)
+            part.Material = Enum.Material.Neon
+            part.Parent = workspace.CurrentCamera
+            
+            table.insert(GapVisualizers, part)
+        end
+    end
+end
+
+local function ensureAutoGapMovers()
+    local hrp = getHRP()
     if not hrp then return end
+    
     if AutoGapVel and AutoGapVel.Parent ~= hrp then
         AutoGapVel:Destroy()
         AutoGapVel = nil
     end
+    
+    if AutoGapGyro and AutoGapGyro.Parent ~= hrp then
+        AutoGapGyro:Destroy()
+        AutoGapGyro = nil
+    end
+    
     if not AutoGapVel then
         AutoGapVel = Instance.new("BodyVelocity")
         AutoGapVel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
         AutoGapVel.Velocity = Vector3.zero
         AutoGapVel.Parent = hrp
     end
-    return AutoGapVel, hrp
+    
+    if not AutoGapGyro then
+        AutoGapGyro = Instance.new("BodyGyro")
+        AutoGapGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+        AutoGapGyro.P = 9e4
+        AutoGapGyro.CFrame = hrp.CFrame
+        AutoGapGyro.Parent = hrp
+    end
+    
+    return AutoGapVel, AutoGapGyro, hrp
 end
 
-local function stopAutoGapVelocity()
+local function stopAutoGapMovement()
     if AutoGapVel then
         AutoGapVel.Velocity = Vector3.zero
     end
@@ -788,76 +901,97 @@ end
 -- Loop principal Auto Gap
 RunService.Heartbeat:Connect(function(dt)
     if not AutoGapState.Enabled then
-        stopAutoGapVelocity()
+        stopAutoGapMovement()
+        clearVisualizers()
         return
     end
 
     if not AutoGapState.SelectedArea then
-        stopAutoGapVelocity()
+        stopAutoGapMovement()
         return
     end
 
     local area = getAreaByName(AutoGapState.SelectedArea)
     if not area or #area.Gaps == 0 then
-        stopAutoGapVelocity()
+        stopAutoGapMovement()
         return
     end
 
-    local bodyVel, hrp = ensureAutoGapVelocity()
-    if not bodyVel or not hrp then
+    local bodyVel, bodyGyro, hrp = ensureAutoGapMovers()
+    if not bodyVel or not bodyGyro or not hrp then
         return
     end
 
     local gaps = area.Gaps
-    local idx  = math.clamp(AutoGapState.CurrentGapIdx, 1, #gaps)
+    
+    if AutoGapState.ShowVisualizer and #GapVisualizers == 0 then
+        createVisualizers(gaps)
+    elseif not AutoGapState.ShowVisualizer and #GapVisualizers > 0 then
+        clearVisualizers()
+    end
+    
+    local idx = math.clamp(AutoGapState.CurrentGapIdx, 1, #gaps)
     local currentGapCF = gaps[idx]
+    
     if typeof(currentGapCF) ~= "CFrame" then
-        stopAutoGapVelocity()
+        stopAutoGapMovement()
         return
     end
 
     local hrpPos = hrp.Position
     local targetPos = currentGapCF.Position
     local distToGap = (targetPos - hrpPos).Magnitude
-    local insideGap = distToGap < 6
+    local insideGap = distToGap < 8
 
-    local tsunamiPos, tsunamiVel = getTsunamiInfo()
+    local tsunamiPos, tsunamiVel, tsunamiSize = getTsunamiInfo()
 
     if not insideGap then
         local dir = (targetPos - hrpPos).Unit
-        local speed = PlayerFlags.FlySpeed or 50
-        bodyVel.Velocity = dir * speed
+        bodyVel.Velocity = dir * AutoGapState.MovementSpeed
+        bodyGyro.CFrame = CFrame.lookAt(hrpPos, targetPos)
         return
     end
 
     local nextIdx = idx + 1
     if nextIdx > #gaps then
-        stopAutoGapVelocity()
+        stopAutoGapMovement()
+        WindUI:Notify({
+            Title   = "Auto Gap",
+            Content = "Reached final gap!",
+            Duration= 3,
+            Icon    = "check-circle",
+        })
+        AutoGapState.Enabled = false
         return
     end
 
     local nextGapCF = gaps[nextIdx]
     if typeof(nextGapCF) ~= "CFrame" then
-        stopAutoGapVelocity()
+        stopAutoGapMovement()
         return
     end
 
     local nextPos = nextGapCF.Position
-    local timeToNextGap = estimateTravelTime(hrpPos, nextPos)
+    local timeToNext = estimateTravelTime(hrpPos, nextPos, AutoGapState.MovementSpeed)
     local timeWaveToNext = estimateCollisionTime(tsunamiPos, tsunamiVel, nextPos)
 
     local safeSpeed = math.max(math.abs((tsunamiVel and tsunamiVel.Z) or 0), 1)
     local safeMargin = AutoGapState.SafeDistance / safeSpeed
 
-    local canGo = (timeToNextGap + safeMargin) < timeWaveToNext
+    local canMove = (timeToNext + safeMargin) < timeWaveToNext
 
-    if canGo then
+    if AutoGapState.WaitAtGap and not canMove then
+        stopAutoGapMovement()
+        return
+    end
+
+    if canMove then
         AutoGapState.CurrentGapIdx = nextIdx
         local dir = (nextPos - hrpPos).Unit
-        local speed = PlayerFlags.FlySpeed or 50
-        bodyVel.Velocity = dir * speed
+        bodyVel.Velocity = dir * AutoGapState.MovementSpeed
+        bodyGyro.CFrame = CFrame.lookAt(hrpPos, nextPos)
     else
-        stopAutoGapVelocity()
+        stopAutoGapMovement()
     end
 end)
 

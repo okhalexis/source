@@ -214,6 +214,7 @@ local PlayerSection = Tabs.Player:Section({
 
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
 local function getCharacter()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -240,6 +241,7 @@ local PlayerFlags = {
     FlyEnabled     = false,
     FlySpeed       = 50,
     FlyKey         = Enum.KeyCode.F,
+    InstantSteal   = false -- Atributo adicionado
 }
 
 local DEFAULT_WALKSPEED = 22
@@ -266,20 +268,24 @@ local function updateHudSpeed(val)
     end
 end
 
--- SPEED real do player (até 1000)
+-- SPEED real do player (Atualizado para pernas rápidas)
 local function forceSpeed()
     local hum = getHumanoid()
     if not hum then return end
 
-    -- alguns jogos usam Attribute / ValueObject para speed; tenta travar isso
-    hum:SetAttribute("WalkSpeed", nil)
     local target = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
-
     hum.WalkSpeed = target
     updateHudSpeed(target)
 end
 
 RunService.Heartbeat:Connect(forceSpeed)
+
+-- SISTEMA INSTANT STEAL (Otimizado - Zero Lag)
+ProximityPromptService.PromptShown:Connect(function(prompt)
+    if PlayerFlags.InstantSteal then
+        prompt.HoldDuration = 0
+    end
+end)
 
 -- JUMP
 local function applyJump(rawValue)
@@ -410,7 +416,7 @@ end)
 ----------------------------------------------------
 PlayerSection:Slider({
     Title = "Speed",
-    Desc  = "Velocidade real do player (1–1000).",
+    Desc  = "Velocidade real das pernas (Animado).",
     Step  = 1,
     Value = { Min = 1, Max = MAX_SPEED, Default = 22 },
     Callback = function(value)
@@ -482,14 +488,27 @@ PlayerSection:Toggle({
 })
 
 ----------------------------------------------------
--- FARM / SELLING PLACEHOLDER
+-- FARM SECTION (Instant Steal Adicionado)
 ----------------------------------------------------
-Tabs.Farm:Section({
-    Title = "Farm (em breve)",
+local FarmSection = Tabs.Farm:Section({
+    Title = "Farm Engine",
     Box = true,
     Opened = true,
 })
 
+FarmSection:Toggle({
+    Title = "Instant Steal",
+    Desc  = "Coleta imediata (Clica e já pega).",
+    Icon  = "zap",
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.InstantSteal = state
+    end
+})
+
+----------------------------------------------------
+-- SELLING PLACEHOLDER
+----------------------------------------------------
 Tabs.Selling:Section({
     Title = "Selling (em breve)",
     Box = true,

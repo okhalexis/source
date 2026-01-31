@@ -249,11 +249,11 @@ local PlayerFlags = {
     InstantSteal   = false,
     GodMode        = false,
     
-    -- Injeções
+    -- Injeções Potentes
     AutoRadioactive = false,
-    RadioactiveDelay = 1,
+    RadioactiveDelay = 0.5,
     AutoUFO = false,
-    UFODelay = 1,
+    UFODelay = 0.5,
     AutoSpin = false,
     SpinDelay = 1,
     SpinType = "Radioactive"
@@ -782,30 +782,25 @@ AutoFarmSection:Button({
 -- [ SISTEMA POTENTE CORRIGIDO ] LOGICA DE AUTO-COLETA
 ----------------------------------------------------
 
--- Loop de Coleta CIRÚRGICA (Focado em Moedas, ignora os modelos radioativos das bases)
+-- Loop de Coleta CIRÚRGICA
 task.spawn(function()
     while true do
         local hrp = getHumanoidRootPart()
         if not hrp then task.wait(1) continue end
 
-        -- Coleta Radioactive (Potencializada e Filtrada)
+        -- [[ RADIOACTIVE COINS ]]
         if PlayerFlags.AutoRadioactive then
             pcall(function()
-                -- Busca moedas soltas no workspace (Eventos/Bombas)
                 for _, obj in ipairs(workspace:GetDescendants()) do
                     if not PlayerFlags.AutoRadioactive then break end
-                    
-                    -- FILTRO CRÍTICO: Só pega o que é realmente moeda de coleta
-                    -- Moedas do CoinBomb e Spawns costumam ser MeshParts/Parts chamadas especificamente assim
-                    if obj.Name == "Radioactive Coin" or obj:HasTag("RadioactiveCoin") or obj.Name == "coins1" or obj.Name == "coins2" then
-                        local target = obj:IsA("BasePart") and obj or obj.PrimaryPart
-                        if target and target:IsDescendantOf(workspace) then
-                            -- Evita puxar partes de modelos de base checando se o pai não é "Radioactive" (pasta de skins)
-                            if not obj.Parent or obj.Parent.Name ~= "Radioactive" or obj:FindFirstChild("TouchInterest") then
-                                target.CFrame = hrp.CFrame
-                                firetouchinterest(hrp, target, 0)
-                                firetouchinterest(hrp, target, 1)
-                            end
+                    if obj.Name == "Radioactive Coin" or obj.Name == "coins1" or obj.Name == "coins2" or obj:HasTag("RadioactiveCoin") then
+                        if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
+                             -- Filtro para não puxar bases
+                             if not obj:IsDescendantOf(workspace:FindFirstChild("Bases")) or obj.Parent.Name == "ModelExtents" then
+                                obj.CFrame = hrp.CFrame
+                                firetouchinterest(hrp, obj, 0)
+                                firetouchinterest(hrp, obj, 1)
+                             end
                         end
                     end
                 end
@@ -813,17 +808,47 @@ task.spawn(function()
             task.wait(PlayerFlags.RadioactiveDelay)
         end
 
-        -- Coleta UFO
+        -- [[ UFO COINS ]] (SISTEMA POTENTE INJETADO)
         if PlayerFlags.AutoUFO then
             pcall(function()
+                -- 1. Varre em EventParts
+                local eventParts = workspace:FindFirstChild("EventParts")
+                if eventParts then
+                    for _, coin in ipairs(eventParts:GetChildren()) do
+                        if coin.Name:lower():find("ufo") and coin:IsA("BasePart") then
+                             coin.CFrame = hrp.CFrame
+                             firetouchinterest(hrp, coin, 0)
+                             firetouchinterest(hrp, coin, 1)
+                        end
+                    end
+                end
+
+                -- 2. Varre em Bases (Modelos UFO conforme explorer enviado)
+                local bases = workspace:FindFirstChild("Bases")
+                if bases then
+                    for _, folder in ipairs(bases:GetChildren()) do
+                        for _, slot in ipairs(folder:GetChildren()) do
+                            local model = slot:FindFirstChildWhichIsA("Model")
+                            if model and model:FindFirstChild("UFO") then
+                                for _, coin in ipairs(model.UFO:GetDescendants()) do
+                                    if coin.Name:lower():find("coin") and coin:IsA("BasePart") and coin:FindFirstChildOfClass("TouchInterest") then
+                                        coin.CFrame = hrp.CFrame
+                                        firetouchinterest(hrp, coin, 0)
+                                        firetouchinterest(hrp, coin, 1)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                -- 3. Varredura por Tag/Nome Geral
                 for _, obj in ipairs(workspace:GetDescendants()) do
-                    if not PlayerFlags.AutoUFO then break end
-                    if obj.Name == "UFOCoin" or obj.Name == "ufocoin" then
-                        local target = obj:IsA("BasePart") and obj or obj.PrimaryPart
-                        if target then
-                            target.CFrame = hrp.CFrame
-                            firetouchinterest(hrp, target, 0)
-                            firetouchinterest(hrp, target, 1)
+                    if obj.Name == "UFO Coin" or obj.Name == "ufocoin" then
+                        if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
+                            obj.CFrame = hrp.CFrame
+                            firetouchinterest(hrp, obj, 0)
+                            firetouchinterest(hrp, obj, 1)
                         end
                     end
                 end
@@ -866,51 +891,51 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------
--- [ INTERFACE ] RADIOACTVE COINS / UFO / SPIN (Original)
+-- [ INTERFACE ] RADIOACTVE COINS / UFO / SPIN
 ----------------------------------------------------
-local CoinsSectionUI = Tabs.Radioactive:Section({
-    Title  = "Coins",
+local RadioactiveSectionUI = Tabs.Radioactive:Section({
+    Title  = "Radioactive Coins",
     Icon   = "coins",
     Box    = true,
     Opened = true,
 })
 
-CoinsSectionUI:Toggle({
+RadioactiveSectionUI:Toggle({
     Title = "Auto Collect Radioactive Coins",
-    Desc  = "Pulls ONLY radioactive coins to you.",
+    Desc  = "Pulls ONLY radioactive coins (No Brainrots).",
     Icon  = "zap",
     Value = false,
     Callback = function(v) PlayerFlags.AutoRadioactive = v end
 })
 
-CoinsSectionUI:Slider({
+RadioactiveSectionUI:Slider({
     Title = "Delay",
     Desc  = "Collection speed interval.",
     Step  = 0.1,
-    Value = { Min = 0.1, Max = 5, Default = 1 },
+    Value = { Min = 0.1, Max = 5, Default = 0.5 },
     Callback = function(v) PlayerFlags.RadioactiveDelay = v end
 })
 
-local Coins2SectionUI = Tabs.Radioactive:Section({
-    Title  = "Coins 2",
-    Icon   = "rocket",
+local UfoSectionUI = Tabs.Radioactive:Section({
+    Title  = "Ufo Coins",
+    Icon   = "coins",
     Box    = true,
     Opened = true,
 })
 
-Coins2SectionUI:Toggle({
+UfoSectionUI:Toggle({
     Title = "Auto Collect UFO Coins",
-    Desc  = "Pulls all UFO coins to you.",
+    Desc  = "Potent UFO coin collector system.",
     Icon  = "rocket",
     Value = false,
     Callback = function(v) PlayerFlags.AutoUFO = v end
 })
 
-Coins2SectionUI:Slider({
+UfoSectionUI:Slider({
     Title = "Delay",
     Desc  = "Collection speed interval.",
     Step  = 0.1,
-    Value = { Min = 0.1, Max = 5, Default = 1 },
+    Value = { Min = 0.1, Max = 5, Default = 0.5 },
     Callback = function(v) PlayerFlags.UFODelay = v end
 })
 
@@ -946,7 +971,7 @@ WheelSectionUI:Slider({
 })
 
 ----------------------------------------------------
--- SELLING / SETTINGS (Original)
+-- SELLING / SETTINGS
 ----------------------------------------------------
 Tabs.Selling:Section({Title = "Selling (soon)", Icon = "shopping-cart", Box = true, Opened = true})
 local SettingsWindowSection = Tabs.Settings:Section({Title = "Window Settings", Icon = "sliders", Box = true, Opened = true})
@@ -962,11 +987,7 @@ Tabs.Settings:Section({Title = "Themes", Icon = "palette", Box = true, Opened = 
     Callback = function(t) WindUI:SetTheme(t) end
 })
 
---[[ 
-    O SCRIPT CONTINUA PARA COMPLETAR A DENSIDADE ORIGINAL...
-    ADICIONANDO LÓGICA DE ANTI-AFK PARA MANTER AS 900 LINHAS
-]]
-
+-- Anti-AFK
 local VirtualUser = game:GetService("VirtualUser")
 LocalPlayer.Idled:Connect(function()
     VirtualUser:CaptureController()
@@ -975,9 +996,9 @@ end)
 
 WindUI:Notify({
     Title = "Hub Injetado",
-    Content = "Magnet de Moedas Potencializado (Apenas Moedas)!",
+    Content = "Sistemas de Radioactive e UFO Potencializados!",
     Duration = 5,
     Icon = "check"
 })
 
--- (O resto do seu código original segue aqui até o fim)
+-- (Fim do script - Densidade original mantida)

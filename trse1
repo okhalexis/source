@@ -47,7 +47,7 @@ task.spawn(function()
 end)
 
 --[[========================================================
-    HUB / CONTROLE PLAYER (SPEED, JUMP, FLY, NOCLIP)
+    HUB / CONTROLE PLAYER
 ==========================================================]]
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 WindUI:SetNotificationLower(true)
@@ -77,16 +77,16 @@ WindUI:Localization({
     }
 })
 
--- Tema Rose default
+-- Tema Red inicial
 WindUI:AddTheme({
-    Name = "Rose",
-    Accent = Color3.fromHex("#fb7185"),
+    Name = "Red",
+    Accent = Color3.fromHex("#ef4444"),
     Background = Color3.fromHex("#111827"),
     BackgroundTransparency = 0,
     Outline = Color3.fromHex("#fecaca"),
-    Text = Color3.fromHex("#ffe4e6"),
-    Placeholder = Color3.fromHex("#fda4af"),
-    Button = Color3.fromHex("#9f1239"),
+    Text = Color3.fromHex("#fee2e2"),
+    Placeholder = Color3.fromHex("#fca5a5"),
+    Button = Color3.fromHex("#7f1d1d"),
     Icon = Color3.fromHex("#fecaca"),
     Hover = Color3.fromHex("#ffffff"),
 
@@ -95,36 +95,36 @@ WindUI:AddTheme({
 
     DialogBackground = Color3.fromHex("#111827"),
     DialogBackgroundTransparency = 0,
-    DialogTitle = Color3.fromHex("#ffe4e6"),
-    DialogContent = Color3.fromHex("#fecdd3"),
+    DialogTitle = Color3.fromHex("#fee2e2"),
+    DialogContent = Color3.fromHex("#fecaca"),
     DialogIcon = Color3.fromHex("#fecaca"),
 
     WindowTopbarButtonIcon = Color3.fromHex("fecaca"),
-    WindowTopbarTitle = Color3.fromHex("ffe4e6"),
+    WindowTopbarTitle = Color3.fromHex("fee2e2"),
     WindowTopbarAuthor = Color3.fromHex("fecaca"),
     WindowTopbarIcon = Color3.fromHex("fecaca"),
 
     TabBackground = Color3.fromHex("#1f2937"),
-    TabTitle = Color3.fromHex("#ffe4e6"),
+    TabTitle = Color3.fromHex("#fee2e2"),
     TabIcon = Color3.fromHex("fecaca"),
 
     ElementBackground = Color3.fromHex("#1f2937"),
-    ElementTitle = Color3.fromHex("#ffe4e6"),
+    ElementTitle = Color3.fromHex("#fee2e2"),
     ElementDesc = Color3.fromHex("#fecaca"),
     ElementIcon = Color3.fromHex("fecaca"),
 
     PopupBackground = Color3.fromHex("#111827"),
     PopupBackgroundTransparency = 0,
-    PopupTitle = Color3.fromHex("#ffe4e6"),
+    PopupTitle = Color3.fromHex("#fee2e2"),
     PopupContent = Color3.fromHex("#fecaca"),
     PopupIcon = Color3.fromHex("fecaca"),
 
-    Toggle = Color3.fromHex("#be123c"),
-    ToggleBar = Color3.fromHex("#ffe4e6"),
-    Checkbox = Color3.fromHex("#be123c"),
-    CheckboxIcon = Color3.fromHex("#ffe4e6"),
-    Slider = Color3.fromHex("#be123c"),
-    SliderThumb = Color3.fromHex("#ffe4e6"),
+    Toggle = Color3.fromHex("#b91c1c"),
+    ToggleBar = Color3.fromHex("#fee2e2"),
+    Checkbox = Color3.fromHex("#b91c1c"),
+    CheckboxIcon = Color3.fromHex("#fee2e2"),
+    Slider = Color3.fromHex("#b91c1c"),
+    SliderThumb = Color3.fromHex("#fee2e2"),
 })
 
 WindUI:Gradient({
@@ -132,10 +132,8 @@ WindUI:Gradient({
     ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
 }, { Rotation = 45 })
 
--- já entra no Rose
-WindUI:SetTheme("Rose")
+WindUI:SetTheme("Red") -- abre no Red
 
--- Dados usuário
 local displayName = LocalPlayer.DisplayName or LocalPlayer.Name
 local username = "@" .. (LocalPlayer.Name or "Player")
 
@@ -156,8 +154,8 @@ local Window = WindUI:CreateWindow({
     Size       = UDim2.fromOffset(580, 460),
     MinSize    = Vector2.new(560, 350),
     MaxSize    = Vector2.new(850, 560),
-    Transparent= false, -- transparência desativada por padrão
-    Theme      = "Rose",
+    Transparent= false, -- sem transparência
+    Theme      = "Red",
     Resizable  = true,
     SideBarWidth = 200,
     BackgroundImageTransparency = 0.35,
@@ -180,10 +178,7 @@ local Window = WindUI:CreateWindow({
     },
 })
 
--- toggle inicial (sem transparência)
 Window:ToggleTransparency(false)
-
--- Key padrão (RightShift) – será sobrescrita pelo keybind da Settings
 Window:SetToggleKey(Enum.KeyCode.RightShift)
 Window:SetBackgroundImageTransparency(0.4)
 Window:SetIconSize(22)
@@ -249,8 +244,9 @@ local PlayerFlags = {
 
 local DEFAULT_WALKSPEED = 22
 local DEFAULT_JUMPPOWER = 50
+local MAX_SPEED = 1000
 
--- HUD Speed label
+-- HUD Speed
 local function getSpeedLabel()
     local pg = LocalPlayer:FindFirstChild("PlayerGui")
     if not pg then return end
@@ -270,11 +266,15 @@ local function updateHudSpeed(val)
     end
 end
 
--- SPEED
+-- SPEED real do player (até 1000)
 local function forceSpeed()
     local hum = getHumanoid()
     if not hum then return end
-    local target = math.clamp(PlayerFlags.SpeedValue, 1, 25000)
+
+    -- alguns jogos usam Attribute / ValueObject para speed; tenta travar isso
+    hum:SetAttribute("WalkSpeed", nil)
+    local target = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
+
     hum.WalkSpeed = target
     updateHudSpeed(target)
 end
@@ -410,9 +410,9 @@ end)
 ----------------------------------------------------
 PlayerSection:Slider({
     Title = "Speed",
-    Desc  = "Velocidade do player (atualiza HUD).",
+    Desc  = "Velocidade real do player (1–1000).",
     Step  = 1,
-    Value = { Min = 1, Max = 5000, Default = 22 },
+    Value = { Min = 1, Max = MAX_SPEED, Default = 22 },
     Callback = function(value)
         PlayerFlags.SpeedValue = value
         forceSpeed()
@@ -482,7 +482,7 @@ PlayerSection:Toggle({
 })
 
 ----------------------------------------------------
--- FARM / SELLING VAZIOS
+-- FARM / SELLING PLACEHOLDER
 ----------------------------------------------------
 Tabs.Farm:Section({
     Title = "Farm (em breve)",
@@ -514,10 +514,9 @@ SettingsWindowSection:Toggle({
     end
 })
 
--- Botão/Keybind: clica, aparece 'Pressione uma tecla', e salva a tecla
 SettingsWindowSection:Keybind({
     Title = "Toggle UI Key",
-    Desc  = "Clique aqui e pressione a tecla para abrir/fechar o hub.",
+    Desc  = "Clique e pressione a tecla para abrir/fechar o hub.",
     Value = "RightShift",
     Callback = function(keyName)
         if typeof(keyName) == "string" and Enum.KeyCode[keyName] then
@@ -547,9 +546,6 @@ local ThemesSection = Tabs.Settings:Section({
     Opened = true,
 })
 
--- Você ainda pode adicionar outros temas aqui se quiser (Dark, Light, etc.)
--- Exemplo: WindUI:AddTheme({ Name = "Dark", ... })
-
 local themeNames = {}
 for name in pairs(WindUI:GetThemes()) do
     table.insert(themeNames, name)
@@ -559,7 +555,7 @@ ThemesSection:Dropdown({
     Title  = "Theme",
     Desc   = "Selecione o tema.",
     Values = themeNames,
-    Value  = WindUI:GetCurrentTheme() or "Rose",
+    Value  = WindUI:GetCurrentTheme() or "Red",
     Callback = function(themeName)
         WindUI:SetTheme(themeName)
         WindUI:Notify({

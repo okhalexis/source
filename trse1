@@ -1,6 +1,5 @@
 --- START OF FILE Paste January 31, 2026 - 2:12PM ---
 
-
 --[[========================================================
     KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
 ==========================================================]]
@@ -66,6 +65,7 @@ WindUI:Localization({
             ["HUB_AUTHOR"]  = "by You",
             ["TAB_PLAYER"]  = "Player",
             ["TAB_FARM"]    = "Farm",
+            ["TAB_RADIO"]   = "Radioactive Coins",
             ["TAB_SELLING"] = "Selling",
             ["TAB_SETTINGS"]= "Settings",
         },
@@ -74,6 +74,7 @@ WindUI:Localization({
             ["HUB_AUTHOR"]  = "by You",
             ["TAB_PLAYER"]  = "Player",
             ["TAB_FARM"]    = "Farm",
+            ["TAB_RADIO"]   = "Radioactive Coins",
             ["TAB_SELLING"] = "Selling",
             ["TAB_SETTINGS"]= "Settings",
         },
@@ -195,10 +196,11 @@ Window:EditOpenButton({
 })
 
 local Tabs = {
-    Player   = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
-    Farm     = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }),
-    Selling  = Window:Tab({ Title = "loc:TAB_SELLING",  Icon = "shopping-bag" }),
-    Settings = Window:Tab({ Title = "loc:TAB_SETTINGS", Icon = "settings" }),
+    Player      = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
+    Farm        = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }),
+    Radioactive = Window:Tab({ Title = "loc:TAB_RADIO",    Icon = "atom" }),
+    Selling     = Window:Tab({ Title = "loc:TAB_SELLING",  Icon = "shopping-bag" }),
+    Settings    = Window:Tab({ Title = "loc:TAB_SETTINGS", Icon = "settings" }),
 }
 
 Window:SelectTab(1)
@@ -239,6 +241,7 @@ local PlayerFlags = {
     FlyKey         = Enum.KeyCode.F,
     InstantSteal   = false,
     GodMode        = false,
+    RadioactiveMagnet = false,
 }
 
 local DEFAULT_JUMPPOWER = 50
@@ -772,6 +775,101 @@ AutoFarmSection:Button({
         disableFullNoClip()
         if autoFarmCoroutine then task.cancel(autoFarmCoroutine) end
         WindUI:Notify({Title="Stopped", Content="Movement cancelled.", Duration=2, Icon="square"})
+    end
+})
+
+----------------------------------------------------
+-- RADIOACTIVE COINS MAGNET
+----------------------------------------------------
+local RadioactiveSection = Tabs.Radioactive:Section({
+    Title  = "Radioactive Collector",
+    Icon   = "magnet",
+    Box    = true,
+    Opened = true,
+})
+
+--[[ 
+    O Magnet funciona detectando moedas que spawnam em caminhos específicos 
+    como workspace.Bases e Aura Farma, puxando-as para o HumanoidRootPart.
+]]
+local function radioactiveCollectorLoop()
+    while task.wait(0.3) do
+        if not PlayerFlags.RadioactiveMagnet then continue end
+        
+        local hrp = getHumanoidRootPart()
+        if not hrp then continue end
+
+        -- Percorre o workspace buscando as moedas especificadas
+        for _, object in ipairs(workspace:GetDescendants()) do
+            if not PlayerFlags.RadioactiveMagnet then break end
+            
+            -- Filtra pelos nomes de moedas conhecidos no jogo
+            if object.Name == "coins1" or object.Name == "coins2" or object.Name == "RadioactiveCoin" then
+                pcall(function()
+                    if object:IsA("BasePart") then
+                        object.CFrame = hrp.CFrame
+                    elseif object:IsA("Model") then
+                        -- Se for um modelo (como moedas com efeitos), move o PrimaryPart ou usa MoveTo
+                        if object.PrimaryPart then
+                            object:SetPrimaryPartCFrame(hrp.CFrame)
+                        else
+                            object:MoveTo(hrp.Position)
+                        end
+                    end
+                end)
+            end
+        end
+    end
+end
+
+task.spawn(radioactiveCollectorLoop)
+
+RadioactiveSection:Toggle({
+    Title = "Radioactive Magnet",
+    Desc  = "Pulls all spawned Radioactive Coins to you instantly!",
+    Icon  = "magnet",
+    Value = false,
+    Callback = function(state)
+        PlayerFlags.RadioactiveMagnet = state
+        if state then
+            WindUI:Notify({
+                Title = "Radioactive Coins",
+                Content = "Magnet is now ACTIVE. Searching for coins...",
+                Duration = 4,
+                Icon = "atom",
+            })
+        else
+            WindUI:Notify({
+                Title = "Radioactive Coins",
+                Content = "Magnet is now DISABLED.",
+                Duration = 3,
+                Icon = "atom",
+            })
+        end
+    end
+})
+
+RadioactiveSection:Button({
+    Title = "Check Active Event",
+    Desc  = "Verifies if Radioactive event is currently running",
+    Icon  = "info",
+    Callback = function()
+        local shared = game:GetService("ReplicatedStorage"):FindFirstChild("Shared")
+        if shared and shared:FindFirstChild("Config") and shared.Config:FindFirstChild("EventCoins") then
+            WindUI:Notify({
+                Title = "Event Info",
+                Content = "Radioactive Event config found in storage.",
+                Duration = 5,
+                Icon = "info",
+            })
+        else
+            WindUI:Notify({
+                Title = "Event Info",
+                Content = "Could not verify event status in ReplicatedStorage.",
+                Duration = 5,
+                Icon = "alert-triangle",
+            })
+        end
     end
 })
 

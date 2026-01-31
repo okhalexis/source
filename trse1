@@ -77,7 +77,6 @@ WindUI:Localization({
     }
 })
 
--- TEMA ADICIONADO ANTES DO WINDOW
 WindUI:AddTheme({
     Name = "Red",
     Accent = Color3.fromHex("#ef4444"),
@@ -619,7 +618,7 @@ FarmSection:Toggle({
 })
 
 ----------------------------------------------------
--- AUTO GAP SYSTEM - ULTRA ROBUSTO
+-- AUTO GAP SYSTEM - SIMPLIFICADO
 ----------------------------------------------------
 local AutoGapSection = Tabs.Farm:Section({
     Title  = "Auto Gap",
@@ -630,15 +629,15 @@ local AutoGapSection = Tabs.Farm:Section({
 
 -- Database de gaps por categoria
 local GapDatabase = {
-    { Key = "Common",    Name = "Common",    Icon = "circle",   Gaps = {} },
-    { Key = "Uncommon",  Name = "Uncommon",  Icon = "disc",     Gaps = {} },
-    { Key = "Rare",      Name = "Rare",      Icon = "star",     Gaps = {} },
-    { Key = "Epic",      Name = "Epic",      Icon = "zap",      Gaps = {} },
-    { Key = "Legendary", Name = "Legendary", Icon = "award",    Gaps = {} },
-    { Key = "Mythical",  Name = "Mythical",  Icon = "flame",    Gaps = {} },
-    { Key = "Cosmic",    Name = "Cosmic",    Icon = "moon",     Gaps = {} },
-    { Key = "Secret",    Name = "Secret",    Icon = "lock",     Gaps = {} },
-    { Key = "Celestial", Name = "Celestial", Icon = "sparkles", Gaps = {} },
+    { Key = "Common",    Name = "Common",    Gaps = {} },
+    { Key = "Uncommon",  Name = "Uncommon",  Gaps = {} },
+    { Key = "Rare",      Name = "Rare",      Gaps = {} },
+    { Key = "Epic",      Name = "Epic",      Gaps = {} },
+    { Key = "Legendary", Name = "Legendary", Gaps = {} },
+    { Key = "Mythical",  Name = "Mythical",  Gaps = {} },
+    { Key = "Cosmic",    Name = "Cosmic",    Gaps = {} },
+    { Key = "Secret",    Name = "Secret",    Gaps = {} },
+    { Key = "Celestial", Name = "Celestial", Gaps = {} },
 }
 
 local AutoGapState = {
@@ -646,12 +645,10 @@ local AutoGapState = {
     SelectedArea   = nil,
     SafeDistance   = 120,
     CurrentGapIdx  = 1,
-    MovementSpeed  = 50,
-    ShowVisualizer = false,
-    WaitMode       = false,
+    MovementSpeed  = 60,
 }
 
--- Sistema de detecção de wave (multi-método)
+-- Sistema de detecção de wave
 local WaveDetector = {}
 
 function WaveDetector.FindByAttribute()
@@ -893,53 +890,6 @@ function GapScanner.CategorizeByHeight(gaps)
     return categorized
 end
 
-local VisualizerParts = {}
-
-function GapScanner.CreateVisualizer(gaps)
-    GapScanner.ClearVisualizer()
-    
-    if not AutoGapState.ShowVisualizer then return end
-    
-    for i, gap in gaps do
-        local part = Instance.new("Part")
-        part.Name = "GapVis_" .. i
-        part.Size = Vector3.new(4, 1, 4)
-        part.CFrame = gap.CFrame or CFrame.new(gap.Position)
-        part.Anchored = true
-        part.CanCollide = false
-        part.Transparency = 0.5
-        part.Color = Color3.fromRGB(0, 255, 0)
-        part.Material = Enum.Material.Neon
-        part.Parent = workspace.CurrentCamera
-        
-        local bill = Instance.new("BillboardGui")
-        bill.Size = UDim2.new(0, 50, 0, 50)
-        bill.Adornee = part
-        bill.AlwaysOnTop = true
-        bill.Parent = part
-        
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, 0, 1, 0)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = tostring(i)
-        lbl.TextColor3 = Color3.new(1, 1, 1)
-        lbl.TextScaled = true
-        lbl.Font = Enum.Font.GothamBold
-        lbl.Parent = bill
-        
-        table.insert(VisualizerParts, part)
-    end
-end
-
-function GapScanner.ClearVisualizer()
-    for _, part in VisualizerParts do
-        if part and part.Parent then
-            part:Destroy()
-        end
-    end
-    table.clear(VisualizerParts)
-end
-
 -- Função de populate automático
 local function AutoPopulateGaps()
     print("[Auto Gap] 🔍 Scanning for gaps...")
@@ -1029,16 +979,10 @@ local function estimateTravelTime(fromPos, toPos)
     return dist / speed
 end
 
--- UI Controls
-AutoGapSection:Label({
-    Title = "⚠️ Warning",
-    Desc  = "Enable God Mode + NoClip before using!",
-    Icon  = "alert-triangle",
-})
-
+-- APENAS 2 CONTROLES
 AutoGapSection:Dropdown({
     Title  = "Select Area",
-    Desc   = "Choose gap area (Common → Celestial)",
+    Desc   = "Choose gap area to navigate",
     Icon   = "map",
     Values = getAreaNames(),
     Value  = nil,
@@ -1058,112 +1002,40 @@ AutoGapSection:Dropdown({
     end
 })
 
-AutoGapSection:Slider({
-    Title = "Movement Speed",
-    Desc  = "Speed when moving between gaps.",
-    Icon  = "gauge",
-    Step  = 5,
-    Value = { Min = 20, Max = 200, Default = 50 },
-    Callback = function(value)
-        AutoGapState.MovementSpeed = value
-    end
-})
-
-AutoGapSection:Slider({
-    Title = "Safe Distance",
-    Desc  = "Minimum distance from tsunami (studs).",
-    Icon  = "shield",
-    Step  = 10,
-    Value = { Min = 50, Max = 300, Default = 120 },
-    Callback = function(value)
-        AutoGapState.SafeDistance = value
-    end
-})
-
 AutoGapSection:Toggle({
-    Title = "Wait Mode",
-    Desc  = "Stay at gap until wave passes.",
-    Icon  = "pause",
-    Value = false,
-    Callback = function(state)
-        AutoGapState.WaitMode = state
-    end
-})
-
-AutoGapSection:Toggle({
-    Title = "Show Visualizer",
-    Desc  = "Display gap waypoints.",
-    Icon  = "eye",
-    Value = false,
-    Callback = function(state)
-        AutoGapState.ShowVisualizer = state
-        if not state then
-            GapScanner.ClearVisualizer()
-        end
-    end
-})
-
-AutoGapSection:Toggle({
-    Title = "Enable Auto Gap",
-    Desc  = "Automatically navigate between gaps.",
+    Title = "Go to Area",
+    Desc  = "Navigate automatically to selected area",
     Icon  = "navigation",
     Value = false,
     Callback = function(state)
         AutoGapState.Enabled = state
         
-        local wave, method = WaveDetector.GetWave()
-        if state and wave then
+        if state then
+            if not AutoGapState.SelectedArea then
+                WindUI:Notify({
+                    Title   = "Auto Gap",
+                    Content = "⚠️ Select an area first!",
+                    Duration= 3,
+                    Icon    = "alert-triangle",
+                })
+                AutoGapState.Enabled = false
+                return
+            end
+            
             WindUI:Notify({
                 Title   = "Auto Gap",
-                Content = string.format("Enabled! Wave detected: %s", method or "Unknown"),
-                Duration= 3,
-                Icon    = "navigation",
-            })
-        elseif state and not wave then
-            WindUI:Notify({
-                Title   = "Auto Gap",
-                Content = "Enabled! Waiting for wave...",
+                Content = "🚀 Navigating to " .. AutoGapState.SelectedArea,
                 Duration= 3,
                 Icon    = "navigation",
             })
         else
             WindUI:Notify({
                 Title   = "Auto Gap",
-                Content = "Disabled.",
+                Content = "Stopped.",
                 Duration= 3,
-                Icon    = "navigation",
+                Icon    = "square",
             })
         end
-    end
-})
-
-AutoGapSection:Button({
-    Title = "🔍 Scan for Gaps",
-    Desc  = "Auto-detect gaps in the map",
-    Icon  = "search",
-    Callback = function()
-        AutoPopulateGaps()
-        WindUI:Notify({
-            Title   = "Gap Scanner",
-            Content = "Scan completed! Check console.",
-            Duration= 3,
-            Icon    = "check-circle",
-        })
-    end
-})
-
-AutoGapSection:Button({
-    Title = "Reset to First Gap",
-    Desc  = "Restart from gap #1",
-    Icon  = "rotate-ccw",
-    Callback = function()
-        AutoGapState.CurrentGapIdx = 1
-        WindUI:Notify({
-            Title   = "Auto Gap",
-            Content = "Reset to first gap.",
-            Duration= 2,
-            Icon    = "check",
-        })
     end
 })
 
@@ -1208,11 +1080,10 @@ local function stopMovement()
     end
 end
 
--- Main loop
+-- Main loop (Calcula tudo automaticamente)
 RunService.Heartbeat:Connect(function(dt)
     if not AutoGapState.Enabled then
         stopMovement()
-        GapScanner.ClearVisualizer()
         return
     end
 
@@ -1233,13 +1104,6 @@ RunService.Heartbeat:Connect(function(dt)
     end
 
     local gaps = area.Gaps
-    
-    if AutoGapState.ShowVisualizer and #VisualizerParts == 0 then
-        GapScanner.CreateVisualizer(gaps)
-    elseif not AutoGapState.ShowVisualizer and #VisualizerParts > 0 then
-        GapScanner.ClearVisualizer()
-    end
-    
     local idx = math.clamp(AutoGapState.CurrentGapIdx, 1, #gaps)
     local currentGapCF = gaps[idx]
     
@@ -1267,7 +1131,7 @@ RunService.Heartbeat:Connect(function(dt)
         stopMovement()
         WindUI:Notify({
             Title   = "Auto Gap",
-            Content = "Reached final gap!",
+            Content = "✅ Reached final gap!",
             Duration= 3,
             Icon    = "check-circle",
         })
@@ -1290,19 +1154,15 @@ RunService.Heartbeat:Connect(function(dt)
 
     local canMove = (timeToNext + safeMargin) < timeWaveToNext
 
-    if AutoGapState.WaitMode and not canMove then
+    if not canMove then
         stopMovement()
         return
     end
 
-    if canMove then
-        AutoGapState.CurrentGapIdx = nextIdx
-        local dir = (nextPos - hrpPos).Unit
-        bodyVel.Velocity = dir * AutoGapState.MovementSpeed
-        bodyGyro.CFrame = CFrame.lookAt(hrpPos, nextPos)
-    else
-        stopMovement()
-    end
+    AutoGapState.CurrentGapIdx = nextIdx
+    local dir = (nextPos - hrpPos).Unit
+    bodyVel.Velocity = dir * AutoGapState.MovementSpeed
+    bodyGyro.CFrame = CFrame.lookAt(hrpPos, nextPos)
 end)
 
 -- Auto-scan ao iniciar

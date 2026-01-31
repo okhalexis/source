@@ -1,568 +1,432 @@
---[[========================================================
-    KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
-==========================================================]]
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-local function shouldKillScript(scr)
-    if not scr:IsA("LocalScript") and not scr:IsA("ModuleScript") then
-        return false
-    end
-    local n = scr.Name:lower()
-    if n:find("speed") then return true end
-    if n:find("walk") then return true end
-    if n:find("run") then return true end
-    if n:find("sprint") then return true end
-    if n:find("upgrade") then return true end
-    if n:find("shop") then return true end
-    if n:find("stats") then return true end
-    return false
-end
-
-task.spawn(function()
-    local ps = LocalPlayer:WaitForChild("PlayerScripts", 10)
-    if ps then
-        for _, scr in ipairs(ps:GetDescendants()) do
-            if shouldKillScript(scr) then
-                scr:Destroy()
-            end
-        end
-    end
-
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    for _, scr in ipairs(char:GetDescendants()) do
-        if shouldKillScript(scr) then
-            scr:Destroy()
-        end
-    end
-
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if pg then
-        for _, scr in ipairs(pg:GetDescendants()) do
-            if shouldKillScript(scr) then
-                scr:Destroy()
-            end
-        end
-    end
-end)
-
---[[========================================================
-    HUB / CONTROLE PLAYER
-==========================================================]]
+--// Loader WindUI (sempre latest)
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-WindUI:SetNotificationLower(true)
-WindUI:SetFont("rbxassetid://0")
 
+--// Serviços
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+--// Variáveis Locais do Jogador
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+--// Ajustes básicos da Lib
+WindUI:SetNotificationLower(true)
+WindUI:SetFont("rbxassetid://0") 
+
+--// Localization
 WindUI:Localization({
     Enabled = true,
     Prefix = "loc:",
     DefaultLanguage = "en",
     Translations = {
         ["pt"] = {
-            ["HUB_TITLE"]   = "Meu Super Hub",
-            ["HUB_AUTHOR"]  = "by You",
-            ["TAB_PLAYER"]  = "Player",
-            ["TAB_FARM"]    = "Farm",
-            ["TAB_SELLING"] = "Selling",
-            ["TAB_SETTINGS"]= "Settings",
+            ["HUB_TITLE"]    = "Meu Super Hub",
+            ["HUB_AUTHOR"]   = "by You",
+            ["TAB_PLAYER"]   = "Player",
+            ["TAB_FARM"]     = "Farm",
+            ["TAB_SELLING"]  = "Selling",
+            ["TAB_SETTINGS"] = "Configurações",
         },
         ["en"] = {
-            ["HUB_TITLE"]   = "My Super Hub",
-            ["HUB_AUTHOR"]  = "by You",
-            ["TAB_PLAYER"]  = "Player",
-            ["TAB_FARM"]    = "Farm",
-            ["TAB_SELLING"] = "Selling",
-            ["TAB_SETTINGS"]= "Settings",
+            ["HUB_TITLE"]    = "My Super Hub",
+            ["HUB_AUTHOR"]   = "by You",
+            ["TAB_PLAYER"]   = "Player",
+            ["TAB_FARM"]     = "Farm",
+            ["TAB_SELLING"]  = "Selling",
+            ["TAB_SETTINGS"] = "Settings",
         },
     }
 })
 
--- Tema Red inicial
+--// Tema base "Nebula"
 WindUI:AddTheme({
-    Name = "Red",
-    Accent = Color3.fromHex("#ef4444"),
-    Background = Color3.fromHex("#111827"),
+    Name = "Nebula",
+    Accent = Color3.fromHex("#18181b"),
+    Background = Color3.fromHex("#050509"),
     BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#fecaca"),
-    Text = Color3.fromHex("#fee2e2"),
-    Placeholder = Color3.fromHex("#fca5a5"),
-    Button = Color3.fromHex("#7f1d1d"),
-    Icon = Color3.fromHex("#fecaca"),
-    Hover = Color3.fromHex("#ffffff"),
-
-    WindowBackground = Color3.fromHex("#111827"),
-    WindowShadow = Color3.fromHex("#020617"),
-
-    DialogBackground = Color3.fromHex("#111827"),
+    Outline = Color3.fromHex("#FFFFFF"),
+    Text = Color3.fromHex("#FFFFFF"),
+    Placeholder = Color3.fromHex("#7a7a7a"),
+    Button = Color3.fromHex("#2b2b35"),
+    Icon = Color3.fromHex("#a1a1aa"),
+    Hover = Color3.fromHex("#FFFFFF"),
+    WindowBackground = Color3.fromHex("#050509"),
+    WindowShadow = Color3.fromHex("#000000"),
+    DialogBackground = Color3.fromHex("#050509"),
     DialogBackgroundTransparency = 0,
-    DialogTitle = Color3.fromHex("#fee2e2"),
-    DialogContent = Color3.fromHex("#fecaca"),
-    DialogIcon = Color3.fromHex("#fecaca"),
-
-    WindowTopbarButtonIcon = Color3.fromHex("fecaca"),
-    WindowTopbarTitle = Color3.fromHex("fee2e2"),
-    WindowTopbarAuthor = Color3.fromHex("fecaca"),
-    WindowTopbarIcon = Color3.fromHex("fecaca"),
-
-    TabBackground = Color3.fromHex("#1f2937"),
-    TabTitle = Color3.fromHex("#fee2e2"),
-    TabIcon = Color3.fromHex("fecaca"),
-
-    ElementBackground = Color3.fromHex("#1f2937"),
-    ElementTitle = Color3.fromHex("#fee2e2"),
-    ElementDesc = Color3.fromHex("#fecaca"),
-    ElementIcon = Color3.fromHex("fecaca"),
-
-    PopupBackground = Color3.fromHex("#111827"),
+    DialogTitle = Color3.fromHex("#FFFFFF"),
+    DialogContent = Color3.fromHex("#FFFFFF"),
+    DialogIcon = Color3.fromHex("#a1a1aa"),
+    WindowTopbarButtonIcon = Color3.fromHex("a1a1aa"),
+    WindowTopbarTitle = Color3.fromHex("FFFFFF"),
+    WindowTopbarAuthor = Color3.fromHex("FFFFFF"),
+    WindowTopbarIcon = Color3.fromHex("FFFFFF"),
+    TabBackground = Color3.fromHex("#101019"),
+    TabTitle = Color3.fromHex("#FFFFFF"),
+    TabIcon = Color3.fromHex("a1a1aa"),
+    ElementBackground = Color3.fromHex("#101019"),
+    ElementTitle = Color3.fromHex("#FFFFFF"),
+    ElementDesc = Color3.fromHex("#b0b0b0"),
+    ElementIcon = Color3.fromHex("a1a1aa"),
+    PopupBackground = Color3.fromHex("#050509"),
     PopupBackgroundTransparency = 0,
-    PopupTitle = Color3.fromHex("#fee2e2"),
-    PopupContent = Color3.fromHex("#fecaca"),
-    PopupIcon = Color3.fromHex("fecaca"),
-
-    Toggle = Color3.fromHex("#b91c1c"),
-    ToggleBar = Color3.fromHex("#fee2e2"),
-    Checkbox = Color3.fromHex("#b91c1c"),
-    CheckboxIcon = Color3.fromHex("#fee2e2"),
-    Slider = Color3.fromHex("#b91c1c"),
-    SliderThumb = Color3.fromHex("#fee2e2"),
+    PopupTitle = Color3.fromHex("#FFFFFF"),
+    PopupContent = Color3.fromHex("#FFFFFF"),
+    PopupIcon = Color3.fromHex("a1a1aa"),
+    Toggle = Color3.fromHex("#52525b"),
+    ToggleBar = Color3.fromHex("#FFFFFF"),
+    Checkbox = Color3.fromHex("#52525b"),
+    CheckboxIcon = Color3.fromHex("#FFFFFF"),
+    Slider = Color3.fromHex("#52525b"),
+    SliderThumb = Color3.fromHex("#FFFFFF"),
 })
 
 WindUI:Gradient({
-    ["0"]   = { Color = Color3.fromHex("#111827"), Transparency = 0 },
+    ["0"]   = { Color = Color3.fromHex("#0f172a"), Transparency = 0 },
     ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
 }, { Rotation = 45 })
 
-WindUI:SetTheme("Red") -- abre no Red
+WindUI:SetTheme("Nebula")
 
-local displayName = LocalPlayer.DisplayName or LocalPlayer.Name
-local username = "@" .. (LocalPlayer.Name or "Player")
-
-local okThumb, thumb = pcall(function()
-    return Players:GetUserThumbnailAsync(
-        LocalPlayer.UserId,
-        Enum.ThumbnailType.HeadShot,
-        Enum.ThumbnailSize.Size100x100
-    )
-end)
-local avatarImage = okThumb and thumb or "rbxassetid://0"
-
+--// Window Principal
 local Window = WindUI:CreateWindow({
     Title      = "loc:HUB_TITLE",
     Icon       = "door-open",
     Author     = "loc:HUB_AUTHOR",
     Folder     = "MySuperHub",
     Size       = UDim2.fromOffset(580, 460),
-    MinSize    = Vector2.new(560, 350),
-    MaxSize    = Vector2.new(850, 560),
-    Transparent= false, -- sem transparência
-    Theme      = "Red",
+    Transparent= true,
+    Theme      = "Nebula",
     Resizable  = true,
-    SideBarWidth = 200,
-    BackgroundImageTransparency = 0.35,
-    HideSearchBar = false,
-    ScrollBarEnabled = true,
-    User = {
-        Enabled   = true,
-        Anonymous = false,
-        Name      = displayName,
-        Tag       = username,
-        Avatar    = avatarImage,
-        Callback  = function()
-            WindUI:Notify({
-                Title = displayName,
-                Content = "User card clicado.",
-                Duration = 3,
-                Icon = "user",
-            })
-        end,
-    },
+    SideBarWidth = 180,
 })
 
-Window:ToggleTransparency(false)
 Window:SetToggleKey(Enum.KeyCode.RightShift)
-Window:SetBackgroundImageTransparency(0.4)
-Window:SetIconSize(22)
 
-Window:EditOpenButton({
-    Title = "Open Hub",
-    Icon = "monitor",
-    CornerRadius = UDim.new(0,16),
-    StrokeThickness = 2,
-    Color = ColorSequence.new(Color3.fromHex("FF0F7B"), Color3.fromHex("F89B29")),
-    OnlyMobile = false,
-    Enabled = true,
-    Draggable = true,
-})
+--// ==========================================
+--// LÓGICA CORE (SPEED, JUMP, FLY, NOCLIP)
+--// ==========================================
+
+local Core = {
+    Speed = { Enabled = false, Value = 16, Connection = nil },
+    Jump = { Enabled = false, Value = 50, Connection = nil },
+    Fly = { Enabled = false, Speed = 50, Connection = nil },
+    NoClip = { Enabled = false, Connection = nil }
+}
+
+-- Funções Auxiliares
+local function getChar() return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait() end
+local function getHum() return getChar():FindFirstChildOfClass("Humanoid") end
+local function getRoot() return getChar():FindFirstChild("HumanoidRootPart") end
+
+-- Sistema de Speed (Heartbeat Override)
+local function UpdateSpeed()
+    if Core.Speed.Connection then Core.Speed.Connection:Disconnect() end
+    Core.Speed.Connection = RunService.Heartbeat:Connect(function()
+        if Core.Speed.Enabled then
+            local hum = getHum()
+            if hum then
+                hum.WalkSpeed = Core.Speed.Value
+            end
+        end
+    end)
+end
+
+-- Sistema de Jump (Heartbeat Override)
+local function UpdateJump()
+    if Core.Jump.Connection then Core.Jump.Connection:Disconnect() end
+    Core.Jump.Connection = RunService.Heartbeat:Connect(function()
+        if Core.Jump.Enabled then
+            local hum = getHum()
+            if hum then
+                hum.UseJumpPower = true 
+                hum.JumpPower = Core.Jump.Value
+            end
+        end
+    end)
+end
+
+-- Sistema de Fly (CFrame - Fluido)
+local FlyKeys = {W=false, A=false, S=false, D=false, Space=false, Ctrl=false}
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.W then FlyKeys.W = true end
+    if input.KeyCode == Enum.KeyCode.A then FlyKeys.A = true end
+    if input.KeyCode == Enum.KeyCode.S then FlyKeys.S = true end
+    if input.KeyCode == Enum.KeyCode.D then FlyKeys.D = true end
+    if input.KeyCode == Enum.KeyCode.Space then FlyKeys.Space = true end
+    if input.KeyCode == Enum.KeyCode.LeftControl then FlyKeys.Ctrl = true end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then FlyKeys.W = false end
+    if input.KeyCode == Enum.KeyCode.A then FlyKeys.A = false end
+    if input.KeyCode == Enum.KeyCode.S then FlyKeys.S = false end
+    if input.KeyCode == Enum.KeyCode.D then FlyKeys.D = false end
+    if input.KeyCode == Enum.KeyCode.Space then FlyKeys.Space = false end
+    if input.KeyCode == Enum.KeyCode.LeftControl then FlyKeys.Ctrl = false end
+end)
+
+local function ToggleFly(state)
+    Core.Fly.Enabled = state
+    local root = getRoot()
+    local hum = getHum()
+
+    if state then
+        if Core.Fly.Connection then Core.Fly.Connection:Disconnect() end
+        if hum then hum.PlatformStand = true end -- Desativa física padrão
+        
+        Core.Fly.Connection = RunService.RenderStepped:Connect(function(dt)
+            if not Core.Fly.Enabled or not root then return end
+            
+            local speed = Core.Fly.Speed
+            local vel = Vector3.zero
+            
+            if FlyKeys.W then vel = vel + (Camera.CFrame.LookVector * speed) end
+            if FlyKeys.S then vel = vel - (Camera.CFrame.LookVector * speed) end
+            if FlyKeys.A then vel = vel - (Camera.CFrame.RightVector * speed) end
+            if FlyKeys.D then vel = vel + (Camera.CFrame.RightVector * speed) end
+            if FlyKeys.Space then vel = vel + (Vector3.new(0,1,0) * speed) end
+            if FlyKeys.Ctrl then vel = vel - (Vector3.new(0,1,0) * speed) end
+            
+            root.Velocity = Vector3.zero 
+            root.CFrame = root.CFrame + (vel * dt)
+        end)
+    else
+        if Core.Fly.Connection then Core.Fly.Connection:Disconnect() end
+        if hum then hum.PlatformStand = false end
+        if root then root.Velocity = Vector3.zero end
+    end
+end
+
+-- Sistema de NoClip (Stepped Override)
+-- Tenta evitar cair do chão mantendo colisão se não estiver movendo ou se for chão
+local function ToggleNoClip(state)
+    Core.NoClip.Enabled = state
+    if Core.NoClip.Connection then Core.NoClip.Connection:Disconnect() end
+
+    if state then
+        Core.NoClip.Connection = RunService.Stepped:Connect(function()
+            if not Core.NoClip.Enabled then return end
+            local char = getChar()
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") and part.CanCollide then
+                        -- Lógica simples: Se estiver voando, desativa tudo.
+                        -- Se NÃO estiver voando, mantém colisão nas pernas para não cair?
+                        -- Isso costuma ser bugado. A melhor abordagem para "Não cair do mapa"
+                        -- é o usuário usar FLY junto, ou usarmos Raycast.
+                        -- Para estabilidade, desativamos colisão, mas o usuário deve controlar.
+                        part.CanCollide = false 
+                    end
+                end
+            end
+        end)
+    end
+end
+
+--// ==========================================
+--// INTERFACE GRÁFICA (TABS)
+--// ==========================================
 
 local Tabs = {
     Player   = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
-    Farm     = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }),
-    Selling  = Window:Tab({ Title = "loc:TAB_SELLING",  Icon = "shopping-bag" }),
+    Farm     = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }), -- Aba Restaurada
+    Selling  = Window:Tab({ Title = "loc:TAB_SELLING",  Icon = "shopping-bag" }), -- Aba Restaurada
     Settings = Window:Tab({ Title = "loc:TAB_SETTINGS", Icon = "settings" }),
 }
 
 Window:SelectTab(1)
 
 ----------------------------------------------------
--- PLAYER TAB / LÓGICA
+-- TAB: PLAYER (Funcionalidades Principais)
 ----------------------------------------------------
 local PlayerSection = Tabs.Player:Section({
-    Title = "Player Core",
+    Title = "Player Attributes",
     Box = true,
     Opened = true,
 })
 
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-
-local function getCharacter()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    return char
-end
-
-local function getHumanoid()
-    local char = getCharacter()
-    if not char then return end
-    return char:FindFirstChildOfClass("Humanoid")
-end
-
-local function getHumanoidRootPart()
-    local char = getCharacter()
-    if not char then return end
-    return char:FindFirstChild("HumanoidRootPart")
-end
-
-local PlayerFlags = {
-    SpeedValue     = 22,
-    JumpEnabled    = false,
-    JumpValue      = 50,
-    NoClipEnabled  = false,
-    FlyEnabled     = false,
-    FlySpeed       = 50,
-    FlyKey         = Enum.KeyCode.F,
-}
-
-local DEFAULT_WALKSPEED = 22
-local DEFAULT_JUMPPOWER = 50
-local MAX_SPEED = 1000
-
--- HUD Speed
-local function getSpeedLabel()
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then return end
-    local hud = pg:FindFirstChild("HUD")
-    if not hud then return end
-    local bottomLeft = hud:FindFirstChild("BottomLeft")
-    if not bottomLeft then return end
-    local playerSpeed = bottomLeft:FindFirstChild("PlayerSpeed")
-    if not playerSpeed then return end
-    return playerSpeed:FindFirstChild("Speed")
-end
-
-local function updateHudSpeed(val)
-    local lbl = getSpeedLabel()
-    if lbl and lbl:IsA("TextLabel") then
-        lbl.Text = tostring(val)
-    end
-end
-
--- SPEED real do player (até 1000)
-local function forceSpeed()
-    local hum = getHumanoid()
-    if not hum then return end
-
-    -- alguns jogos usam Attribute / ValueObject para speed; tenta travar isso
-    hum:SetAttribute("WalkSpeed", nil)
-    local target = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
-
-    hum.WalkSpeed = target
-    updateHudSpeed(target)
-end
-
-RunService.Heartbeat:Connect(forceSpeed)
-
--- JUMP
-local function applyJump(rawValue)
-    local hum = getHumanoid()
-    if not hum then return end
-    local value = math.clamp(rawValue, 10, 300)
-    PlayerFlags.JumpValue = value
-    pcall(function() hum.UseJumpPower = true end)
-    hum.JumpPower = value
-end
-
-RunService.Heartbeat:Connect(function()
-    local hum = getHumanoid()
-    if not hum then return end
-    pcall(function() hum.UseJumpPower = true end)
-    if PlayerFlags.JumpEnabled then
-        hum.JumpPower = PlayerFlags.JumpValue
-    else
-        hum.JumpPower = DEFAULT_JUMPPOWER
-    end
-end)
-
--- FLY
-local FlyVelocity, FlyGyro
-
-local function startFly()
-    if PlayerFlags.FlyEnabled then return end
-    local hrp = getHumanoidRootPart()
-    local hum = getHumanoid()
-    if not hrp or not hum then return end
-
-    PlayerFlags.FlyEnabled = true
-    hum.PlatformStand = true
-
-    FlyVelocity = Instance.new("BodyVelocity")
-    FlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    FlyVelocity.Velocity = Vector3.zero
-    FlyVelocity.Parent = hrp
-
-    FlyGyro = Instance.new("BodyGyro")
-    FlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    FlyGyro.P = 9e4
-    FlyGyro.CFrame = hrp.CFrame
-    FlyGyro.Parent = hrp
-end
-
-local function stopFly()
-    if not PlayerFlags.FlyEnabled then return end
-    PlayerFlags.FlyEnabled = false
-
-    local hum = getHumanoid()
-    if hum then hum.PlatformStand = false end
-    if FlyVelocity then FlyVelocity:Destroy() FlyVelocity = nil end
-    if FlyGyro then FlyGyro:Destroy() FlyGyro = nil end
-end
-
-RunService.RenderStepped:Connect(function()
-    if not PlayerFlags.FlyEnabled then return end
-    local hrp = getHumanoidRootPart()
-    local hum = getHumanoid()
-    if not hrp or not hum then
-        stopFly()
-        return
-    end
-
-    local cam = workspace.CurrentCamera
-    if not cam then return end
-
-    local moveDir = Vector3.zero
-    local cf = cam.CFrame
-    local forward = cf.LookVector
-    local right = cf.RightVector
-
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += forward end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= forward end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += right end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= right end
-    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0,1,0) end
-
-    if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
-    local vel = moveDir * PlayerFlags.FlySpeed
-
-    if FlyVelocity then FlyVelocity.Velocity = vel end
-    if FlyGyro then FlyGyro.CFrame = cf end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == PlayerFlags.FlyKey then
-        if PlayerFlags.FlyEnabled then
-            stopFly()
-        else
-            startFly()
-        end
-    end
-end)
-
--- NOCLIP
-local function applyFullNoClip()
-    local char = getCharacter()
-    if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
-    end
-end
-
-local function disableFullNoClip()
-    local char = getCharacter()
-    if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-        end
-    end
-end
-
-RunService.Stepped:Connect(function()
-    if PlayerFlags.NoClipEnabled then
-        applyFullNoClip()
-    end
-end)
-
-----------------------------------------------------
--- UI ELEMENTOS PLAYER
-----------------------------------------------------
-PlayerSection:Slider({
+-- SPEED
+PlayerSection:Toggle({
     Title = "Speed",
-    Desc  = "Velocidade real do player (1–1000).",
-    Step  = 1,
-    Value = { Min = 1, Max = MAX_SPEED, Default = 22 },
-    Callback = function(value)
-        PlayerFlags.SpeedValue = value
-        forceSpeed()
+    Desc  = "Define a velocidade (Sobrescreve sistema do jogo).",
+    Icon  = "gauge",
+    Value = false,
+    Callback = function(state)
+        Core.Speed.Enabled = state
+        if not state then
+            local hum = getHum()
+            if hum then hum.WalkSpeed = 16 end
+        end
+        UpdateSpeed()
     end
 })
 
+PlayerSection:Slider({
+    Title = "Custom Speed",
+    Desc  = "Intervalo: 16 - 1000",
+    Step  = 1,
+    Value = { Min = 16, Max = 1000, Default = 16 },
+    Callback = function(v)
+        Core.Speed.Value = v
+    end
+})
+
+-- JUMP
 PlayerSection:Toggle({
-    Title = "Custom Jump",
-    Desc  = "Ativa/desativa controle de pulo.",
+    Title = "Jump Power",
+    Desc  = "Define altura do pulo (Sobrescreve bloqueios).",
     Icon  = "arrow-up",
     Value = false,
     Callback = function(state)
-        PlayerFlags.JumpEnabled = state
-        if state then
-            applyJump(PlayerFlags.JumpValue)
-        else
-            applyJump(DEFAULT_JUMPPOWER)
+        Core.Jump.Enabled = state
+        if not state then
+            local hum = getHum()
+            if hum then hum.JumpPower = 50 end
         end
+        UpdateJump()
     end
 })
 
 PlayerSection:Slider({
-    Title = "Jump Power",
-    Desc  = "Altura do pulo.",
+    Title = "Jump Height",
+    Desc  = "Intervalo: 50 - 300",
     Step  = 1,
-    Value = { Min = 10, Max = 300, Default = 80 },
-    Callback = function(value)
-        PlayerFlags.JumpValue = value
-        if PlayerFlags.JumpEnabled then
-            applyJump(value)
-        end
+    Value = { Min = 50, Max = 300, Default = 50 },
+    Callback = function(v)
+        Core.Jump.Value = v
     end
 })
 
-PlayerSection:Toggle({
+-- ABILITIES SECTION
+local AbilitiesSection = Tabs.Player:Section({
+    Title = "Abilities",
+    Box = true,
+    Opened = true,
+})
+
+-- FLY
+AbilitiesSection:Toggle({
     Title = "Fly",
-    Desc  = "Ativa/desativa fly (tecla F).",
-    Icon  = "feather",
+    Desc  = "Voo livre (WASD + Space/Ctrl). Sem inércia.",
+    Icon  = "plane",
     Value = false,
     Callback = function(state)
-        if state then startFly() else stopFly() end
+        ToggleFly(state)
     end
 })
 
-PlayerSection:Slider({
+AbilitiesSection:Slider({
     Title = "Fly Speed",
-    Desc  = "Velocidade do fly.",
+    Desc  = "Velocidade do voo.",
     Step  = 1,
     Value = { Min = 10, Max = 500, Default = 50 },
-    Callback = function(value)
-        PlayerFlags.FlySpeed = value
+    Callback = function(v)
+        Core.Fly.Speed = v
     end
 })
 
-PlayerSection:Toggle({
+-- NOCLIP
+AbilitiesSection:Toggle({
     Title = "NoClip",
-    Desc  = "Atravessa qualquer parede/objeto.",
+    Desc  = "Atravessa paredes e objetos.",
     Icon  = "ghost",
-    Type  = "Checkbox",
     Value = false,
     Callback = function(state)
-        PlayerFlags.NoClipEnabled = state
-        if not state then
-            disableFullNoClip()
-        end
-    end
-})
-
-----------------------------------------------------
--- FARM / SELLING PLACEHOLDER
-----------------------------------------------------
-Tabs.Farm:Section({
-    Title = "Farm (em breve)",
-    Box = true,
-    Opened = true,
-})
-
-Tabs.Selling:Section({
-    Title = "Selling (em breve)",
-    Box = true,
-    Opened = true,
-})
-
-----------------------------------------------------
--- SETTINGS (Window + Themes + Toggle Keybind)
-----------------------------------------------------
-local SettingsWindowSection = Tabs.Settings:Section({
-    Title = "Window",
-    Box = true,
-    Opened = true,
-})
-
-SettingsWindowSection:Toggle({
-    Title = "Window Transparency",
-    Desc  = "Liga/desliga transparência global.",
-    Value = false,
-    Callback = function(e)
-        Window:ToggleTransparency(e)
-    end
-})
-
-SettingsWindowSection:Keybind({
-    Title = "Toggle UI Key",
-    Desc  = "Clique e pressione a tecla para abrir/fechar o hub.",
-    Value = "RightShift",
-    Callback = function(keyName)
-        if typeof(keyName) == "string" and Enum.KeyCode[keyName] then
-            Window:SetToggleKey(Enum.KeyCode[keyName])
+        ToggleNoClip(state)
+        if state then
             WindUI:Notify({
-                Title = "Toggle Key",
-                Content = "Tecla do hub alterada para: " .. keyName,
-                Duration = 3,
-                Icon = "keyboard",
+                Title = "Aviso",
+                Content = "NoClip ativo. Use com Fly para evitar cair do mapa.",
+                Icon = "alert-triangle",
+                Duration = 4
             })
         end
     end
 })
 
-SettingsWindowSection:Button({
-    Title = "Center Window",
-    Callback = function()
-        Window:Toggle()
-        task.wait(0.05)
-        Window:Toggle()
-    end
-})
-
-local ThemesSection = Tabs.Settings:Section({
-    Title = "Themes",
+----------------------------------------------------
+-- TAB: FARM (Aba presente, conteúdo removido)
+----------------------------------------------------
+local FarmSection = Tabs.Farm:Section({
+    Title = "Auto Farm",
     Box = true,
     Opened = true,
 })
 
-local themeNames = {}
-for name in pairs(WindUI:GetThemes()) do
-    table.insert(themeNames, name)
-end
+FarmSection:Paragraph({
+    Title = "Manutenção",
+    Content = "As funcionalidades de Farm foram removidas temporariamente para aprimoramento."
+})
 
-ThemesSection:Dropdown({
-    Title  = "Theme",
-    Desc   = "Selecione o tema.",
-    Values = themeNames,
-    Value  = WindUI:GetCurrentTheme() or "Red",
-    Callback = function(themeName)
-        WindUI:SetTheme(themeName)
-        WindUI:Notify({
-            Title = "Theme",
-            Content = "Tema alterado para: " .. tostring(themeName),
-            Duration = 3,
-            Icon = "palette",
-        })
+----------------------------------------------------
+-- TAB: SELLING (Aba presente, conteúdo removido)
+----------------------------------------------------
+local SellingSection = Tabs.Selling:Section({
+    Title = "Auto Sell",
+    Box = true,
+    Opened = true,
+})
+
+SellingSection:Paragraph({
+    Title = "Manutenção",
+    Content = "As funcionalidades de Selling foram removidas temporariamente para aprimoramento."
+})
+
+----------------------------------------------------
+-- TAB: SETTINGS
+----------------------------------------------------
+local SettingsSection = Tabs.Settings:Section({
+    Title = "Interface Config",
+    Box = true,
+    Opened = true,
+})
+
+SettingsSection:Keybind({
+    Title = "Menu Key",
+    Desc  = "Tecla para abrir/fechar o Hub.",
+    Value = "RightShift",
+    Callback = function(key)
+        Window:SetToggleKey(Enum.KeyCode[key])
+    end
+})
+
+local Themes = WindUI:GetThemes()
+local ThemeList = {}
+for name, _ in pairs(Themes) do table.insert(ThemeList, name) end
+
+SettingsSection:Dropdown({
+    Title = "Theme",
+    Values = ThemeList,
+    Value = "Nebula",
+    Callback = function(t)
+        WindUI:SetTheme(t)
+    end
+})
+
+SettingsSection:Button({
+    Title = "Descarregar Script",
+    Color = Color3.fromRGB(200, 60, 60),
+    Callback = function()
+        -- Limpa loops
+        if Core.Speed.Connection then Core.Speed.Connection:Disconnect() end
+        if Core.Jump.Connection then Core.Jump.Connection:Disconnect() end
+        if Core.Fly.Connection then Core.Fly.Connection:Disconnect() end
+        if Core.NoClip.Connection then Core.NoClip.Connection:Disconnect() end
+        
+        -- Reseta status
+        local hum = getHum()
+        if hum then 
+            hum.WalkSpeed = 16 
+            hum.JumpPower = 50 
+            hum.PlatformStand = false
+        end
+        
+        Window:Close() -- Caso WindUI suporte
+        WindUI:Notify({Title="Script", Content="Script finalizado.", Duration=2})
     end
 })

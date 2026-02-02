@@ -1048,15 +1048,14 @@ task.spawn(function()
     end
 end)
 
-Tabs.Auto:Button({
+-- Alterado: Botões -> Toggles (mesmo estilo de ativar/desativar da aba Player)
+Tabs.Auto:Toggle({
     Title = "Auto Buy Speed",
-    Desc = "OFF",
-    Color = Color3.fromHex("#ff4444"),
-    Justify = "Center",
-    IconAlign = "Left",
+    Desc = "Ativa/Desativa compra automática de Speed",
     Icon = "zap",
-    Callback = function()
-        PlayerFlags.AutoBuySpeed = not PlayerFlags.AutoBuySpeed
+    Value = PlayerFlags.AutoBuySpeed,
+    Callback = function(v)
+        PlayerFlags.AutoBuySpeed = v
         WindUI:Notify({
             Title = "Auto Buy Speed",
             Content = PlayerFlags.AutoBuySpeed and "Ativado" or "Desativado",
@@ -1066,15 +1065,13 @@ Tabs.Auto:Button({
     end,
 })
 
-Tabs.Auto:Button({
+Tabs.Auto:Toggle({
     Title = "Auto Buy Carry",
-    Desc = "OFF",
-    Color = Color3.fromHex("#ff4444"),
-    Justify = "Center",
-    IconAlign = "Left",
+    Desc = "Ativa/Desativa compra automática de Carry",
     Icon = "shopping-bag",
-    Callback = function()
-        PlayerFlags.AutoBuyCarry = not PlayerFlags.AutoBuyCarry
+    Value = PlayerFlags.AutoBuyCarry,
+    Callback = function(v)
+        PlayerFlags.AutoBuyCarry = v
         WindUI:Notify({
             Title = "Auto Buy Carry",
             Content = PlayerFlags.AutoBuyCarry and "Ativado" or "Desativado",
@@ -1084,15 +1081,13 @@ Tabs.Auto:Button({
     end,
 })
 
-Tabs.Auto:Button({
+Tabs.Auto:Toggle({
     Title = "Auto Upgrade Base",
-    Desc = "OFF",
-    Color = Color3.fromHex("#ff4444"),
-    Justify = "Center",
-    IconAlign = "Left",
+    Desc = "Ativa/Desativa upgrade automático da base",
     Icon = "home",
-    Callback = function()
-        PlayerFlags.AutoUpgradeBase = not PlayerFlags.AutoUpgradeBase
+    Value = PlayerFlags.AutoUpgradeBase,
+    Callback = function(v)
+        PlayerFlags.AutoUpgradeBase = v
         WindUI:Notify({
             Title = "Auto Upgrade Base",
             Content = PlayerFlags.AutoUpgradeBase and "Ativado" or "Desativado",
@@ -1102,15 +1097,13 @@ Tabs.Auto:Button({
     end,
 })
 
-Tabs.Auto:Button({
+Tabs.Auto:Toggle({
     Title = "Auto Rebirth",
-    Desc = "OFF",
-    Color = Color3.fromHex("#ff4444"),
-    Justify = "Center",
-    IconAlign = "Left",
+    Desc = "Ativa/Desativa rebirth automático",
     Icon = "repeat",
-    Callback = function()
-        PlayerFlags.AutoRebirth = not PlayerFlags.AutoRebirth
+    Value = PlayerFlags.AutoRebirth,
+    Callback = function(v)
+        PlayerFlags.AutoRebirth = v
         WindUI:Notify({
             Title = "Auto Rebirth",
             Content = PlayerFlags.AutoRebirth and "Ativado" or "Desativado",

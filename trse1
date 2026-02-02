@@ -1048,14 +1048,15 @@ task.spawn(function()
     end
 end)
 
--- CORREÇÃO: adicionar Toggles dentro da Section (AutoTabSection), não na Tab (Tabs.Auto)
-AutoTabSection:Toggle({
+Tabs.Auto:Button({
     Title = "Auto Buy Speed",
-    Desc = "Ativa/Desativa compra automática de Speed",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
     Icon = "zap",
-    Value = PlayerFlags.AutoBuySpeed,
-    Callback = function(v)
-        PlayerFlags.AutoBuySpeed = v
+    Callback = function()
+        PlayerFlags.AutoBuySpeed = not PlayerFlags.AutoBuySpeed
         WindUI:Notify({
             Title = "Auto Buy Speed",
             Content = PlayerFlags.AutoBuySpeed and "Ativado" or "Desativado",
@@ -1065,13 +1066,15 @@ AutoTabSection:Toggle({
     end,
 })
 
-AutoTabSection:Toggle({
+Tabs.Auto:Button({
     Title = "Auto Buy Carry",
-    Desc = "Ativa/Desativa compra automática de Carry",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
     Icon = "shopping-bag",
-    Value = PlayerFlags.AutoBuyCarry,
-    Callback = function(v)
-        PlayerFlags.AutoBuyCarry = v
+    Callback = function()
+        PlayerFlags.AutoBuyCarry = not PlayerFlags.AutoBuyCarry
         WindUI:Notify({
             Title = "Auto Buy Carry",
             Content = PlayerFlags.AutoBuyCarry and "Ativado" or "Desativado",
@@ -1081,13 +1084,15 @@ AutoTabSection:Toggle({
     end,
 })
 
-AutoTabSection:Toggle({
+Tabs.Auto:Button({
     Title = "Auto Upgrade Base",
-    Desc = "Ativa/Desativa upgrade automático da base",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
     Icon = "home",
-    Value = PlayerFlags.AutoUpgradeBase,
-    Callback = function(v)
-        PlayerFlags.AutoUpgradeBase = v
+    Callback = function()
+        PlayerFlags.AutoUpgradeBase = not PlayerFlags.AutoUpgradeBase
         WindUI:Notify({
             Title = "Auto Upgrade Base",
             Content = PlayerFlags.AutoUpgradeBase and "Ativado" or "Desativado",
@@ -1097,13 +1102,15 @@ AutoTabSection:Toggle({
     end,
 })
 
-AutoTabSection:Toggle({
+Tabs.Auto:Button({
     Title = "Auto Rebirth",
-    Desc = "Ativa/Desativa rebirth automático",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
     Icon = "repeat",
-    Value = PlayerFlags.AutoRebirth,
-    Callback = function(v)
-        PlayerFlags.AutoRebirth = v
+    Callback = function()
+        PlayerFlags.AutoRebirth = not PlayerFlags.AutoRebirth
         WindUI:Notify({
             Title = "Auto Rebirth",
             Content = PlayerFlags.AutoRebirth and "Ativado" or "Desativado",

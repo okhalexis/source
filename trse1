@@ -47,11 +47,11 @@ task.spawn(function()
 end)
 
 --[[========================================================
-    WINDUI CONFIG
+    HUB / CONTROLE PLAYER - CONFIGURAÇÕES DE UI
 ==========================================================]]
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 WindUI:SetNotificationLower(true)
-WindUI:SetFont("rbxassetid://0") [web:1]
+WindUI:SetFont("rbxassetid://0")
 
 WindUI:Localization({
     Enabled = true,
@@ -194,17 +194,17 @@ Window:EditOpenButton({
 })
 
 local Tabs = {
-    Player   = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
-    Farm     = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }),
-    Auto     = Window:Tab({ Title = "loc:TAB_AUTO",     Icon = "refresh-cw" }),
-    Events   = Window:Tab({ Title = "loc:TAB_EVENTS",   Icon = "atom" }),
-    Settings = Window:Tab({ Title = "loc:TAB_SETTINGS", Icon = "settings" }),
+    Player      = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
+    Farm        = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }),
+    Auto        = Window:Tab({ Title = "loc:TAB_AUTO",     Icon = "refresh-cw" }),
+    Events      = Window:Tab({ Title = "loc:TAB_EVENTS",   Icon = "atom" }),
+    Settings    = Window:Tab({ Title = "loc:TAB_SETTINGS", Icon = "settings" }),
 }
 
 Window:SelectTab(1)
 
 ----------------------------------------------------
--- SERVICES / HELPERS
+-- SERVICES / HELPERS / NETWORKING
 ----------------------------------------------------
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -212,7 +212,6 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local CollectionService = game:GetService("CollectionService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualUser = game:GetService("VirtualUser")
 
 local NetPackage = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net")
 local WheelRollRF = NetPackage:WaitForChild("RF/WheelSpin.Roll")
@@ -235,7 +234,7 @@ local function getHumanoidRootPart()
 end
 
 ----------------------------------------------------
--- FLAGS
+-- PLAYER FLAGS
 ----------------------------------------------------
 local PlayerFlags = {
     SpeedEnabled   = false,
@@ -247,27 +246,49 @@ local PlayerFlags = {
     FlySpeed       = 50,
     FlyKey         = Enum.KeyCode.F,
     InstantSteal   = false,
+    GodMode        = false,
 
-    AutoRadioactive  = false,
+    AutoRadioactive = false,
     RadioactiveDelay = 0.5,
-    AutoUFO          = false,
-    UFODelay         = 0.5,
-    AutoSpin         = false,
-    SpinDelay        = 1,
-    SpinType         = "Radioactive",
+    AutoUFO = false,
+    UFODelay = 0.5,
+    AutoSpin = false,
+    SpinDelay = 1,
+    SpinType = "Radioactive",
 
-    AutoBuySpeed     = false,
-    AutoBuyCarry     = false,
-    AutoUpgradeBase  = false,
-    AutoRebirth      = false,
-    AutoCollectCash  = false,
+    AutoBuySpeed = false,
+    AutoBuyCarry = false,
+    AutoUpgradeBase = false,
+    AutoRebirth = false,
 }
 
 local DEFAULT_JUMPPOWER = 50
 local MAX_SPEED = 1000
 
 ----------------------------------------------------
--- PLAYER TAB (MODELO)
+-- HUD Speed
+----------------------------------------------------
+local function getSpeedLabel()
+    local pg = LocalPlayer:FindFirstChild("PlayerGui")
+    if not pg then return nil end
+    local hud = pg:FindFirstChild("HUD")
+    if not hud then return nil end
+    local bottomLeft = hud:FindFirstChild("BottomLeft")
+    if not bottomLeft then return nil end
+    local playerSpeed = bottomLeft:FindFirstChild("PlayerSpeed")
+    if not playerSpeed then return nil end
+    return playerSpeed:FindFirstChild("Speed")
+end
+
+local function updateHudSpeed(val)
+    local lbl = getSpeedLabel()
+    if lbl and lbl:IsA("TextLabel") then
+        lbl.Text = tostring(val)
+    end
+end
+
+----------------------------------------------------
+-- SPEED HACK
 ----------------------------------------------------
 local SpeedSection = Tabs.Player:Section({
     Title  = "Speed Hack",
@@ -294,6 +315,7 @@ local function enableSpeed()
             local speed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
             local distance = speed * deltaTime
             hrp.CFrame = hrp.CFrame + (moveDir * distance)
+            updateHudSpeed(speed)
         end
     end)
 end
@@ -312,7 +334,11 @@ SpeedSection:Toggle({
     Value = false,
     Callback = function(state)
         PlayerFlags.SpeedEnabled = state
-        if state then enableSpeed() else disableSpeed() end
+        if state then
+            enableSpeed()
+        else
+            disableSpeed()
+        end
     end,
 })
 
@@ -326,6 +352,9 @@ SpeedSection:Slider({
     end,
 })
 
+----------------------------------------------------
+-- JUMP HACK
+----------------------------------------------------
 local JumpSection = Tabs.Player:Section({
     Title  = "Jump Hack",
     Icon   = "arrow-up",
@@ -381,6 +410,9 @@ JumpSection:Slider({
     end,
 })
 
+----------------------------------------------------
+-- FLY MODE
+----------------------------------------------------
 local FlySection = Tabs.Player:Section({
     Title  = "Fly Mode",
     Icon   = "feather",
@@ -487,6 +519,9 @@ FlySection:Slider({
     end,
 })
 
+----------------------------------------------------
+-- NO CLIP
+----------------------------------------------------
 local NoClipSection = Tabs.Player:Section({
     Title  = "No Clip",
     Icon   = "ghost",
@@ -535,16 +570,16 @@ NoClipSection:Toggle({
 })
 
 ----------------------------------------------------
--- FARM TAB
+-- FARM / INSTANT STEAL
 ----------------------------------------------------
-local InstantSection = Tabs.Farm:Section({
+local FarmSection = Tabs.Farm:Section({
     Title  = "Instant Steal",
     Icon   = "zap",
     Box    = true,
     Opened = true,
 })
 
-local instantConnections = {}
+local connections = {}
 
 local function setPromptInstant(prompt)
     prompt.HoldDuration = 0
@@ -557,13 +592,13 @@ local function enableInstantSteal()
         end
     end
 
-    table.insert(instantConnections,
+    table.insert(connections,
         ProximityPromptService.PromptShown:Connect(function(prompt)
             setPromptInstant(prompt)
         end)
     )
 
-    table.insert(instantConnections,
+    table.insert(connections,
         ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
             if not PlayerFlags.InstantSteal then return end
             if player ~= LocalPlayer then return end
@@ -576,15 +611,15 @@ local function enableInstantSteal()
 end
 
 local function disableInstantSteal()
-    for _, conn in ipairs(instantConnections) do
+    for _, conn in ipairs(connections) do
         if conn.Connected then
             conn:Disconnect()
         end
     end
-    table.clear(instantConnections)
+    table.clear(connections)
 end
 
-InstantSection:Toggle({
+FarmSection:Toggle({
     Title = "Instant Steal",
     Desc  = "Quick Interact with all prompts!",
     Icon  = "zap",
@@ -600,7 +635,10 @@ InstantSection:Toggle({
     end,
 })
 
-local BrainrotSection = Tabs.Farm:Section({
+----------------------------------------------------
+-- AUTO FARM BRAINROT - TELEPORT DIRETO
+----------------------------------------------------
+local AutoFarmSection = Tabs.Farm:Section({
     Title  = "Brainrot Areas",
     Icon   = "cpu",
     Box    = true,
@@ -778,9 +816,20 @@ local function autoFarmLoop()
     end
 end
 
+local function startDirectTravel(index)
+    AutoGapState.TargetGapIndex = index
+    AutoGapState.Enabled = true
+
+    if autoFarmCoroutine then
+        task.cancel(autoFarmCoroutine)
+    end
+
+    autoFarmCoroutine = task.spawn(autoFarmLoop)
+end
+
 local lastClick = 0
 for _, gap in ipairs(GapPositions) do
-    BrainrotSection:Button({
+    AutoFarmSection:Button({
         Title = gap.Name,
         Desc  = "Direct travel to " .. gap.Name,
         Icon  = gap.Icon,
@@ -789,18 +838,12 @@ for _, gap in ipairs(GapPositions) do
                 return
             end
             lastClick = tick()
-            AutoGapState.TargetGapIndex = gap.Index
-            AutoGapState.Enabled = true
-
-            if autoFarmCoroutine then
-                task.cancel(autoFarmCoroutine)
-            end
-            autoFarmCoroutine = task.spawn(autoFarmLoop)
+            startDirectTravel(gap.Index)
         end,
     })
 end
 
-BrainrotSection:Button({
+AutoFarmSection:Button({
     Title = "Stop Movement",
     Desc  = "Emergency stop and No Clip OFF",
     Icon  = "octagon",
@@ -812,6 +855,268 @@ BrainrotSection:Button({
         if autoFarmCoroutine then
             task.cancel(autoFarmCoroutine)
         end
+    end,
+})
+
+----------------------------------------------------
+-- AUTO COLETA (EVENTS)
+----------------------------------------------------
+task.spawn(function()
+    while true do
+        local hrp = getHumanoidRootPart()
+        if not hrp then
+            task.wait(1)
+            continue
+        end
+
+        if PlayerFlags.AutoRadioactive then
+            pcall(function()
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if not PlayerFlags.AutoRadioactive then
+                        break
+                    end
+
+                    if obj.Name == "Radioactive Coin"
+                        or obj.Name == "coins1"
+                        or obj.Name == "coins2"
+                        or CollectionService:HasTag(obj, "RadioactiveCoin")
+                    then
+                        if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
+                            local basesFolder = workspace:FindFirstChild("Bases")
+                            local isInBases = basesFolder and obj:IsDescendantOf(basesFolder)
+                            if (not isInBases) or (obj.Parent and obj.Parent.Name == "ModelExtents") then
+                                obj.CFrame = hrp.CFrame
+                                firetouchinterest(hrp, obj, 0)
+                                firetouchinterest(hrp, obj, 1)
+                            end
+                        end
+                    end
+                end
+            end)
+
+            task.wait(PlayerFlags.RadioactiveDelay)
+        end
+
+        if PlayerFlags.AutoUFO then
+            pcall(function()
+                local eventParts = workspace:FindFirstChild("EventParts")
+                if eventParts then
+                    for _, coin in ipairs(eventParts:GetChildren()) do
+                        if coin.Name:lower():find("ufo") and coin:IsA("BasePart") then
+                            coin.CFrame = hrp.CFrame
+                            firetouchinterest(hrp, coin, 0)
+                            firetouchinterest(hrp, coin, 1)
+                        end
+                    end
+                end
+
+                local bases = workspace:FindFirstChild("Bases")
+                if bases then
+                    for _, folder in ipairs(bases:GetChildren()) do
+                        for _, slot in ipairs(folder:GetChildren()) do
+                            local model = slot:FindFirstChildWhichIsA("Model")
+                            if model and model:FindFirstChild("UFO") then
+                                for _, coin in ipairs(model.UFO:GetDescendants()) do
+                                    if coin.Name:lower():find("coin")
+                                        and coin:IsA("BasePart")
+                                        and coin:FindFirstChildOfClass("TouchInterest")
+                                    then
+                                        coin.CFrame = hrp.CFrame
+                                        firetouchinterest(hrp, coin, 0)
+                                        firetouchinterest(hrp, coin, 1)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                for _, obj in ipairs(workspace:GetDescendants()) do
+                    if obj.Name == "UFO Coin" or obj.Name == "ufocoin" then
+                        if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
+                            obj.CFrame = hrp.CFrame
+                            firetouchinterest(hrp, obj, 0)
+                            firetouchinterest(hrp, obj, 1)
+                        end
+                    end
+                end
+            end)
+
+            task.wait(PlayerFlags.UFODelay)
+        end
+
+        if not PlayerFlags.AutoRadioactive and not PlayerFlags.AutoUFO then
+            task.wait(1)
+        end
+    end
+end)
+
+----------------------------------------------------
+-- AUTO SPIN
+----------------------------------------------------
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoSpin then
+            pcall(function()
+                local success, _, _, token = WheelRollRF:InvokeServer(PlayerFlags.SpinType, true)
+                if success and token then
+                    task.wait(0.5)
+                    WheelCompleteRE:FireServer(token)
+                end
+            end)
+
+            task.wait(PlayerFlags.SpinDelay)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+----------------------------------------------------
+-- EXPLORER MODIFIER
+----------------------------------------------------
+task.spawn(function()
+    while true do
+        pcall(function()
+            LocalPlayer:SetAttribute("InRangeOfWheel", true)
+        end)
+        task.wait(2)
+    end
+end)
+
+----------------------------------------------------
+-- ABA AUTO
+----------------------------------------------------
+local AutoTabSection = Tabs.Auto:Section({
+    Title  = "Auto Features",
+    Icon   = "refresh-cw",
+    Box    = true,
+    Opened = true,
+})
+
+local UpgradeSpeedRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("UpgradeSpeed")
+local UpgradeCarryRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("UpgradeCarry")
+local RebirthRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("Rebirth")
+local UpgradeBaseRE = NetPackage:FindFirstChild("RE/Plot.UpgradeBase")
+
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoBuySpeed and UpgradeSpeedRF then
+            pcall(function()
+                UpgradeSpeedRF:InvokeServer(1)
+            end)
+        end
+        task.wait(0.5)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoBuyCarry and UpgradeCarryRF then
+            pcall(function()
+                UpgradeCarryRF:InvokeServer()
+            end)
+        end
+        task.wait(0.5)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoUpgradeBase and UpgradeBaseRE then
+            pcall(function()
+                UpgradeBaseRE:FireServer()
+            end)
+        end
+        task.wait(0.5)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoRebirth then
+            pcall(function()
+                if RebirthRF then
+                    RebirthRF:InvokeServer()
+                end
+                if UpgradeSpeedRF then
+                    UpgradeSpeedRF:InvokeServer(1)
+                end
+            end)
+        end
+        task.wait(0.5)
+    end
+end)
+
+Tabs.Auto:Button({
+    Title = "Auto Buy Speed",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
+    Icon = "zap",
+    Callback = function()
+        PlayerFlags.AutoBuySpeed = not PlayerFlags.AutoBuySpeed
+        WindUI:Notify({
+            Title = "Auto Buy Speed",
+            Content = PlayerFlags.AutoBuySpeed and "Ativado" or "Desativado",
+            Duration = 2,
+            Icon = "zap",
+        })
+    end,
+})
+
+Tabs.Auto:Button({
+    Title = "Auto Buy Carry",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
+    Icon = "shopping-bag",
+    Callback = function()
+        PlayerFlags.AutoBuyCarry = not PlayerFlags.AutoBuyCarry
+        WindUI:Notify({
+            Title = "Auto Buy Carry",
+            Content = PlayerFlags.AutoBuyCarry and "Ativado" or "Desativado",
+            Duration = 2,
+            Icon = "shopping-bag",
+        })
+    end,
+})
+
+Tabs.Auto:Button({
+    Title = "Auto Upgrade Base",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
+    Icon = "home",
+    Callback = function()
+        PlayerFlags.AutoUpgradeBase = not PlayerFlags.AutoUpgradeBase
+        WindUI:Notify({
+            Title = "Auto Upgrade Base",
+            Content = PlayerFlags.AutoUpgradeBase and "Ativado" or "Desativado",
+            Duration = 2,
+            Icon = "home",
+        })
+    end,
+})
+
+Tabs.Auto:Button({
+    Title = "Auto Rebirth",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
+    Icon = "repeat",
+    Callback = function()
+        PlayerFlags.AutoRebirth = not PlayerFlags.AutoRebirth
+        WindUI:Notify({
+            Title = "Auto Rebirth",
+            Content = PlayerFlags.AutoRebirth and "Ativado" or "Desativado",
+            Duration = 2,
+            Icon = "repeat",
+        })
     end,
 })
 
@@ -910,98 +1215,6 @@ WheelSectionUI:Slider({
 })
 
 ----------------------------------------------------
--- AUTO TAB
-----------------------------------------------------
-local AutoSection = Tabs.Auto:Section({
-    Title  = "Auto Upgrades",
-    Icon   = "refresh-cw",
-    Box    = true,
-    Opened = true,
-})
-
-local UpgradeSpeedRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("UpgradeSpeed")
-local UpgradeCarryRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("UpgradeCarry")
-local RebirthRF      = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("Rebirth")
-local UpgradeBaseRE  = NetPackage:FindFirstChild("RE/Plot.UpgradeBase")
-
-AutoSection:Toggle({
-    Title = "Auto Buy Speed",
-    Desc  = "Compra Speed a cada 0.5s.",
-    Icon  = "zap",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.AutoBuySpeed = state
-    end,
-})
-
-AutoSection:Toggle({
-    Title = "Auto Buy Carry",
-    Desc  = "Compra Carry a cada 0.5s.",
-    Icon  = "shopping-bag",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.AutoBuyCarry = state
-    end,
-})
-
-AutoSection:Toggle({
-    Title = "Auto Upgrade Base",
-    Desc  = "Upgrade Base a cada 0.5s.",
-    Icon  = "home",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.AutoUpgradeBase = state
-    end,
-})
-
-AutoSection:Toggle({
-    Title = "Auto Rebirth",
-    Desc  = "Rebirth + UpgradeSpeed em loop.",
-    Icon  = "repeat",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.AutoRebirth = state
-    end,
-})
-
-local CashSection = Tabs.Auto:Section({
-    Title  = "Auto Collect Cash",
-    Icon   = "dollar-sign",
-    Box    = true,
-    Opened = true,
-})
-
-local function getPlayerBase()
-    local basesFolder = workspace:FindFirstChild("Bases")
-    if not basesFolder then return nil end
-
-    local uid = tostring(LocalPlayer.UserId)
-
-    for _, base in ipairs(basesFolder:GetChildren()) do
-        if typeof(base.Name) == "string" and base.Name:find(uid) then
-            return base
-        end
-    end
-
-    local byName = basesFolder:FindFirstChild(LocalPlayer.Name)
-    if byName then
-        return byName
-    end
-
-    return nil
-end
-
-CashSection:Toggle({
-    Title = "Auto Collect Cash",
-    Desc  = "Coleta o dinheiro de todos os slots da sua base a cada 2s.",
-    Icon  = "dollar-sign",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.AutoCollectCash = state
-    end,
-})
-
-----------------------------------------------------
 -- SETTINGS TAB
 ----------------------------------------------------
 local SettingsWindowSection = Tabs.Settings:Section({
@@ -1013,7 +1226,7 @@ local SettingsWindowSection = Tabs.Settings:Section({
 
 SettingsWindowSection:Toggle({
     Title = "Window Transparency",
-    Icon  = "droplet",
+    Icon = "droplet",
     Value = false,
     Callback = function(e)
         Window:ToggleTransparency(e)
@@ -1022,7 +1235,7 @@ SettingsWindowSection:Toggle({
 
 SettingsWindowSection:Keybind({
     Title = "Toggle UI Key",
-    Icon  = "keyboard",
+    Icon = "keyboard",
     Value = "RightShift",
     Callback = function(k)
         if Enum.KeyCode[k] then
@@ -1033,7 +1246,7 @@ SettingsWindowSection:Keybind({
 
 SettingsWindowSection:Button({
     Title = "Center Window",
-    Icon  = "align-center",
+    Icon = "align-center",
     Callback = function()
         Window:Toggle()
         task.wait(0.05)
@@ -1054,8 +1267,8 @@ local ThemeSection = Tabs.Settings:Section({
 })
 
 ThemeSection:Dropdown({
-    Title  = "Theme Selector",
-    Icon   = "brush",
+    Title = "Theme Selector",
+    Icon  = "brush",
     Values = themeNames,
     Value  = "Red",
     Callback = function(t)
@@ -1064,214 +1277,9 @@ ThemeSection:Dropdown({
 })
 
 ----------------------------------------------------
--- LOOPS DE AUTO (SÓ LÓGICA, SEM UI)
-----------------------------------------------------
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoBuySpeed and UpgradeSpeedRF then
-            pcall(function()
-                UpgradeSpeedRF:InvokeServer(1)
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoBuyCarry and UpgradeCarryRF then
-            pcall(function()
-                UpgradeCarryRF:InvokeServer()
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoUpgradeBase and UpgradeBaseRE then
-            pcall(function()
-                UpgradeBaseRE:FireServer()
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoRebirth then
-            pcall(function()
-                if RebirthRF then
-                    RebirthRF:InvokeServer()
-                end
-                if UpgradeSpeedRF then
-                    UpgradeSpeedRF:InvokeServer(1)
-                end
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoCollectCash then
-            local base = getPlayerBase()
-            if base then
-                local slots = base:FindFirstChild("Slots")
-                if slots then
-                    for _, slot in ipairs(slots:GetChildren()) do
-                        local collect = slot:FindFirstChild("Collect")
-                        if collect then
-                            for _, obj in ipairs(collect:GetDescendants()) do
-                                if obj:IsA("ProximityPrompt") then
-                                    pcall(function()
-                                        fireproximityprompt(obj)
-                                    end)
-                                end
-                            end
-                        end
-
-                        local collectMoneyGui = slot:FindFirstChild("CollectMoneyGui", true)
-                        if collectMoneyGui then
-                            for _, obj in ipairs(collectMoneyGui:GetDescendants()) do
-                                if obj:IsA("ProximityPrompt") then
-                                    pcall(function()
-                                        fireproximityprompt(obj)
-                                    end)
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(2)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        local hrp = getHumanoidRootPart()
-        if not hrp then
-            task.wait(1)
-            continue
-        end
-
-        if PlayerFlags.AutoRadioactive then
-            pcall(function()
-                for _, obj in ipairs(workspace:GetDescendants()) do
-                    if not PlayerFlags.AutoRadioactive then
-                        break
-                    end
-
-                    if obj.Name == "Radioactive Coin"
-                        or obj.Name == "coins1"
-                        or obj.Name == "coins2"
-                        or CollectionService:HasTag(obj, "RadioactiveCoin")
-                    then
-                        if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
-                            local basesFolder = workspace:FindFirstChild("Bases")
-                            local isInBases = basesFolder and obj:IsDescendantOf(basesFolder)
-                            if (not isInBases) or (obj.Parent and obj.Parent.Name == "ModelExtents") then
-                                obj.CFrame = hrp.CFrame
-                                firetouchinterest(hrp, obj, 0)
-                                firetouchinterest(hrp, obj, 1)
-                            end
-                        end
-                    end
-                end
-            end)
-
-            task.wait(PlayerFlags.RadioactiveDelay)
-        end
-
-        if PlayerFlags.AutoUFO then
-            pcall(function()
-                local eventParts = workspace:FindFirstChild("EventParts")
-                if eventParts then
-                    for _, coin in ipairs(eventParts:GetChildren()) do
-                        if coin.Name:lower():find("ufo") and coin:IsA("BasePart") then
-                            coin.CFrame = hrp.CFrame
-                            firetouchinterest(hrp, coin, 0)
-                            firetouchinterest(hrp, coin, 1)
-                        end
-                    end
-                end
-
-                local bases = workspace:FindFirstChild("Bases")
-                if bases then
-                    for _, folder in ipairs(bases:GetChildren()) do
-                        for _, slot in ipairs(folder:GetChildren()) do
-                            local model = slot:FindFirstChildWhichIsA("Model")
-                            if model and model:FindFirstChild("UFO") then
-                                for _, coin in ipairs(model.UFO:GetDescendants()) do
-                                    if coin.Name:lower():find("coin")
-                                        and coin:IsA("BasePart")
-                                        and coin:FindFirstChildOfClass("TouchInterest")
-                                    then
-                                        coin.CFrame = hrp.CFrame
-                                        firetouchinterest(hrp, coin, 0)
-                                        firetouchinterest(hrp, coin, 1)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-
-                for _, obj in ipairs(workspace:GetDescendants()) do
-                    if obj.Name == "UFO Coin" or obj.Name == "ufocoin" then
-                        if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
-                            obj.CFrame = hrp.CFrame
-                            firetouchinterest(hrp, obj, 0)
-                            firetouchinterest(hrp, obj, 1)
-                        end
-                    end
-                end
-            end)
-
-            task.wait(PlayerFlags.UFODelay)
-        end
-
-        if not PlayerFlags.AutoRadioactive and not PlayerFlags.AutoUFO then
-            task.wait(1)
-        end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoSpin then
-            pcall(function()
-                local success, _, _, token = WheelRollRF:InvokeServer(PlayerFlags.SpinType, true)
-                if success and token then
-                    task.wait(0.5)
-                    WheelCompleteRE:FireServer(token)
-                end
-            end)
-
-            task.wait(PlayerFlags.SpinDelay)
-        else
-            task.wait(1)
-        end
-    end
-end)
-
-task.spawn(function()
-    while true do
-        pcall(function()
-            LocalPlayer:SetAttribute("InRangeOfWheel", true)
-        end)
-        task.wait(2)
-    end
-end)
-
-----------------------------------------------------
 -- ANTI AFK / FALL PROTECTION
 ----------------------------------------------------
+local VirtualUser = game:GetService("VirtualUser")
 LocalPlayer.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())

@@ -1048,8 +1048,8 @@ task.spawn(function()
     end
 end)
 
--- Alterado: Botões -> Toggles (mesmo estilo de ativar/desativar da aba Player)
-Tabs.Auto:Toggle({
+-- CORREÇÃO: adicionar Toggles dentro da Section (AutoTabSection), não na Tab (Tabs.Auto)
+AutoTabSection:Toggle({
     Title = "Auto Buy Speed",
     Desc = "Ativa/Desativa compra automática de Speed",
     Icon = "zap",
@@ -1065,7 +1065,7 @@ Tabs.Auto:Toggle({
     end,
 })
 
-Tabs.Auto:Toggle({
+AutoTabSection:Toggle({
     Title = "Auto Buy Carry",
     Desc = "Ativa/Desativa compra automática de Carry",
     Icon = "shopping-bag",
@@ -1081,7 +1081,7 @@ Tabs.Auto:Toggle({
     end,
 })
 
-Tabs.Auto:Toggle({
+AutoTabSection:Toggle({
     Title = "Auto Upgrade Base",
     Desc = "Ativa/Desativa upgrade automático da base",
     Icon = "home",
@@ -1097,7 +1097,7 @@ Tabs.Auto:Toggle({
     end,
 })
 
-Tabs.Auto:Toggle({
+AutoTabSection:Toggle({
     Title = "Auto Rebirth",
     Desc = "Ativa/Desativa rebirth automático",
     Icon = "repeat",

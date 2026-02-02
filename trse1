@@ -213,9 +213,11 @@ local CollectionService = game:GetService("CollectionService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+-- Novo sistema de Remotos (Net)
 local NetPackage = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net")
 local WheelRollRF = NetPackage:WaitForChild("RF/WheelSpin.Roll")
 local WheelCompleteRE = NetPackage:WaitForChild("RE/WheelSpin.Complete")
+local UpgradeBaseRE = NetPackage:FindFirstChild("RE/Plot.UpgradeBase")
 
 local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -985,7 +987,7 @@ task.spawn(function()
 end)
 
 ----------------------------------------------------
--- ABA AUTO
+-- ABA AUTO (SISTEMA LIMPO)
 ----------------------------------------------------
 local AutoTabSection = Tabs.Auto:Section({
     Title  = "Auto Features",
@@ -994,123 +996,73 @@ local AutoTabSection = Tabs.Auto:Section({
     Opened = true,
 })
 
-local UpgradeSpeedRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("UpgradeSpeed")
-local UpgradeCarryRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("UpgradeCarry")
-local RebirthRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("Rebirth")
-local UpgradeBaseRE = NetPackage:FindFirstChild("RE/Plot.UpgradeBase")
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoBuySpeed and UpgradeSpeedRF then
-            pcall(function()
-                UpgradeSpeedRF:InvokeServer(1)
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoBuyCarry and UpgradeCarryRF then
-            pcall(function()
-                UpgradeCarryRF:InvokeServer()
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoUpgradeBase and UpgradeBaseRE then
-            pcall(function()
-                UpgradeBaseRE:FireServer()
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoRebirth then
-            pcall(function()
-                if RebirthRF then
-                    RebirthRF:InvokeServer()
-                end
-                if UpgradeSpeedRF then
-                    UpgradeSpeedRF:InvokeServer(1)
-                end
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
+-- Toggles para os sistemas funcionais
 AutoTabSection:Toggle({
     Title = "Auto Buy Speed",
-    Desc = "Automatically buys speed upgrades.",
-    Icon = "zap",
+    Desc  = "Automatically buys speed upgrades.",
+    Icon  = "zap",
     Value = false,
     Callback = function(state)
         PlayerFlags.AutoBuySpeed = state
-        WindUI:Notify({
-            Title = "Auto Buy Speed",
-            Content = state and "Ativado" or "Desativado",
-            Duration = 2,
-            Icon = "zap",
-        })
     end,
 })
 
 AutoTabSection:Toggle({
     Title = "Auto Buy Carry",
-    Desc = "Automatically buys carry upgrades.",
-    Icon = "shopping-bag",
+    Desc  = "Automatically buys inventory upgrades.",
+    Icon  = "shopping-bag",
     Value = false,
     Callback = function(state)
         PlayerFlags.AutoBuyCarry = state
-        WindUI:Notify({
-            Title = "Auto Buy Carry",
-            Content = state and "Ativado" or "Desativado",
-            Duration = 2,
-            Icon = "shopping-bag",
-        })
     end,
 })
 
 AutoTabSection:Toggle({
     Title = "Auto Upgrade Base",
-    Desc = "Automatically upgrades your base.",
-    Icon = "home",
+    Desc  = "Automatically upgrades plot base.",
+    Icon  = "home",
     Value = false,
     Callback = function(state)
         PlayerFlags.AutoUpgradeBase = state
-        WindUI:Notify({
-            Title = "Auto Upgrade Base",
-            Content = state and "Ativado" or "Desativado",
-            Duration = 2,
-            Icon = "home",
-        })
     end,
 })
 
 AutoTabSection:Toggle({
     Title = "Auto Rebirth",
-    Desc = "Automatically performs rebirth.",
-    Icon = "repeat",
+    Desc  = "Automatically performs rebirth.",
+    Icon  = "repeat",
     Value = false,
     Callback = function(state)
         PlayerFlags.AutoRebirth = state
-        WindUI:Notify({
-            Title = "Auto Rebirth",
-            Content = state and "Ativado" or "Desativado",
-            Duration = 2,
-            Icon = "repeat",
-        })
     end,
 })
+
+-- Lógica de execução segura para os Autos
+task.spawn(function()
+    while true do
+        if PlayerFlags.AutoUpgradeBase and UpgradeBaseRE then
+            pcall(function() UpgradeBaseRE:FireServer() end)
+        end
+        
+        -- Outros comandos auto (Via Net se existirem)
+        if PlayerFlags.AutoRebirth then
+            local reb = NetPackage:FindFirstChild("RE/Rebirth") or NetPackage:FindFirstChild("RF/Rebirth")
+            if reb then pcall(function() if reb:IsA("RemoteEvent") then reb:FireServer() else reb:InvokeServer() end end) end
+        end
+        
+        if PlayerFlags.AutoBuySpeed then
+            local upg = NetPackage:FindFirstChild("RE/Upgrade.Speed") or NetPackage:FindFirstChild("RF/Upgrade.Speed")
+            if upg then pcall(function() if upg:IsA("RemoteEvent") then upg:FireServer(1) else upg:InvokeServer(1) end end) end
+        end
+
+        if PlayerFlags.AutoBuyCarry then
+            local inv = NetPackage:FindFirstChild("RE/Upgrade.Inventory") or NetPackage:FindFirstChild("RF/Upgrade.Inventory")
+            if inv then pcall(function() if inv:IsA("RemoteEvent") then inv:FireServer() else inv:InvokeServer() end end) end
+        end
+
+        task.wait(0.5)
+    end
+end)
 
 ----------------------------------------------------
 -- EVENTS TAB

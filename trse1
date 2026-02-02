@@ -1,5 +1,3 @@
---- START OF FILE text/plain ---
-
 --[[========================================================
     KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
 ==========================================================]]
@@ -141,7 +139,6 @@ local username = "@" .. (LocalPlayer.Name or "Player")
 local okThumb, thumb = pcall(function()
     return Players:GetUserThumbnailAsync(
         LocalPlayer.UserId,
-        Enum.ThumbnailType.HeadShot,
         Enum.ThumbnailType.HeadShot,
         Enum.ThumbnailSize.Size100x100
     )
@@ -1051,64 +1048,72 @@ task.spawn(function()
     end
 end)
 
-AutoTabSection:Toggle({
+Tabs.Auto:Button({
     Title = "Auto Buy Speed",
-    Desc = "Automatically purchases speed upgrades.",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
     Icon = "zap",
-    Value = false,
-    Callback = function(v)
-        PlayerFlags.AutoBuySpeed = v
+    Callback = function()
+        PlayerFlags.AutoBuySpeed = not PlayerFlags.AutoBuySpeed
         WindUI:Notify({
             Title = "Auto Buy Speed",
-            Content = v and "Ativado" or "Desativado",
+            Content = PlayerFlags.AutoBuySpeed and "Ativado" or "Desativado",
             Duration = 2,
             Icon = "zap",
         })
     end,
 })
 
-AutoTabSection:Toggle({
+Tabs.Auto:Button({
     Title = "Auto Buy Carry",
-    Desc = "Automatically purchases bag upgrades.",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
     Icon = "shopping-bag",
-    Value = false,
-    Callback = function(v)
-        PlayerFlags.AutoBuyCarry = v
+    Callback = function()
+        PlayerFlags.AutoBuyCarry = not PlayerFlags.AutoBuyCarry
         WindUI:Notify({
             Title = "Auto Buy Carry",
-            Content = v and "Ativado" or "Desativado",
+            Content = PlayerFlags.AutoBuyCarry and "Ativado" or "Desativado",
             Duration = 2,
             Icon = "shopping-bag",
         })
     end,
 })
 
-AutoTabSection:Toggle({
+Tabs.Auto:Button({
     Title = "Auto Upgrade Base",
-    Desc = "Automatically upgrades your plot/base.",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
     Icon = "home",
-    Value = false,
-    Callback = function(v)
-        PlayerFlags.AutoUpgradeBase = v
+    Callback = function()
+        PlayerFlags.AutoUpgradeBase = not PlayerFlags.AutoUpgradeBase
         WindUI:Notify({
             Title = "Auto Upgrade Base",
-            Content = v and "Ativado" or "Desativado",
+            Content = PlayerFlags.AutoUpgradeBase and "Ativado" or "Desativado",
             Duration = 2,
             Icon = "home",
         })
     end,
 })
 
-AutoTabSection:Toggle({
+Tabs.Auto:Button({
     Title = "Auto Rebirth",
-    Desc = "Automatically performs rebirths.",
+    Desc = "OFF",
+    Color = Color3.fromHex("#ff4444"),
+    Justify = "Center",
+    IconAlign = "Left",
     Icon = "repeat",
-    Value = false,
-    Callback = function(v)
-        PlayerFlags.AutoRebirth = v
+    Callback = function()
+        PlayerFlags.AutoRebirth = not PlayerFlags.AutoRebirth
         WindUI:Notify({
             Title = "Auto Rebirth",
-            Content = v and "Ativado" or "Desativado",
+            Content = PlayerFlags.AutoRebirth and "Ativado" or "Desativado",
             Duration = 2,
             Icon = "repeat",
         })

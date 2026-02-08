@@ -1,1303 +1,1831 @@
---[[========================================================
-    KILL SCRIPTS QUE ATRAPALHAM WALK/SPEED/UPGRADES
-==========================================================]]
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+--[[
+	Orion Library - Modified for Sidebar Search
+	Updated by: Google AI
+--]]
 
-local function shouldKillScript(scr)
-    if not scr:IsA("LocalScript") and not scr:IsA("ModuleScript") then
-        return false
-    end
-    local n = scr.Name:lower()
-    if n:find("speed") then return true end
-    if n:find("walk") then return true end
-    if n:find("run") then return true end
-    if n:find("sprint") then return true end
-    if n:find("upgrade") then return true end
-    if n:find("shop") then return true end
-    if n:find("stats") then return true end
-    return false
-end
-
-task.spawn(function()
-    local ps = LocalPlayer:WaitForChild("PlayerScripts", 10)
-    if ps then
-        for _, scr in ipairs(ps:GetDescendants()) do
-            if shouldKillScript(scr) then
-                scr:Destroy()
-            end
-        end
-    end
-
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    for _, scr in ipairs(char:GetDescendants()) do
-        if shouldKillScript(scr) then
-            scr:Destroy()
-        end
-    end
-
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if pg then
-        for _, scr in ipairs(pg:GetDescendants()) do
-            if shouldKillScript(scr) then
-                scr:Destroy()
-            end
-        end
-    end
-end)
-
---[[========================================================
-    HUB / CONTROLE PLAYER - CONFIGURAÇÕES DE UI
-==========================================================]]
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-WindUI:SetNotificationLower(true)
-WindUI:SetFont("rbxassetid://0")
-
-WindUI:Localization({
-    Enabled = true,
-    Prefix = "loc:",
-    DefaultLanguage = "en",
-    Translations = {
-        ["pt"] = {
-            ["HUB_TITLE"]   = "Meu Super Hub",
-            ["HUB_AUTHOR"]  = "by You",
-            ["TAB_PLAYER"]  = "Player",
-            ["TAB_FARM"]    = "Farm",
-            ["TAB_AUTO"]    = "Auto",
-            ["TAB_EVENTS"]  = "Events",
-            ["TAB_SETTINGS"]= "Settings",
-        },
-        ["en"] = {
-            ["HUB_TITLE"]   = "My Super Hub",
-            ["HUB_AUTHOR"]  = "by You",
-            ["TAB_PLAYER"]  = "Player",
-            ["TAB_FARM"]    = "Farm",
-            ["TAB_AUTO"]    = "Auto",
-            ["TAB_EVENTS"]  = "Events",
-            ["TAB_SETTINGS"]= "Settings",
-        },
-    }
-})
-
-WindUI:AddTheme({
-    Name = "Red",
-    Accent = Color3.fromHex("#ef4444"),
-    Background = Color3.fromHex("#111827"),
-    BackgroundTransparency = 0,
-    Outline = Color3.fromHex("#fecaca"),
-    Text = Color3.fromHex("#fee2e2"),
-    Placeholder = Color3.fromHex("#fca5a5"),
-    Button = Color3.fromHex("#7f1d1d"),
-    Icon = Color3.fromHex("#fecaca"),
-    Hover = Color3.fromHex("#ffffff"),
-
-    WindowBackground = Color3.fromHex("#111827"),
-    WindowShadow = Color3.fromHex("#020617"),
-
-    DialogBackground = Color3.fromHex("#111827"),
-    DialogBackgroundTransparency = 0,
-    DialogTitle = Color3.fromHex("#fee2e2"),
-    DialogContent = Color3.fromHex("#fecaca"),
-    DialogIcon = Color3.fromHex("#fecaca"),
-
-    WindowTopbarButtonIcon = Color3.fromHex("fecaca"),
-    WindowTopbarTitle = Color3.fromHex("fee2e2"),
-    WindowTopbarAuthor = Color3.fromHex("fecaca"),
-    WindowTopbarIcon = Color3.fromHex("fecaca"),
-
-    TabBackground = Color3.fromHex("#1f2937"),
-    TabTitle = Color3.fromHex("#fee2e2"),
-    TabIcon = Color3.fromHex("fecaca"),
-
-    ElementBackground = Color3.fromHex("#1f2937"),
-    ElementTitle = Color3.fromHex("#fee2e2"),
-    ElementDesc = Color3.fromHex("#fecaca"),
-    ElementIcon = Color3.fromHex("#fecaca"),
-
-    PopupBackground = Color3.fromHex("#111827"),
-    PopupBackgroundTransparency = 0,
-    PopupTitle = Color3.fromHex("#fee2e2"),
-    PopupContent = Color3.fromHex("#fecaca"),
-    PopupIcon = Color3.fromHex("#fecaca"),
-
-    Toggle = Color3.fromHex("#b91c1c"),
-    ToggleBar = Color3.fromHex("#fee2e2"),
-    Checkbox = Color3.fromHex("#b91c1c"),
-    CheckboxIcon = Color3.fromHex("#fee2e2"),
-    Slider = Color3.fromHex("#b91c1c"),
-    SliderThumb = Color3.fromHex("#fee2e2"),
-})
-
-WindUI:Gradient({
-    ["0"]   = { Color = Color3.fromHex("#111827"), Transparency = 0 },
-    ["100"] = { Color = Color3.fromHex("#020617"), Transparency = 0 },
-}, { Rotation = 45 })
-
-local displayName = LocalPlayer.DisplayName or LocalPlayer.Name
-local username = "@" .. (LocalPlayer.Name or "Player")
-
-local okThumb, thumb = pcall(function()
-    return Players:GetUserThumbnailAsync(
-        LocalPlayer.UserId,
-        Enum.ThumbnailType.HeadShot,
-        Enum.ThumbnailSize.Size100x100
-    )
-end)
-local avatarImage = okThumb and thumb or "rbxassetid://0"
-
-local Window = WindUI:CreateWindow({
-    Title      = "loc:HUB_TITLE",
-    Icon       = "door-open",
-    Author     = "loc:HUB_AUTHOR",
-    Folder     = "MySuperHub",
-    Size       = UDim2.fromOffset(580, 460),
-    MinSize    = Vector2.new(560, 350),
-    MaxSize    = Vector2.new(850, 560),
-    Transparent= false,
-    Theme      = "Red",
-    Resizable  = true,
-    SideBarWidth = 200,
-    BackgroundImageTransparency = 0.35,
-    HideSearchBar = false,
-    ScrollBarEnabled = true,
-    User = {
-        Enabled   = true,
-        Anonymous = false,
-        Name      = displayName,
-        Tag       = username,
-        Avatar    = avatarImage,
-        Callback  = function()
-            WindUI:Notify({
-                Title = displayName,
-                Content = "User card clicked.",
-                Duration = 3,
-                Icon = "user",
-            })
-        end,
-    },
-})
-
-Window:ToggleTransparency(false)
-Window:SetToggleKey(Enum.KeyCode.RightShift)
-Window:SetBackgroundImageTransparency(0.4)
-Window:SetIconSize(22)
-
-Window:EditOpenButton({
-    Title = "Open Hub",
-    Icon = "monitor",
-    CornerRadius = UDim.new(0,16),
-    StrokeThickness = 2,
-    Color = ColorSequence.new(Color3.fromHex("FF0F7B"), Color3.fromHex("F89B29")),
-    OnlyMobile = false,
-    Enabled = true,
-    Draggable = true,
-})
-
-local Tabs = {
-    Player      = Window:Tab({ Title = "loc:TAB_PLAYER",   Icon = "user" }),
-    Farm        = Window:Tab({ Title = "loc:TAB_FARM",     Icon = "wheat" }),
-    Auto        = Window:Tab({ Title = "loc:TAB_AUTO",     Icon = "refresh-cw" }),
-    Events      = Window:Tab({ Title = "loc:TAB_EVENTS",   Icon = "atom" }),
-    Settings    = Window:Tab({ Title = "loc:TAB_SETTINGS", Icon = "settings" }),
-}
-
-Window:SelectTab(1)
-
-----------------------------------------------------
--- SERVICES / HELPERS / NETWORKING
-----------------------------------------------------
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local ProximityPromptService = game:GetService("ProximityPromptService")
-local CollectionService = game:GetService("CollectionService")
 local TweenService = game:GetService("TweenService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local HttpService = game:GetService("HttpService")
 
-local NetPackage = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Net")
-local WheelRollRF = NetPackage:WaitForChild("RF/WheelSpin.Roll")
-local WheelCompleteRE = NetPackage:WaitForChild("RE/WheelSpin.Complete")
-
-local function getCharacter()
-    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-end
-
-local function getHumanoid()
-    local char = getCharacter()
-    if not char then return nil end
-    return char:FindFirstChildOfClass("Humanoid")
-end
-
-local function getHumanoidRootPart()
-    local char = getCharacter()
-    if not char then return nil end
-    return char:FindFirstChild("HumanoidRootPart")
-end
-
-----------------------------------------------------
--- PLAYER FLAGS
-----------------------------------------------------
-local PlayerFlags = {
-    SpeedEnabled   = false,
-    SpeedValue     = 22,
-    JumpEnabled    = false,
-    JumpValue      = 50,
-    NoClipEnabled  = false,
-    FlyEnabled     = false,
-    FlySpeed       = 50,
-    FlyKey         = Enum.KeyCode.F,
-    InstantSteal   = false,
-    GodMode        = false,
-
-    AutoRadioactive = false,
-    RadioactiveDelay = 0.5,
-    AutoUFO = false,
-    UFODelay = 0.5,
-    AutoSpin = false,
-    SpinDelay = 1,
-    SpinType = "Radioactive",
-
-    AutoBuySpeed = false,
-    AutoBuyCarry = false,
-    AutoUpgradeBase = false,
-    AutoRebirth = false,
+local TemporaryRoles = {
+	[7386905786] = "Dono",
+	[724324884] = "Developer"
 }
 
-local DEFAULT_JUMPPOWER = 50
-local MAX_SPEED = 1000
+local PARENT = game:GetService("CoreGui")
 
-----------------------------------------------------
--- HUD Speed
-----------------------------------------------------
-local function getSpeedLabel()
-    local pg = LocalPlayer:FindFirstChild("PlayerGui")
-    if not pg then return nil end
-    local hud = pg:FindFirstChild("HUD")
-    if not hud then return nil end
-    local bottomLeft = hud:FindFirstChild("BottomLeft")
-    if not bottomLeft then return nil end
-    local playerSpeed = bottomLeft:FindFirstChild("PlayerSpeed")
-    if not playerSpeed then return nil end
-    return playerSpeed:FindFirstChild("Speed")
-end
-
-local function updateHudSpeed(val)
-    local lbl = getSpeedLabel()
-    if lbl and lbl:IsA("TextLabel") then
-        lbl.Text = tostring(val)
-    end
-end
-
-----------------------------------------------------
--- SPEED HACK
-----------------------------------------------------
-local SpeedSection = Tabs.Player:Section({
-    Title  = "Speed Hack",
-    Icon   = "zap",
-    Box    = true,
-    Opened = true,
-})
-
-local speedConnection
-
-local function enableSpeed()
-    if speedConnection then return end
-
-    speedConnection = RunService.Heartbeat:Connect(function(deltaTime)
-        if not PlayerFlags.SpeedEnabled then return end
-
-        local hum = getHumanoid()
-        local hrp = getHumanoidRootPart()
-        if not hum or not hrp then return end
-
-        local moveDir = hum.MoveDirection
-        if moveDir.Magnitude > 0 then
-            moveDir = moveDir.Unit
-            local speed = math.clamp(PlayerFlags.SpeedValue, 1, MAX_SPEED)
-            local distance = speed * deltaTime
-            hrp.CFrame = hrp.CFrame + (moveDir * distance)
-            updateHudSpeed(speed)
-        end
-    end)
-end
-
-local function disableSpeed()
-    if speedConnection then
-        speedConnection:Disconnect()
-        speedConnection = nil
-    end
-end
-
-SpeedSection:Toggle({
-    Title = "Speed Hack",
-    Desc  = "Smooth speed boost.",
-    Icon  = "zap",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.SpeedEnabled = state
-        if state then
-            enableSpeed()
-        else
-            disableSpeed()
-        end
-    end,
-})
-
-SpeedSection:Slider({
-    Title = "Speed Value",
-    Desc  = "Movement speed value.",
-    Step  = 1,
-    Value = { Min = 1, Max = MAX_SPEED, Default = 22 },
-    Callback = function(value)
-        PlayerFlags.SpeedValue = value
-    end,
-})
-
-----------------------------------------------------
--- JUMP HACK
-----------------------------------------------------
-local JumpSection = Tabs.Player:Section({
-    Title  = "Jump Hack",
-    Icon   = "arrow-up",
-    Box    = true,
-    Opened = true,
-})
-
-local function applyJump(rawValue)
-    local hum = getHumanoid()
-    if not hum then return end
-    local value = math.clamp(rawValue, 10, 300)
-    PlayerFlags.JumpValue = value
-    pcall(function() hum.UseJumpPower = true end)
-    hum.JumpPower = value
-end
-
-RunService.Heartbeat:Connect(function()
-    local hum = getHumanoid()
-    if not hum then return end
-    pcall(function() hum.UseJumpPower = true end)
-    if PlayerFlags.JumpEnabled then
-        hum.JumpPower = PlayerFlags.JumpValue
-    else
-        hum.JumpPower = DEFAULT_JUMPPOWER
-    end
-end)
-
-JumpSection:Toggle({
-    Title = "Custom Jump",
-    Desc  = "Enable custom jump height.",
-    Icon  = "arrow-up",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.JumpEnabled = state
-        if state then
-            applyJump(PlayerFlags.JumpValue)
-        else
-            applyJump(DEFAULT_JUMPPOWER)
-        end
-    end,
-})
-
-JumpSection:Slider({
-    Title = "Jump Power",
-    Desc  = "Jump height value.",
-    Step  = 1,
-    Value = { Min = 10, Max = 300, Default = 80 },
-    Callback = function(value)
-        PlayerFlags.JumpValue = value
-        if PlayerFlags.JumpEnabled then
-            applyJump(value)
-        end
-    end,
-})
-
-----------------------------------------------------
--- FLY MODE
-----------------------------------------------------
-local FlySection = Tabs.Player:Section({
-    Title  = "Fly Mode",
-    Icon   = "feather",
-    Box    = true,
-    Opened = true,
-})
-
-local FlyVelocity
-local FlyGyro
-
-local function startFly()
-    if PlayerFlags.FlyEnabled then return end
-
-    local hrp = getHumanoidRootPart()
-    local hum = getHumanoid()
-    if not hrp or not hum then return end
-
-    PlayerFlags.FlyEnabled = true
-    hum.PlatformStand = true
-
-    FlyVelocity = Instance.new("BodyVelocity")
-    FlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    FlyVelocity.Velocity = Vector3.zero
-    FlyVelocity.Parent = hrp
-
-    FlyGyro = Instance.new("BodyGyro")
-    FlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    FlyGyro.P = 9e4
-    FlyGyro.CFrame = hrp.CFrame
-    FlyGyro.Parent = hrp
-end
-
-local function stopFly()
-    if not PlayerFlags.FlyEnabled then return end
-
-    PlayerFlags.FlyEnabled = false
-
-    local hum = getHumanoid()
-    if hum then hum.PlatformStand = false end
-    if FlyVelocity then FlyVelocity:Destroy() FlyVelocity = nil end
-    if FlyGyro then FlyGyro:Destroy() FlyGyro = nil end
-end
-
-RunService.RenderStepped:Connect(function()
-    if not PlayerFlags.FlyEnabled then return end
-
-    local hrp = getHumanoidRootPart()
-    local hum = getHumanoid()
-    if not hrp or not hum then
-        stopFly()
-        return
-    end
-
-    local cam = workspace.CurrentCamera
-    if not cam then return end
-
-    local moveDir = Vector3.zero
-    local cf = cam.CFrame
-    local forward = cf.LookVector
-    local right = cf.RightVector
-
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir += forward end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir -= forward end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += right end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir -= right end
-    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0,1,0) end
-
-    if moveDir.Magnitude > 0 then moveDir = moveDir.Unit end
-    local vel = moveDir * PlayerFlags.FlySpeed
-
-    if FlyVelocity then FlyVelocity.Velocity = vel end
-    if FlyGyro then FlyGyro.CFrame = cf end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == PlayerFlags.FlyKey then
-        if PlayerFlags.FlyEnabled then
-            stopFly()
-        else
-            startFly()
-        end
-    end
-end)
-
-FlySection:Toggle({
-    Title = "Fly Mode",
-    Desc  = "Toggle fly (F key).",
-    Icon  = "feather",
-    Value = false,
-    Callback = function(state)
-        if state then startFly() else stopFly() end
-    end,
-})
-
-FlySection:Slider({
-    Title = "Fly Speed",
-    Desc  = "Flight speed value.",
-    Step  = 1,
-    Value = { Min = 10, Max = 500, Default = 50 },
-    Callback = function(value)
-        PlayerFlags.FlySpeed = value
-    end,
-})
-
-----------------------------------------------------
--- NO CLIP
-----------------------------------------------------
-local NoClipSection = Tabs.Player:Section({
-    Title  = "No Clip",
-    Icon   = "ghost",
-    Box    = true,
-    Opened = true,
-})
-
-local function applyFullNoClip()
-    local char = getCharacter()
-    if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-        end
-    end
-end
-
-local function disableFullNoClip()
-    local char = getCharacter()
-    if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = true
-        end
-    end
-end
-
-RunService.Stepped:Connect(function()
-    if PlayerFlags.NoClipEnabled then
-        applyFullNoClip()
-    end
-end)
-
-NoClipSection:Toggle({
-    Title = "No Clip",
-    Desc  = "Walk through any wall.",
-    Icon  = "ghost",
-    Type  = "Checkbox",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.NoClipEnabled = state
-        if not state then
-            disableFullNoClip()
-        end
-    end,
-})
-
-----------------------------------------------------
--- FARM / INSTANT STEAL
-----------------------------------------------------
-local FarmSection = Tabs.Farm:Section({
-    Title  = "Instant Steal",
-    Icon   = "zap",
-    Box    = true,
-    Opened = true,
-})
-
-local connections = {}
-
-local function setPromptInstant(prompt)
-    prompt.HoldDuration = 0
-end
-
-local function enableInstantSteal()
-    for _, prompt in ipairs(workspace:GetDescendants()) do
-        if prompt:IsA("ProximityPrompt") then
-            setPromptInstant(prompt)
-        end
-    end
-
-    table.insert(connections,
-        ProximityPromptService.PromptShown:Connect(function(prompt)
-            setPromptInstant(prompt)
-        end)
-    )
-
-    table.insert(connections,
-        ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
-            if not PlayerFlags.InstantSteal then return end
-            if player ~= LocalPlayer then return end
-            setPromptInstant(prompt)
-            pcall(function()
-                fireproximityprompt(prompt)
-            end)
-        end)
-    )
-end
-
-local function disableInstantSteal()
-    for _, conn in ipairs(connections) do
-        if conn.Connected then
-            conn:Disconnect()
-        end
-    end
-    table.clear(connections)
-end
-
-FarmSection:Toggle({
-    Title = "Instant Steal",
-    Desc  = "Quick Interact with all prompts!",
-    Icon  = "zap",
-    Value = false,
-    Callback = function(state)
-        PlayerFlags.InstantSteal = state
-        if state then
-            disableInstantSteal()
-            enableInstantSteal()
-        else
-            disableInstantSteal()
-        end
-    end,
-})
-
-----------------------------------------------------
--- AUTO FARM BRAINROT - TELEPORT DIRETO
-----------------------------------------------------
-local AutoFarmSection = Tabs.Farm:Section({
-    Title  = "Brainrot Areas",
-    Icon   = "cpu",
-    Box    = true,
-    Opened = true,
-})
-
-local GapPositions = {
-    { Index = 1,  Name = "Common",    Icon = "hand", X = 199.9,  Y = -2.7, Z = -14.0 },
-    { Index = 2,  Name = "Uncommon",  Icon = "hand", X = 283.3,  Y = -2.7, Z = -13.7 },
-    { Index = 3,  Name = "Rare",      Icon = "hand", X = 397.2,  Y = -2.7, Z = -9.2 },
-    { Index = 4,  Name = "Epic",      Icon = "hand", X = 542.4,  Y = -2.7, Z = -11.7 },
-    { Index = 5,  Name = "Legendary", Icon = "hand", X = 757.4,  Y = -2.7, Z = -9.8 },
-    { Index = 6,  Name = "Mythical",  Icon = "hand", X = 1072.3, Y = -2.7, Z = -2.8 },
-    { Index = 7,  Name = "Cosmic",    Icon = "hand", X = 1549.3, Y = -2.7, Z = -9.1 },
-    { Index = 8,  Name = "Secret",    Icon = "hand", X = 2252.6, Y = -2.7, Z = -15.1 },
-    { Index = 9,  Name = "Final",     Icon = "hand", X = 2599.1, Y = -2.7, Z = -15.1 },
+local OrionLib = {
+	Elements = {},
+	ThemeObjects = {},
+	Connections = {},
+	Flags = {},
+	FavoriteEvent = Instance.new("BindableEvent"),
+	Themes = {
+		Default = {
+			Main = Color3.fromRGB(25, 25, 25),
+			Second = Color3.fromRGB(32, 32, 32),
+			Stroke = Color3.fromRGB(60, 60, 60),
+			Divider = Color3.fromRGB(60, 60, 60),
+			Text = Color3.fromRGB(240, 240, 240),
+			TextDark = Color3.fromRGB(150, 150, 150)
+		}
+	},
+	SelectedTheme = "Default",
+	Folder = nil,
+	SaveCfg = false
 }
 
-local AutoGapState = {
-    Enabled = false,
-    TargetGapIndex = nil,
-    IsFlying = false,
-    AutoFlyVelocity = nil,
-    AutoFlyGyro = nil,
-}
+local Icons = {}
 
-local AUTO_FLY_SPEED = 220
-local WAVE_DETECTION_RANGE = 30
-local ARRIVAL_DISTANCE = 4
+local Success, Response = pcall(function()
+	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/frappedevs/lucideblox/refs/heads/master/src/modules/util/icons.json")).icons
+end)
 
-local WaveDetector = {}
-local lastWaveScan = 0
-local wavesCache = {}
-
-function WaveDetector.ScanAllWaves()
-    if tick() - lastWaveScan < 0.5 then
-        return wavesCache
-    end
-
-    lastWaveScan = tick()
-    wavesCache = {}
-
-    for _, obj in ipairs(workspace:GetChildren()) do
-        local name = obj.Name:lower()
-        if name:find("tsunami") or name:find("wave") or name:find("flood") then
-            local p
-            if obj:IsA("Model") then
-                p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-            elseif obj:IsA("BasePart") then
-                p = obj
-            end
-
-            if p then
-                table.insert(wavesCache, p.Position)
-            end
-        end
-    end
-
-    return wavesCache
+if not Success then
+	warn("\nOrion Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
 end
 
-function WaveDetector.HasWaveNearby(pPos)
-    for _, wPos in ipairs(WaveDetector.ScanAllWaves()) do
-        if (wPos - pPos).Magnitude <= WAVE_DETECTION_RANGE then
-            return true
-        end
-    end
-    return false
+local function GetIcon(IconName)
+	if Icons[IconName] ~= nil then
+		return Icons[IconName]
+	else
+		return nil
+	end
+end   
+
+local Orion = Instance.new("ScreenGui")
+Orion.Name = "Orion"
+Orion.Parent = PARENT
+
+for _, Interface in ipairs(PARENT:GetChildren()) do
+	if Interface.Name == Orion.Name and Interface ~= Orion then
+		Interface:Destroy()
+	end
 end
 
-local AutoFly = {}
-
-function AutoFly.Start()
-    if AutoGapState.IsFlying then
-        return true
-    end
-
-    local hrp = getHumanoidRootPart()
-    local hum = getHumanoid()
-    if not hrp or not hum then
-        return false
-    end
-
-    AutoGapState.IsFlying = true
-    hum.PlatformStand = true
-
-    AutoGapState.AutoFlyVelocity = Instance.new("BodyVelocity")
-    AutoGapState.AutoFlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    AutoGapState.AutoFlyVelocity.Parent = hrp
-
-    AutoGapState.AutoFlyGyro = Instance.new("BodyGyro")
-    AutoGapState.AutoFlyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    AutoGapState.AutoFlyGyro.P = 9e4
-    AutoGapState.AutoFlyGyro.CFrame = hrp.CFrame
-    AutoGapState.AutoFlyGyro.Parent = hrp
-
-    return true
+function OrionLib:IsRunning()
+	return Orion.Parent == PARENT
 end
 
-function AutoFly.Stop()
-    AutoGapState.IsFlying = false
-
-    local hum = getHumanoid()
-    if hum then
-        hum.PlatformStand = false
-    end
-    if AutoGapState.AutoFlyVelocity then
-        AutoGapState.AutoFlyVelocity:Destroy()
-        AutoGapState.AutoFlyVelocity = nil
-    end
-    if AutoGapState.AutoFlyGyro then
-        AutoGapState.AutoFlyGyro:Destroy()
-        AutoGapState.AutoFlyGyro = nil
-    end
+local function AddConnection(Signal, Function)
+	if (not OrionLib:IsRunning()) then
+		return
+	end
+	local SignalConnect = Signal:Connect(Function)
+	table.insert(OrionLib.Connections, SignalConnect)
+	return SignalConnect
 end
 
-local autoFarmCoroutine = nil
+task.spawn(function()
+	while (OrionLib:IsRunning()) do
+		wait()
+	end
 
-local function autoFarmLoop()
-    local targetData
-    for _, g in ipairs(GapPositions) do
-        if g.Index == AutoGapState.TargetGapIndex then
-            targetData = g
-            break
-        end
-    end
+	for _, Connection in next, OrionLib.Connections do
+		Connection:Disconnect()
+	end
+end)
 
-    if not targetData then
-        return
-    end
+local function MakeDraggable(DragPoint, Main)
+	local Dragging, DragInput, MousePos, FramePos = false
+	AddConnection(DragPoint.InputBegan, function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+			Dragging = true
+			MousePos = Input.Position
+			FramePos = Main.Position
 
-    PlayerFlags.NoClipEnabled = true
-    AutoFly.Start()
+			Input.Changed:Connect(function()
+				if Input.UserInputState == Enum.UserInputState.End then
+					Dragging = false
+				end
+			end)
+		end
+	end)
+	AddConnection(DragPoint.InputChanged, function(Input)
+		if Input.UserInputType == Enum.UserInputType.MouseMovement then
+			DragInput = Input
+		end
+	end)
+	AddConnection(UserInputService.InputChanged, function(Input)
+		if Input == DragInput and Dragging then
+			local Delta = Input.Position - MousePos
+			Main.Position  = UDim2.new(FramePos.X.Scale,FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
+		end
+	end)
+end    
 
-    while AutoGapState.Enabled do
-        local hrp = getHumanoidRootPart()
-        if not hrp then
-            task.wait(0.1)
-            continue
-        end
-
-        local targetPos = Vector3.new(targetData.X, targetData.Y, targetData.Z)
-        local dist = (hrp.Position - targetPos).Magnitude
-
-        if dist < ARRIVAL_DISTANCE then
-            AutoFly.Stop()
-            PlayerFlags.NoClipEnabled = false
-            disableFullNoClip()
-            AutoGapState.Enabled = false
-
-            WindUI:Notify({
-                Title = "Arrival",
-                Content = "Reached " .. targetData.Name,
-                Duration = 3,
-                Icon = "map-pin",
-            })
-
-            break
-        end
-
-        if WaveDetector.HasWaveNearby(hrp.Position) then
-            if AutoGapState.AutoFlyVelocity then
-                AutoGapState.AutoFlyVelocity.Velocity = Vector3.zero
-            end
-        else
-            if AutoGapState.AutoFlyVelocity then
-                AutoGapState.AutoFlyVelocity.Velocity = (targetPos - hrp.Position).Unit * AUTO_FLY_SPEED
-            end
-            if AutoGapState.AutoFlyGyro then
-                AutoGapState.AutoFlyGyro.CFrame = CFrame.lookAt(hrp.Position, targetPos)
-            end
-        end
-
-        task.wait(0.05)
-    end
+local function Create(Name, Properties, Children)
+	local Object = Instance.new(Name)
+	for i, v in next, Properties or {} do
+		Object[i] = v
+	end
+	for i, v in next, Children or {} do
+		v.Parent = Object
+	end
+	return Object
 end
 
-local function startDirectTravel(index)
-    AutoGapState.TargetGapIndex = index
-    AutoGapState.Enabled = true
-
-    if autoFarmCoroutine then
-        task.cancel(autoFarmCoroutine)
-    end
-
-    autoFarmCoroutine = task.spawn(autoFarmLoop)
+local function CreateElement(ElementName, ElementFunction)
+	OrionLib.Elements[ElementName] = function(...)
+		return ElementFunction(...)
+	end
 end
 
-local lastClick = 0
-for _, gap in ipairs(GapPositions) do
-    AutoFarmSection:Button({
-        Title = gap.Name,
-        Desc  = "Direct travel to " .. gap.Name,
-        Icon  = gap.Icon,
-        Callback = function()
-            if tick() - lastClick < 0.001 then
-                return
-            end
-            lastClick = tick()
-            startDirectTravel(gap.Index)
-        end,
-    })
+local function AddItemTable(Table, Item, Value)
+	local Item = tostring(Item)
+	local Count = 1
+
+	while Table[Item] do
+		Count = Count + 1
+		Item = string.format('%s-%d', Item, Count)
+	end
+
+	Table[Item] = Value
 end
 
-AutoFarmSection:Button({
-    Title = "Stop Movement",
-    Desc  = "Emergency stop and No Clip OFF",
-    Icon  = "octagon",
-    Callback = function()
-        AutoGapState.Enabled = false
-        AutoFly.Stop()
-        PlayerFlags.NoClipEnabled = false
-        disableFullNoClip()
-        if autoFarmCoroutine then
-            task.cancel(autoFarmCoroutine)
-        end
-    end,
-})
 
-----------------------------------------------------
--- AUTO COLETA (EVENTS)
-----------------------------------------------------
-task.spawn(function()
-    while true do
-        local hrp = getHumanoidRootPart()
-        if not hrp then
-            task.wait(1)
-            continue
-        end
-
-        if PlayerFlags.AutoRadioactive then
-            pcall(function()
-                for _, obj in ipairs(workspace:GetDescendants()) do
-                    if not PlayerFlags.AutoRadioactive then
-                        break
-                    end
-
-                    if obj.Name == "Radioactive Coin"
-                        or obj.Name == "coins1"
-                        or obj.Name == "coins2"
-                        or CollectionService:HasTag(obj, "RadioactiveCoin")
-                    then
-                        if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
-                            local basesFolder = workspace:FindFirstChild("Bases")
-                            local isInBases = basesFolder and obj:IsDescendantOf(basesFolder)
-                            if (not isInBases) or (obj.Parent and obj.Parent.Name == "ModelExtents") then
-                                obj.CFrame = hrp.CFrame
-                                firetouchinterest(hrp, obj, 0)
-                                firetouchinterest(hrp, obj, 1)
-                            end
-                        end
-                    end
-                end
-            end)
-
-            task.wait(PlayerFlags.RadioactiveDelay)
-        end
-
-        if PlayerFlags.AutoUFO then
-            pcall(function()
-                local eventParts = workspace:FindFirstChild("EventParts")
-                if eventParts then
-                    for _, coin in ipairs(eventParts:GetChildren()) do
-                        if coin.Name:lower():find("ufo") and coin:IsA("BasePart") then
-                            coin.CFrame = hrp.CFrame
-                            firetouchinterest(hrp, coin, 0)
-                            firetouchinterest(hrp, coin, 1)
-                        end
-                    end
-                end
-
-                local bases = workspace:FindFirstChild("Bases")
-                if bases then
-                    for _, folder in ipairs(bases:GetChildren()) do
-                        for _, slot in ipairs(folder:GetChildren()) do
-                            local model = slot:FindFirstChildWhichIsA("Model")
-                            if model and model:FindFirstChild("UFO") then
-                                for _, coin in ipairs(model.UFO:GetDescendants()) do
-                                    if coin.Name:lower():find("coin")
-                                        and coin:IsA("BasePart")
-                                        and coin:FindFirstChildOfClass("TouchInterest")
-                                    then
-                                        coin.CFrame = hrp.CFrame
-                                        firetouchinterest(hrp, coin, 0)
-                                        firetouchinterest(hrp, coin, 1)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-
-                for _, obj in ipairs(workspace:GetDescendants()) do
-                    if obj.Name == "UFO Coin" or obj.Name == "ufocoin" then
-                        if obj:IsA("BasePart") and obj:FindFirstChildOfClass("TouchInterest") then
-                            obj.CFrame = hrp.CFrame
-                            firetouchinterest(hrp, obj, 0)
-                            firetouchinterest(hrp, obj, 1)
-                        end
-                    end
-                end
-            end)
-
-            task.wait(PlayerFlags.UFODelay)
-        end
-
-        if not PlayerFlags.AutoRadioactive and not PlayerFlags.AutoUFO then
-            task.wait(1)
-        end
-    end
-end)
-
-----------------------------------------------------
--- AUTO SPIN
-----------------------------------------------------
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoSpin then
-            pcall(function()
-                local success, _, _, token = WheelRollRF:InvokeServer(PlayerFlags.SpinType, true)
-                if success and token then
-                    task.wait(0.5)
-                    WheelCompleteRE:FireServer(token)
-                end
-            end)
-
-            task.wait(PlayerFlags.SpinDelay)
-        else
-            task.wait(1)
-        end
-    end
-end)
-
-----------------------------------------------------
--- EXPLORER MODIFIER
-----------------------------------------------------
-task.spawn(function()
-    while true do
-        pcall(function()
-            LocalPlayer:SetAttribute("InRangeOfWheel", true)
-        end)
-        task.wait(2)
-    end
-end)
-
-----------------------------------------------------
--- ABA AUTO
-----------------------------------------------------
-local AutoTabSection = Tabs.Auto:Section({
-    Title  = "Auto Features",
-    Icon   = "refresh-cw",
-    Box    = true,
-    Opened = true,
-})
-
-local UpgradeSpeedRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("UpgradeSpeed")
-local UpgradeCarryRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("UpgradeCarry")
-local RebirthRF = ReplicatedStorage:FindFirstChild("RemoteFunctions") and ReplicatedStorage.RemoteFunctions:FindFirstChild("Rebirth")
-local UpgradeBaseRE = NetPackage:FindFirstChild("RE/Plot.UpgradeBase")
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoBuySpeed and UpgradeSpeedRF then
-            pcall(function()
-                UpgradeSpeedRF:InvokeServer(1)
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoBuyCarry and UpgradeCarryRF then
-            pcall(function()
-                UpgradeCarryRF:InvokeServer()
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoUpgradeBase and UpgradeBaseRE then
-            pcall(function()
-                UpgradeBaseRE:FireServer()
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-task.spawn(function()
-    while true do
-        if PlayerFlags.AutoRebirth then
-            pcall(function()
-                if RebirthRF then
-                    RebirthRF:InvokeServer()
-                end
-                if UpgradeSpeedRF then
-                    UpgradeSpeedRF:InvokeServer(1)
-                end
-            end)
-        end
-        task.wait(0.5)
-    end
-end)
-
-Tabs.Auto:Button({
-    Title = "Auto Buy Speed",
-    Desc = "OFF",
-    Color = Color3.fromHex("#ff4444"),
-    Justify = "Center",
-    IconAlign = "Left",
-    Icon = "zap",
-    Callback = function()
-        PlayerFlags.AutoBuySpeed = not PlayerFlags.AutoBuySpeed
-        WindUI:Notify({
-            Title = "Auto Buy Speed",
-            Content = PlayerFlags.AutoBuySpeed and "Ativado" or "Desativado",
-            Duration = 2,
-            Icon = "zap",
-        })
-    end,
-})
-
-Tabs.Auto:Button({
-    Title = "Auto Buy Carry",
-    Desc = "OFF",
-    Color = Color3.fromHex("#ff4444"),
-    Justify = "Center",
-    IconAlign = "Left",
-    Icon = "shopping-bag",
-    Callback = function()
-        PlayerFlags.AutoBuyCarry = not PlayerFlags.AutoBuyCarry
-        WindUI:Notify({
-            Title = "Auto Buy Carry",
-            Content = PlayerFlags.AutoBuyCarry and "Ativado" or "Desativado",
-            Duration = 2,
-            Icon = "shopping-bag",
-        })
-    end,
-})
-
-Tabs.Auto:Button({
-    Title = "Auto Upgrade Base",
-    Desc = "OFF",
-    Color = Color3.fromHex("#ff4444"),
-    Justify = "Center",
-    IconAlign = "Left",
-    Icon = "home",
-    Callback = function()
-        PlayerFlags.AutoUpgradeBase = not PlayerFlags.AutoUpgradeBase
-        WindUI:Notify({
-            Title = "Auto Upgrade Base",
-            Content = PlayerFlags.AutoUpgradeBase and "Ativado" or "Desativado",
-            Duration = 2,
-            Icon = "home",
-        })
-    end,
-})
-
-Tabs.Auto:Button({
-    Title = "Auto Rebirth",
-    Desc = "OFF",
-    Color = Color3.fromHex("#ff4444"),
-    Justify = "Center",
-    IconAlign = "Left",
-    Icon = "repeat",
-    Callback = function()
-        PlayerFlags.AutoRebirth = not PlayerFlags.AutoRebirth
-        WindUI:Notify({
-            Title = "Auto Rebirth",
-            Content = PlayerFlags.AutoRebirth and "Ativado" or "Desativado",
-            Duration = 2,
-            Icon = "repeat",
-        })
-    end,
-})
-
-----------------------------------------------------
--- EVENTS TAB
-----------------------------------------------------
-local RadioactiveSectionUI = Tabs.Events:Section({
-    Title  = "Radioactive Coins",
-    Icon   = "coins",
-    Box    = true,
-    Opened = true,
-})
-
-RadioactiveSectionUI:Toggle({
-    Title = "Auto Collect Radioactive Coins",
-    Desc  = "Pulls ONLY radioactive coins (No Brainrots).",
-    Icon  = "zap",
-    Value = false,
-    Callback = function(v)
-        PlayerFlags.AutoRadioactive = v
-    end,
-})
-
-RadioactiveSectionUI:Slider({
-    Title = "Delay",
-    Desc  = "Collection speed interval.",
-    Step  = 0.1,
-    Value = { Min = 0.1, Max = 5, Default = 0.5 },
-    Callback = function(v)
-        PlayerFlags.RadioactiveDelay = v
-    end,
-})
-
-local UfoSectionUI = Tabs.Events:Section({
-    Title  = "Ufo Coins",
-    Icon   = "coins",
-    Box    = true,
-    Opened = true,
-})
-
-UfoSectionUI:Toggle({
-    Title = "Auto Collect UFO Coins",
-    Desc  = "Potent UFO coin collector system.",
-    Icon  = "rocket",
-    Value = false,
-    Callback = function(v)
-        PlayerFlags.AutoUFO = v
-    end,
-})
-
-UfoSectionUI:Slider({
-    Title = "Delay",
-    Desc  = "Collection speed interval.",
-    Step  = 0.1,
-    Value = { Min = 0.1, Max = 5, Default = 0.5 },
-    Callback = function(v)
-        PlayerFlags.UFODelay = v
-    end,
-})
-
-local WheelSectionUI = Tabs.Events:Section({
-    Title  = "Wheel",
-    Icon   = "refresh-cw",
-    Box    = true,
-    Opened = true,
-})
-
-WheelSectionUI:Dropdown({
-    Title = "Select Wheel Type",
-    Desc  = "Which roleta to spin?",
-    Values = { "Radioactive", "UFO", "Money" },
-    Value = "Radioactive",
-    Callback = function(v)
-        PlayerFlags.SpinType = v
-    end,
-})
-
-WheelSectionUI:Toggle({
-    Title = "Auto Spin Wheel",
-    Desc  = "Gira a roleta automaticamente.",
-    Icon  = "refresh-ccw",
-    Value = false,
-    Callback = function(v)
-        PlayerFlags.AutoSpin = v
-    end,
-})
-
-WheelSectionUI:Slider({
-    Title = "Delay",
-    Desc  = "Spin speed interval.",
-    Step  = 0.1,
-    Value = { Min = 0.1, Max = 10, Default = 1 },
-    Callback = function(v)
-        PlayerFlags.SpinDelay = v
-    end,
-})
-
-----------------------------------------------------
--- SETTINGS TAB
-----------------------------------------------------
-local SettingsWindowSection = Tabs.Settings:Section({
-    Title  = "Window Settings",
-    Icon   = "sliders",
-    Box    = true,
-    Opened = true,
-})
-
-SettingsWindowSection:Toggle({
-    Title = "Window Transparency",
-    Icon = "droplet",
-    Value = false,
-    Callback = function(e)
-        Window:ToggleTransparency(e)
-    end,
-})
-
-SettingsWindowSection:Keybind({
-    Title = "Toggle UI Key",
-    Icon = "keyboard",
-    Value = "RightShift",
-    Callback = function(k)
-        if Enum.KeyCode[k] then
-            Window:SetToggleKey(Enum.KeyCode[k])
-        end
-    end,
-})
-
-SettingsWindowSection:Button({
-    Title = "Center Window",
-    Icon = "align-center",
-    Callback = function()
-        Window:Toggle()
-        task.wait(0.05)
-        Window:Toggle()
-    end,
-})
-
-local themeNames = {}
-for name in pairs(WindUI:GetThemes()) do
-    table.insert(themeNames, name)
+local function MakeElement(ElementName, ...)
+	local NewElement = OrionLib.Elements[ElementName](...)
+	return NewElement
 end
 
-local ThemeSection = Tabs.Settings:Section({
-    Title  = "Themes",
-    Icon   = "palette",
-    Box    = true,
-    Opened = true,
-})
+local function SetProps(Element, Props)
+	table.foreach(Props, function(Property, Value)
+		Element[Property] = Value
+	end)
+	return Element
+end
 
-ThemeSection:Dropdown({
-    Title = "Theme Selector",
-    Icon  = "brush",
-    Values = themeNames,
-    Value  = "Red",
-    Callback = function(t)
-        WindUI:SetTheme(t)
-    end,
-})
+local Total = {
+	SetChildren = 0;
+	AddThemeObject = 0;
+};
 
-----------------------------------------------------
--- ANTI AFK / FALL PROTECTION
-----------------------------------------------------
-local VirtualUser = game:GetService("VirtualUser")
-LocalPlayer.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
+local function SetChildren(Element, Children)
+	Total.SetChildren += 1;
+	table.foreach(Children, function(_, Child)
+		Child.Parent = Element
+	end)
+	return Element
+end
+
+local function Round(Number, Factor)
+	local Result = math.floor(Number/Factor + (math.sign(Number) * 0.5)) * Factor
+	if Result < 0 then Result = Result + Factor end
+	return Result
+end
+
+local function ReturnProperty(Object)
+	if Object:IsA("Frame") or Object:IsA("TextButton") then
+		return "BackgroundColor3"
+	end 
+	if Object:IsA("ScrollingFrame") then
+		return "ScrollBarImageColor3"
+	end 
+	if Object:IsA("UIStroke") then
+		return "Color"
+	end 
+	if Object:IsA("TextLabel") or Object:IsA("TextBox") then
+		return "TextColor3"
+	end   
+	if Object:IsA("ImageLabel") or Object:IsA("ImageButton") then
+		return "ImageColor3"
+	end   
+end
+
+local function AddThemeObject(Object, Type)
+	if not OrionLib.ThemeObjects[Type] then
+		OrionLib.ThemeObjects[Type] = {}
+	end    
+	Total.AddThemeObject += 1;
+	table.insert(OrionLib.ThemeObjects[Type], Object)
+	Object[ReturnProperty(Object)] = OrionLib.Themes[OrionLib.SelectedTheme][Type]
+	return Object
+end    
+
+local function SetTheme()
+	for Name, Type in pairs(OrionLib.ThemeObjects) do
+		for _, Object in pairs(Type) do
+			Object[ReturnProperty(Object)] = OrionLib.Themes[OrionLib.SelectedTheme][Name]
+		end    
+	end    
+end
+
+local function PackColor(Color)
+	return {R = Color.R * 255, G = Color.G * 255, B = Color.B * 255}
+end    
+
+local function UnpackColor(Color)
+	return Color3.fromRGB(Color.R, Color.G, Color.B)
+end
+
+local function LoadCfg(Config)
+	local Data = HttpService:JSONDecode(Config)
+	table.foreach(Data, function(a,b)
+		if OrionLib.Flags[a] then
+			spawn(function() 
+				if OrionLib.Flags[a].Type == "Colorpicker" then
+					OrionLib.Flags[a]:Set(UnpackColor(b))
+				else
+					OrionLib.Flags[a]:Set(b)
+				end    
+			end)
+		else
+			warn("Orion Library Config Loader - Could not find ", a ,b)
+		end
+	end)
+end
+
+local function SaveCfg(Name)
+	local Data = {}
+	for i,v in pairs(OrionLib.Flags) do
+		if v.Save then
+			if v.Type == "Colorpicker" then
+				Data[i] = PackColor(v.Value)
+			else
+				Data[i] = v.Value
+			end
+		end	
+	end
+
+	if writefile then
+		writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
+	end
+end
+
+local WhitelistedMouse = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2,Enum.UserInputType.MouseButton3}
+local BlacklistedKeys = {Enum.KeyCode.Unknown,Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,Enum.KeyCode.Up,Enum.KeyCode.Left,Enum.KeyCode.Down,Enum.KeyCode.Right,Enum.KeyCode.Slash,Enum.KeyCode.Tab,Enum.KeyCode.Backspace,Enum.KeyCode.Escape}
+
+local function CheckKey(Table, Key)
+	for _, v in next, Table do
+		if v == Key then
+			return true
+		end
+	end
+end
+
+CreateElement("Corner", function(Scale, Offset)
+	local Corner = Create("UICorner", {
+		CornerRadius = UDim.new(Scale or 0, Offset or 10)
+	})
+	return Corner
 end)
 
-task.spawn(function()
-    while true do
-        local hrp = getHumanoidRootPart()
-        if hrp and hrp.Position.Y < -100 then
-            hrp.CFrame = CFrame.new(hrp.Position.X, 10, hrp.Position.Z)
-        end
-        task.wait(1)
-    end
+CreateElement("Stroke", function(Color, Thickness)
+	local Stroke = Create("UIStroke", {
+		Color = Color or Color3.fromRGB(255, 255, 255),
+		Thickness = Thickness or 1
+	})
+	return Stroke
 end)
 
-WindUI:Notify({
-    Title = "Hub Injetado",
-    Content = "Abas reorganizadas e Sistemas Potencializados!",
-    Duration = 5,
-    Icon = "check",
+CreateElement("List", function(Scale, Offset)
+	local List = Create("UIListLayout", {
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		Padding = UDim.new(Scale or 0, Offset or 0)
+	})
+	return List
+end)
+
+CreateElement("Padding", function(Bottom, Left, Right, Top)
+	local Padding = Create("UIPadding", {
+		PaddingBottom = UDim.new(0, Bottom or 4),
+		PaddingLeft = UDim.new(0, Left or 4),
+		PaddingRight = UDim.new(0, Right or 4),
+		PaddingTop = UDim.new(0, Top or 4)
+	})
+	return Padding
+end)
+
+CreateElement("TFrame", function()
+	local TFrame = Create("Frame", {
+		BackgroundTransparency = 1
+	})
+	return TFrame
+end)
+
+CreateElement("Frame", function(Color)
+	local Frame = Create("Frame", {
+		BackgroundColor3 = Color or Color3.fromRGB(255, 255, 255),
+		BorderSizePixel = 0
+	})
+	return Frame
+end)
+
+CreateElement("RoundFrame", function(Color, Scale, Offset)
+	local Frame = Create("Frame", {
+		BackgroundColor3 = Color or Color3.fromRGB(255, 255, 255),
+		BorderSizePixel = 0
+	}, {
+		Create("UICorner", {
+			CornerRadius = UDim.new(Scale, Offset)
+		})
+	})
+	return Frame
+end)
+
+CreateElement("Button", function()
+	local Button = Create("TextButton", {
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0
+	})
+	return Button
+end)
+
+CreateElement("ScrollFrame", function(Color, Width)
+	local ScrollFrame = Create("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		MidImage = "rbxassetid://7445543667",
+		BottomImage = "rbxassetid://7445543667",
+		TopImage = "rbxassetid://7445543667",
+		ScrollBarImageColor3 = Color,
+		BorderSizePixel = 0,
+		ScrollBarThickness = Width,
+		CanvasSize = UDim2.new(0, 0, 0, 0)
+	})
+	return ScrollFrame
+end)
+
+CreateElement("Image", function(ImageID)
+	local ImageNew = Create("ImageLabel", {
+		Image = ImageID,
+		BackgroundTransparency = 1
+	})
+
+	if GetIcon(ImageID) ~= nil then
+		ImageNew.Image = GetIcon(ImageID)
+	end	
+
+	return ImageNew
+end)
+
+CreateElement("ImageButton", function(ImageID)
+	local Image = Create("ImageButton", {
+		Image = ImageID,
+		BackgroundTransparency = 1
+	})
+	return Image
+end)
+
+CreateElement("Label", function(Text, TextSize, Transparency)
+	local Label = Create("TextLabel", {
+		Text = Text or "",
+		TextColor3 = Color3.fromRGB(240, 240, 240),
+		TextTransparency = Transparency or 0,
+		TextSize = TextSize or 15,
+		Font = Enum.Font.Gotham,
+		RichText = true,
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Left
+	})
+	return Label
+end)
+
+local NotificationHolder = SetProps(SetChildren(MakeElement("TFrame"), {
+	SetProps(MakeElement("List"), {
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		VerticalAlignment = Enum.VerticalAlignment.Bottom,
+		Padding = UDim.new(0, 5)
+	})
+}), {
+	Position = UDim2.new(1, -25, 1, -25),
+	Size = UDim2.new(0, 300, 1, -25),
+	AnchorPoint = Vector2.new(1, 1),
+	Parent = Orion
 })
+
+function OrionLib:MakeNotification(NotificationConfig)
+	spawn(function()
+		NotificationConfig.Name = NotificationConfig.Name or "Notification"
+		NotificationConfig.Content = NotificationConfig.Content or "Test"
+		NotificationConfig.Image = NotificationConfig.Image or "rbxassetid://14229447778"
+		NotificationConfig.Time = NotificationConfig.Time or 15
+
+		local NotificationParent = SetProps(MakeElement("TFrame"), {
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			Parent = NotificationHolder
+		})
+
+		local NotificationFrame = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(25, 25, 25), 0, 10), {
+			Parent = NotificationParent, 
+			Size = UDim2.new(1, 0, 0, 0),
+			Position = UDim2.new(1, -55, 0, 0),
+			BackgroundTransparency = 0,
+			AutomaticSize = Enum.AutomaticSize.Y
+		}), {
+			MakeElement("Stroke", Color3.fromRGB(93, 93, 93), 1.2),
+			MakeElement("Padding", 12, 12, 12, 12),
+			SetProps(MakeElement("Image", NotificationConfig.Image), {
+				Size = UDim2.new(0, 20, 0, 20),
+				ImageColor3 = Color3.fromRGB(240, 240, 240),
+				Name = "Icon"
+			}),
+			SetProps(MakeElement("Label", NotificationConfig.Name, 15), {
+				Size = UDim2.new(1, -30, 0, 20),
+				Position = UDim2.new(0, 30, 0, 0),
+				Font = Enum.Font.GothamBold,
+				Name = "Title"
+			}),
+			SetProps(MakeElement("Label", NotificationConfig.Content, 14), {
+				Size = UDim2.new(1, 0, 0, 0),
+				Position = UDim2.new(0, 0, 0, 25),
+				Font = Enum.Font.GothamSemibold,
+				Name = "Content",
+				RichText = true,
+				AutomaticSize = Enum.AutomaticSize.Y,
+				TextColor3 = Color3.fromRGB(200, 200, 200),
+				TextWrapped = true
+			})
+		})
+
+		TweenService:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(0, 0, 0, 0)}):Play()
+
+		wait(NotificationConfig.Time - 0.88)
+		TweenService:Create(NotificationFrame.Icon, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
+		TweenService:Create(NotificationFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint), {BackgroundTransparency = 0.6}):Play()
+		wait(0.3)
+		TweenService:Create(NotificationFrame.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {Transparency = 0.9}):Play()
+		TweenService:Create(NotificationFrame.Title, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.4}):Play()
+		TweenService:Create(NotificationFrame.Content, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.5}):Play()
+		wait(0.05)
+
+		NotificationFrame:TweenPosition(UDim2.new(1, 20, 0, 0),'In','Quint',0.8,true)
+		wait(1.35)
+		NotificationFrame:Destroy()
+	end)
+end    
+
+function OrionLib:Init()
+	if OrionLib.SaveCfg and (isfile and readfile) then	
+		pcall(function()
+			if isfile(OrionLib.Folder .. "/" .. game.GameId .. ".txt") then
+				LoadCfg(readfile(OrionLib.Folder .. "/" .. game.GameId .. ".txt"))
+				OrionLib:MakeNotification({
+					Name = "Configuration",
+					Content = "Auto-loaded configuration for the game " .. game.GameId .. ".",
+					Time = 5
+				})
+			end
+		end)		
+	end	
+end	
+
+function OrionLib:MakeWindow(WindowConfig)
+	local FirstTab = true
+	local Minimized = false
+	local Loaded = false
+	local UIHidden = false
+
+	WindowConfig = WindowConfig or {}
+	WindowConfig.Name = WindowConfig.Name or "Leaks/Scripts Hub"
+	WindowConfig.ConfigFolder = WindowConfig.ConfigFolder or WindowConfig.Name
+	WindowConfig.SaveConfig = WindowConfig.SaveConfig or false
+
+	if WindowConfig.IntroEnabled == nil then
+		WindowConfig.IntroEnabled = true
+	end
+
+	WindowConfig.IntroText = WindowConfig.IntroText or "Leaks/Scripts Hub"
+	WindowConfig.CloseCallback = WindowConfig.CloseCallback or function() end
+	WindowConfig.ShowIcon = WindowConfig.ShowIcon or false
+	WindowConfig.Icon = WindowConfig.Icon or "rbxassetid://14229447778"
+	WindowConfig.IntroIcon = WindowConfig.IntroIcon or "rbxassetid://14229447778"
+	
+	OrionLib.Folder = WindowConfig.ConfigFolder
+	OrionLib.SaveCfg = WindowConfig.SaveConfig
+
+	if WindowConfig.SaveConfig then
+		if (isfolder and makefolder) and not isfolder(WindowConfig.ConfigFolder) then
+			makefolder(WindowConfig.ConfigFolder)
+		end	
+	end
+
+	-- MODIFIED: Search Bar Container in Sidebar
+	local SidebarSearchContainer = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 6), {
+		Size = UDim2.new(1, -16, 0, 30),
+		Position = UDim2.new(0, 8, 0, 10), -- Top padding inside sidebar
+		Name = "SearchContainer"
+	}), {
+		AddThemeObject(MakeElement("Stroke"), "Stroke")
+	}), "Second")
+
+	local SidebarSearchIcon = SetProps(MakeElement("Image", "rbxassetid://3926305904"), {
+		Size = UDim2.new(0, 16, 0, 16),
+		Position = UDim2.new(0, 8, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		ImageColor3 = Color3.fromRGB(150, 150, 150),
+		BackgroundTransparency = 1
+	})
+	SidebarSearchIcon.Parent = SidebarSearchContainer
+
+	local SidebarSearchBox = Create("TextBox", {
+		Size = UDim2.new(1, -30, 1, 0),
+		Position = UDim2.new(0, 30, 0, 0),
+		BackgroundTransparency = 1,
+		TextColor3 = Color3.fromRGB(240, 240, 240),
+		PlaceholderColor3 = Color3.fromRGB(150, 150, 150),
+		PlaceholderText = "Pesquisa...",
+		Font = Enum.Font.GothamBold,
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ClearTextOnFocus = false,
+		Parent = SidebarSearchContainer
+	})
+
+	-- MODIFIED: Adjusted TabHolder size and position to fit under search bar
+	local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 4),
+		{
+			Size = UDim2.new(1, 0, 1, -95), -- Reduced height (-50 for user, -45 for search)
+			Position = UDim2.new(0, 0, 0, 45) -- Moved down
+		}),
+		{
+			MakeElement("List"),
+			MakeElement("Padding", 8, 0, 0, 8)
+		}), "Divider")
+
+	AddConnection(TabHolder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
+		TabHolder.CanvasSize = UDim2.new(0, 0, 0, TabHolder.UIListLayout.AbsoluteContentSize.Y + 16)
+	end)
+
+	local CloseBtn = SetChildren(SetProps(MakeElement("Button"), {
+		Size = UDim2.new(0.5, 0, 1, 0),
+		Position = UDim2.new(0.5, 0, 0, 0),
+		BackgroundTransparency = 1
+	}), {
+		AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://7072725342"), {
+			Position = UDim2.new(0, 9, 0, 6),
+			Size = UDim2.new(0, 18, 0, 18)
+		}), "Text")
+	})
+
+	local MinimizeBtn = SetChildren(SetProps(MakeElement("Button"), {
+		Size = UDim2.new(0.5, 0, 1, 0),
+		BackgroundTransparency = 1
+	}), {
+		AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://7072719338"), {
+			Position = UDim2.new(0, 9, 0, 6),
+			Size = UDim2.new(0, 18, 0, 18),
+			Name = "Ico"
+		}), "Text")
+	})
+
+	local DragPoint = SetProps(MakeElement("TFrame"), {
+		Size = UDim2.new(1, 0, 0, 50)
+	})
+
+	local WindowStuff = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
+		Size = UDim2.new(0, 150, 1, -50),
+		Position = UDim2.new(0, 0, 0, 50)
+	}), {
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(1, 0, 0, 10),
+			Position = UDim2.new(0, 0, 0, 0)
+		}), "Second"), 
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(0, 10, 1, 0),
+			Position = UDim2.new(1, -10, 0, 0)
+		}), "Second"), 
+		AddThemeObject(SetProps(MakeElement("Frame"), {
+			Size = UDim2.new(0, 1, 1, 0),
+			Position = UDim2.new(1, -1, 0, 0)
+		}), "Stroke"), 
+		SidebarSearchContainer, -- Added search container here
+		TabHolder,
+		SetChildren(SetProps(MakeElement("TFrame"), {
+			Size = UDim2.new(1, 0, 0, 50),
+			Position = UDim2.new(0, 0, 1, -50)
+		}), {
+			AddThemeObject(SetProps(MakeElement("Frame"), {
+				Size = UDim2.new(1, 0, 0, 1)
+			}), "Stroke"), 
+			AddThemeObject(SetChildren(SetProps(MakeElement("Frame"), {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Size = UDim2.new(0, 32, 0, 32),
+				Position = UDim2.new(0, 10, 0.5, 0)
+			}), {
+				SetProps(MakeElement("Image", "https://www.roblox.com/headshot-thumbnail/image?userId=".. LocalPlayer.UserId .."&width=420&height=420&format=png"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				}),
+				AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://4031889928"), {
+					Size = UDim2.new(1, 0, 1, 0),
+				}), "Second"),
+				MakeElement("Corner", 1)
+			}), "Divider"),
+			SetChildren(SetProps(MakeElement("TFrame"), {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Size = UDim2.new(0, 32, 0, 32),
+				Position = UDim2.new(0, 10, 0.5, 0)
+			}), {
+				AddThemeObject(MakeElement("Stroke"), "Stroke"),
+				MakeElement("Corner", 1)
+			}),
+			AddThemeObject(SetProps(MakeElement("Label", LocalPlayer.DisplayName, 13), {
+				Size = UDim2.new(1, -60, 0, 13),
+				Position = UDim2.new(0, 50, 0, 12),
+				Font = Enum.Font.GothamBold,
+				ClipsDescendants = true
+			}), "Text"),
+			AddThemeObject(SetProps(MakeElement("Label", TemporaryRoles[LocalPlayer.UserId] or "User", 12), {
+				Size = UDim2.new(1, -60, 0, 12),
+				Position = UDim2.new(0, 50, 1, -25),
+				Visible = true
+			}), "TextDark")
+		}),
+	}), "Second")
+
+	local Tabs = {} -- Store tabs for searching
+
+	-- MODIFIED: Search Logic
+	AddConnection(SidebarSearchBox:GetPropertyChangedSignal("Text"), function()
+		local InputText = string.lower(SidebarSearchBox.Text)
+		for TabName, TabObject in pairs(Tabs) do
+			if string.find(string.lower(TabName), InputText) then
+				TabObject.Visible = true
+			else
+				TabObject.Visible = false
+			end
+		end
+		-- Refresh Layout
+		TabHolder.CanvasSize = UDim2.new(0, 0, 0, TabHolder.UIListLayout.AbsoluteContentSize.Y + 16)
+	end)
+
+	local WindowName = AddThemeObject(SetProps(MakeElement("Label", WindowConfig.Name, 14), {
+		Size = UDim2.new(1, -30, 2, 0),
+		Position = UDim2.new(0, 25, 0, -24),
+		Font = Enum.Font.GothamBlack,
+		TextSize = 20
+	}), "Text")
+
+	local WindowTopBarLine = AddThemeObject(SetProps(MakeElement("Frame"), {
+		Size = UDim2.new(1, 0, 0, 1),
+		Position = UDim2.new(0, 0, 1, -1)
+	}), "Stroke")
+
+	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
+		Parent = Orion,
+		Position = UDim2.new(0.5, -307, 0.5, -172),
+		Size = UDim2.new(0, 615, 0, 344),
+		ClipsDescendants = true
+	}), {
+		SetChildren(SetProps(MakeElement("TFrame"), {
+			Size = UDim2.new(1, 0, 0, 50),
+			Name = "TopBar"
+		}), {
+			WindowName,
+			WindowTopBarLine,
+			AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 7), {
+				Size = UDim2.new(0, 70, 0, 30),
+				Position = UDim2.new(1, -90, 0, 10)
+			}), {
+				AddThemeObject(MakeElement("Stroke"), "Stroke"),
+				AddThemeObject(SetProps(MakeElement("Frame"), {
+					Size = UDim2.new(0, 1, 1, 0),
+					Position = UDim2.new(0.5, 0, 0, 0)
+				}), "Stroke"), 
+				CloseBtn,
+				MinimizeBtn
+			}), "Second"), 
+		}),
+		DragPoint,
+		WindowStuff
+	}), "Main")
+
+	if WindowConfig.ShowIcon then
+		WindowName.Position = UDim2.new(0, 50, 0, -24)
+		local WindowIcon = SetProps(MakeElement("Image", WindowConfig.Icon), {
+			Size = UDim2.new(0, 20, 0, 20),
+			Position = UDim2.new(0, 25, 0, 15)
+		})
+		WindowIcon.Parent = MainWindow.TopBar
+	end
+
+	MakeDraggable(DragPoint, MainWindow)
+
+	local _currentKey = Enum.KeyCode.RightShift;
+	local isMobile = table.find({ Enum.Platform.IOS, Enum.Platform.Android }, UserInputService:GetPlatform());
+	local MobileIcon = SetChildren(SetProps(MakeElement("ImageButton", "http://www.roblox.com/asset/?id=17570737246"), {
+		Position = UDim2.new(0.25, 0, 0.1, 0);
+		Size = UDim2.new(0, 32, 0, 33);
+		Parent = Orion;
+		Visible = false;
+	}), { MakeElement("Corner", 1, 0) });
+
+	MakeDraggable(MobileIcon, MobileIcon)
+
+	AddConnection(MobileIcon.MouseButton1Click, function()
+		MainWindow.Visible = true;
+		MobileIcon.Visible = false;
+	end)
+
+	AddConnection(CloseBtn.MouseButton1Up, function()
+		MainWindow.Visible = false
+		UIHidden = true
+
+		if UserInputService.TouchEnabled then
+			MobileIcon.Visible = true;
+		end
+
+		OrionLib:MakeNotification({
+			Name = "Interface fechada",
+			Content = (isMobile and 'Clique na <b>Icon' or 'Pressione a tecla <b>' .. _currentKey.Name) .. "</b> para abrir a GUI novamente!",
+			Time = 5
+		})
+		WindowConfig.CloseCallback()
+	end)
+
+	AddConnection(UserInputService.InputBegan, function(Input)
+		if Input.KeyCode == _currentKey then
+			MobileIcon.Visible = false; 
+			MainWindow.Visible = not MainWindow.Visible;
+		end
+	end)
+
+	AddConnection(MinimizeBtn.MouseButton1Up, function()
+		if Minimized then
+			TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, 615, 0, 344)}):Play()
+			MinimizeBtn.Ico.Image = "rbxassetid://7072719338"
+			wait(.02)
+			MainWindow.ClipsDescendants = false
+			WindowStuff.Visible = true
+			WindowTopBarLine.Visible = true
+		else
+			MainWindow.ClipsDescendants = true
+			WindowTopBarLine.Visible = false
+			MinimizeBtn.Ico.Image = "rbxassetid://7072720870"
+
+			TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, WindowName.TextBounds.X + 140, 0, 50)}):Play()
+			wait(0.1)
+			WindowStuff.Visible = false	
+		end
+		Minimized = not Minimized    
+	end)
+
+	local function LoadSequence()
+		MainWindow.Visible = false
+		local LoadSequenceLogo = SetProps(MakeElement("Image", WindowConfig.IntroIcon), {
+			Parent = Orion,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.4, 0),
+			Size = UDim2.new(0, 28, 0, 28),
+			ImageColor3 = Color3.fromRGB(255, 255, 255),
+			ImageTransparency = 1
+		})
+
+		local LoadSequenceText = SetProps(MakeElement("Label", WindowConfig.IntroText, 14), {
+			Parent = Orion,
+			Size = UDim2.new(1, 0, 1, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 19, 0.5, 0),
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Font = Enum.Font.GothamBold,
+			TextTransparency = 1
+		})
+
+		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
+		wait(0.8)
+		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -(LoadSequenceText.TextBounds.X/2), 0.5, 0)}):Play()
+		wait(0.3)
+		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+		wait(2)
+		TweenService:Create(LoadSequenceText, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextTransparency = 1}):Play()
+		MainWindow.Visible = true
+		LoadSequenceLogo:Destroy()
+		LoadSequenceText:Destroy()
+	end 
+
+	if WindowConfig.IntroEnabled then
+		LoadSequence()
+	end
+
+	local Functions = {}
+
+	function Functions:MakeTab(TabConfig)
+		TabConfig = TabConfig or {}
+		TabConfig.Name = TabConfig.Name or "Tab"
+		TabConfig.Icon = TabConfig.Icon or ""
+
+		local TabFrame = SetChildren(SetProps(MakeElement("Button"), {
+			Size = UDim2.new(1, 0, 0, 30),
+			Parent = TabHolder
+		}), {
+			AddThemeObject(SetProps(MakeElement("Image", TabConfig.Icon), {
+				AnchorPoint = Vector2.new(0, 0.5),
+				Size = UDim2.new(0, 18, 0, 18),
+				Position = UDim2.new(0, 10, 0.5, 0),
+				ImageTransparency = 0.4,
+				Name = "Ico"
+			}), "Text"),
+			AddThemeObject(SetProps(MakeElement("Label", TabConfig.Name, 14), {
+				Size = UDim2.new(1, -35, 1, 0),
+				Position = UDim2.new(0, 35, 0, 0),
+				Font = Enum.Font.GothamSemibold,
+				TextTransparency = 0.4,
+				Name = "Title"
+			}), "Text")
+		})
+
+		-- MODIFIED: Add tab to table for search functionality
+		Tabs[TabConfig.Name] = TabFrame 
+		-- AddItemTable(Tabs, TabConfig.Name, TabFrame) -- Original logic (kept for compatibility if needed elsewhere, but mainly using the dictionary above)
+
+		if GetIcon(TabConfig.Icon) ~= nil then
+			TabFrame.Ico.Image = GetIcon(TabConfig.Icon)
+		end	
+
+		local Container = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 5), {
+			Size = UDim2.new(1, -150, 1, -50),
+			Position = UDim2.new(0, 150, 0, 50),
+			Parent = MainWindow,
+			Visible = false,
+			Name = "ItemContainer"
+		}), {
+			MakeElement("List", 0, 6),
+			MakeElement("Padding", 15, 10, 10, 15)
+		}), "Divider")
+
+		AddConnection(Container.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
+			Container.CanvasSize = UDim2.new(0, 0, 0, Container.UIListLayout.AbsoluteContentSize.Y + 30)
+		end)
+
+		if FirstTab then
+			FirstTab = false
+			TabFrame.Ico.ImageTransparency = 0
+			TabFrame.Title.TextTransparency = 0
+			TabFrame.Title.Font = Enum.Font.GothamBlack
+			Container.Visible = true
+		end    
+
+		AddConnection(TabFrame.MouseButton1Click, function()
+			for _, Tab in next, TabHolder:GetChildren() do
+				if Tab:IsA("TextButton") then
+					Tab.Title.Font = Enum.Font.GothamSemibold
+					TweenService:Create(Tab.Ico, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0.4}):Play()
+					TweenService:Create(Tab.Title, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {TextTransparency = 0.4}):Play()
+				end    
+			end
+			for _, ItemContainer in next, MainWindow:GetChildren() do
+				if ItemContainer.Name == "ItemContainer" then
+					ItemContainer.Visible = false
+				end    
+			end  
+			TweenService:Create(TabFrame.Ico, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = 0}):Play()
+			TweenService:Create(TabFrame.Title, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+			TabFrame.Title.Font = Enum.Font.GothamBlack
+			Container.Visible = true   
+		end)
+
+		local function GetElements(ItemParent)
+			local ElementFunction = {}
+
+			function ElementFunction:AddLog(Text)
+				local Label = MakeElement("Label", Text, 15)
+				local LogFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 0.7,
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(Label, {
+						Size = UDim2.new(1, -12, 1, 0),
+						Position = UDim2.new(0, 12, 0, 0),
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextSize = 19,
+						TextWrapped = true,
+						Font = Enum.Font.GothamBold,
+						Name = "Content"
+					}), "Text"),
+					AddThemeObject(MakeElement("Stroke"), "Stroke")
+				}), "Second")
+			end
+
+			function ElementFunction:AddLabel(Text)
+				local LabelFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 30),
+					BackgroundTransparency = 0.7,
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", Text, 15), {
+						Size = UDim2.new(1, -12, 1, 0),
+						Position = UDim2.new(0, 12, 0, 0),
+						Font = Enum.Font.GothamBold,
+						Name = "Content"
+					}), "Text"),
+					AddThemeObject(MakeElement("Stroke"), "Stroke")
+				}), "Second")
+
+				local LabelFunction = {}
+				function LabelFunction:Set(ToChange)
+					LabelFrame.Content.Text = ToChange
+				end
+				return LabelFunction
+			end
+
+			function ElementFunction:AddParagraph(Text, Content)
+				Text = Text or "Text"
+				Content = Content or "Content"
+
+				local ParagraphFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 30),
+					BackgroundTransparency = 0.7,
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", Text, 15), {
+						Size = UDim2.new(1, -12, 0, 14),
+						Position = UDim2.new(0, 12, 0, 10),
+						Font = Enum.Font.GothamBold,
+						Name = "Title"
+					}), "Text"),
+					AddThemeObject(SetProps(MakeElement("Label", "", 13), {
+						Size = UDim2.new(1, -24, 0, 0),
+						Position = UDim2.new(0, 12, 0, 26),
+						Font = Enum.Font.GothamSemibold,
+						Name = "Content",
+						TextWrapped = true
+					}), "TextDark"),
+					AddThemeObject(MakeElement("Stroke"), "Stroke")
+				}), "Second")
+
+				AddConnection(ParagraphFrame.Content:GetPropertyChangedSignal("Text"), function()
+					ParagraphFrame.Content.Size = UDim2.new(1, -24, 0, ParagraphFrame.Content.TextBounds.Y)
+					ParagraphFrame.Size = UDim2.new(1, 0, 0, ParagraphFrame.Content.TextBounds.Y + 35)
+				end)
+
+				ParagraphFrame.Content.Text = Content
+
+				local ParagraphFunction = {}
+				function ParagraphFunction:Set(ToChange)
+					ParagraphFrame.Content.Text = ToChange
+				end
+				return ParagraphFunction
+			end
+
+			function ElementFunction:AddButton(ButtonConfig)
+				ButtonConfig = ButtonConfig or {}
+				ButtonConfig.Name = ButtonConfig.Name or "Button"
+				ButtonConfig.Callback = ButtonConfig.Callback or function() end
+				ButtonConfig.Icon = ButtonConfig.Icon or "rbxassetid://3944703587"
+				ButtonConfig.OriginalName = ButtonConfig.OriginalName or tostring(ButtonConfig.Name or "")
+
+				local Splitted = string.split(ButtonConfig.Name, " / ")
+				local Script = Splitted and Splitted[2]
+
+				if Script then
+					ButtonConfig.Name = Script
+					ButtonConfig.CanFavorite = true
+				end
+
+				local Button = {}
+
+				local Click = SetProps(MakeElement("Button"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				})
+
+				local FavoriteButton = ButtonConfig.CanFavorite and SetProps(MakeElement("ImageButton", "http://www.roblox.com/asset/?id=109586771228631"), {
+					Size = UDim2.new(0, 20, 0, 20),
+					Position = UDim2.new(1, -55, 0, 7),
+					ZIndex = 25
+				})
+
+				local ButtonFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 33),
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", ButtonConfig.Name, 15), {
+						Size = UDim2.new(1, -12, 1, 0),
+						Position = UDim2.new(0, 12, 0, 0),
+						Font = Enum.Font.GothamBold,
+						Name = "Content"
+					}), "Text"),
+					AddThemeObject(SetProps(MakeElement("Image", ButtonConfig.Icon), {
+						Size = UDim2.new(0, 20, 0, 20),
+						Position = UDim2.new(1, -30, 0, 7),
+					}), "TextDark"),
+					ButtonConfig.CanFavorite and AddThemeObject(FavoriteButton, "TextDark") or nil,
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					Click
+				}), "Second")
+
+				AddConnection(Click.MouseEnter, function()
+					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+				end)
+
+				AddConnection(Click.MouseLeave, function()
+					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second}):Play()
+				end)
+
+				AddConnection(Click.MouseButton1Up, function()
+					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+					spawn(function()
+						ButtonConfig.Callback()
+					end)
+				end)
+
+				AddConnection(Click.MouseButton1Down, function()
+					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
+				end)
+
+				--@ Favorite System
+				if FavoriteButton then
+					AddConnection(FavoriteButton.MouseButton1Down, function()
+						OrionLib.FavoriteEvent:Fire(ButtonConfig.OriginalName)
+					end)
+				end
+
+				function Button:Set(ButtonText)
+					ButtonFrame.Content.Text = ButtonText
+				end
+
+				Button.Instance = ButtonFrame
+
+				return Button
+			end    
+			function ElementFunction:AddToggle(ToggleConfig)
+				ToggleConfig = ToggleConfig or {}
+				ToggleConfig.Name = ToggleConfig.Name or "Toggle"
+				ToggleConfig.Default = ToggleConfig.Default or false
+				ToggleConfig.Callback = ToggleConfig.Callback or function() end
+				ToggleConfig.Color = ToggleConfig.Color or Color3.fromRGB(9, 99, 195)
+				ToggleConfig.Flag = ToggleConfig.Flag or nil
+				ToggleConfig.Save = ToggleConfig.Save or false
+
+				local Toggle = {Value = ToggleConfig.Default, Save = ToggleConfig.Save}
+
+				local Click = SetProps(MakeElement("Button"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				})
+
+				local ToggleBox = SetChildren(SetProps(MakeElement("RoundFrame", ToggleConfig.Color, 0, 4), {
+					Size = UDim2.new(0, 24, 0, 24),
+					Position = UDim2.new(1, -24, 0.5, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5)
+				}), {
+					SetProps(MakeElement("Stroke"), {
+						Color = ToggleConfig.Color,
+						Name = "Stroke",
+						Transparency = 0.5
+					}),
+					SetProps(MakeElement("Image", "rbxassetid://3944680095"), {
+						Size = UDim2.new(0, 20, 0, 20),
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.new(0.5, 0, 0.5, 0),
+						ImageColor3 = Color3.fromRGB(255, 255, 255),
+						Name = "Ico"
+					}),
+				})
+
+				local ToggleFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 38),
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", ToggleConfig.Name, 15), {
+						Size = UDim2.new(1, -12, 1, 0),
+						Position = UDim2.new(0, 12, 0, 0),
+						Font = Enum.Font.GothamBold,
+						Name = "Content"
+					}), "Text"),
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					ToggleBox,
+					Click
+				}), "Second")
+
+				function Toggle:Set(Value)
+					Toggle.Value = Value
+					TweenService:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Divider}):Play()
+					TweenService:Create(ToggleBox.Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Color = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Stroke}):Play()
+					TweenService:Create(ToggleBox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = Toggle.Value and 0 or 1, Size = Toggle.Value and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 8, 0, 8)}):Play()
+					ToggleConfig.Callback(Toggle.Value)
+				end    
+
+				Toggle:Set(Toggle.Value)
+
+				AddConnection(Click.MouseEnter, function()
+					TweenService:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+				end)
+
+				AddConnection(Click.MouseLeave, function()
+					TweenService:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second}):Play()
+				end)
+
+				AddConnection(Click.MouseButton1Up, function()
+					TweenService:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+					SaveCfg(game.GameId)
+					Toggle:Set(not Toggle.Value)
+				end)
+
+				AddConnection(Click.MouseButton1Down, function()
+					TweenService:Create(ToggleFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
+				end)
+
+				if ToggleConfig.Flag then
+					OrionLib.Flags[ToggleConfig.Flag] = Toggle
+				end	
+				return Toggle
+			end  
+			function ElementFunction:AddSlider(SliderConfig)
+				SliderConfig = SliderConfig or {}
+				SliderConfig.Name = SliderConfig.Name or "Slider"
+				SliderConfig.Min = SliderConfig.Min or 0
+				SliderConfig.Max = SliderConfig.Max or 100
+				SliderConfig.Increment = SliderConfig.Increment or 1
+				SliderConfig.Default = SliderConfig.Default or 50
+				SliderConfig.Callback = SliderConfig.Callback or function() end
+				SliderConfig.ValueName = SliderConfig.ValueName or ""
+				SliderConfig.Color = SliderConfig.Color or Color3.fromRGB(9, 149, 98)
+				SliderConfig.Flag = SliderConfig.Flag or nil
+				SliderConfig.Save = SliderConfig.Save or false
+
+				local Slider = {Value = SliderConfig.Default, Save = SliderConfig.Save}
+				local Dragging = false
+
+				local SliderDrag = SetChildren(SetProps(MakeElement("RoundFrame", SliderConfig.Color, 0, 5), {
+					Size = UDim2.new(0, 0, 1, 0),
+					BackgroundTransparency = 0.3,
+					ClipsDescendants = true
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", "value", 13), {
+						Size = UDim2.new(1, -12, 0, 14),
+						Position = UDim2.new(0, 12, 0, 6),
+						Font = Enum.Font.GothamBold,
+						Name = "Value",
+						TextTransparency = 0
+					}), "Text")
+				})
+
+				local SliderBar = SetChildren(SetProps(MakeElement("RoundFrame", SliderConfig.Color, 0, 5), {
+					Size = UDim2.new(1, -24, 0, 26),
+					Position = UDim2.new(0, 12, 0, 30),
+					BackgroundTransparency = 0.9
+				}), {
+					SetProps(MakeElement("Stroke"), {
+						Color = SliderConfig.Color
+					}),
+					AddThemeObject(SetProps(MakeElement("Label", "value", 13), {
+						Size = UDim2.new(1, -12, 0, 14),
+						Position = UDim2.new(0, 12, 0, 6),
+						Font = Enum.Font.GothamBold,
+						Name = "Value",
+						TextTransparency = 0.8
+					}), "Text"),
+					SliderDrag
+				})
+
+				local SliderFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 4), {
+					Size = UDim2.new(1, 0, 0, 65),
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", SliderConfig.Name, 15), {
+						Size = UDim2.new(1, -12, 0, 14),
+						Position = UDim2.new(0, 12, 0, 10),
+						Font = Enum.Font.GothamBold,
+						Name = "Content"
+					}), "Text"),
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					SliderBar
+				}), "Second")
+
+				SliderBar.InputBegan:Connect(function(Input)
+					if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
+						Dragging = true 
+					end 
+				end)
+				SliderBar.InputEnded:Connect(function(Input) 
+					if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
+						Dragging = false 
+					end 
+				end)
+
+				UserInputService.InputChanged:Connect(function(Input)
+					if Dragging and Input.UserInputType == Enum.UserInputType.MouseMovement then 
+						local SizeScale = math.clamp((Input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+						Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale)) 
+						SaveCfg(game.GameId)
+					end
+				end)
+
+				function Slider:Set(Value)
+					self.Value = math.clamp(Round(Value, SliderConfig.Increment), SliderConfig.Min, SliderConfig.Max)
+					TweenService:Create(SliderDrag,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = UDim2.fromScale((self.Value - SliderConfig.Min) / (SliderConfig.Max - SliderConfig.Min), 1)}):Play()
+					SliderBar.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
+					SliderDrag.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
+					SliderConfig.Callback(self.Value)
+				end      
+
+				Slider:Set(Slider.Value)
+				if SliderConfig.Flag then				
+					OrionLib.Flags[SliderConfig.Flag] = Slider
+				end
+				return Slider
+			end  
+			function ElementFunction:AddDropdown(DropdownConfig)
+				DropdownConfig = DropdownConfig or {}
+				DropdownConfig.Name = DropdownConfig.Name or "Dropdown"
+				DropdownConfig.Options = DropdownConfig.Options or {}
+				DropdownConfig.Default = DropdownConfig.Default or ""
+				DropdownConfig.Callback = DropdownConfig.Callback or function() end
+				DropdownConfig.Flag = DropdownConfig.Flag or nil
+				DropdownConfig.Save = DropdownConfig.Save or false
+
+				local Dropdown = {Value = DropdownConfig.Default, Options = DropdownConfig.Options, Buttons = {}, Toggled = false, Type = "Dropdown", Save = DropdownConfig.Save}
+				local MaxElements = 5
+
+				if not table.find(Dropdown.Options, Dropdown.Value) then
+					Dropdown.Value = "..."
+				end
+
+				local DropdownList = MakeElement("List")
+
+				local DropdownContainer = AddThemeObject(SetProps(SetChildren(MakeElement("ScrollFrame", Color3.fromRGB(40, 40, 40), 4), {
+					DropdownList
+				}), {
+					Parent = ItemParent,
+					Position = UDim2.new(0, 0, 0, 38),
+					Size = UDim2.new(1, 0, 1, -38),
+					ClipsDescendants = true
+				}), "Divider")
+
+				local Click = SetProps(MakeElement("Button"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				})
+
+				local DropdownFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 38),
+					Parent = ItemParent,
+					ClipsDescendants = true
+				}), {
+					DropdownContainer,
+					SetProps(SetChildren(MakeElement("TFrame"), {
+						AddThemeObject(SetProps(MakeElement("Label", DropdownConfig.Name, 15), {
+							Size = UDim2.new(1, -12, 1, 0),
+							Position = UDim2.new(0, 12, 0, 0),
+							Font = Enum.Font.GothamBold,
+							Name = "Content"
+						}), "Text"),
+						AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://7072706796"), {
+							Size = UDim2.new(0, 20, 0, 20),
+							AnchorPoint = Vector2.new(0, 0.5),
+							Position = UDim2.new(1, -30, 0.5, 0),
+							ImageColor3 = Color3.fromRGB(240, 240, 240),
+							Name = "Ico"
+						}), "TextDark"),
+						AddThemeObject(SetProps(MakeElement("Label", "Selected", 13), {
+							Size = UDim2.new(1, -40, 1, 0),
+							Font = Enum.Font.Gotham,
+							Name = "Selected",
+							TextXAlignment = Enum.TextXAlignment.Right
+						}), "TextDark"),
+						AddThemeObject(SetProps(MakeElement("Frame"), {
+							Size = UDim2.new(1, 0, 0, 1),
+							Position = UDim2.new(0, 0, 1, -1),
+							Name = "Line",
+							Visible = false
+						}), "Stroke"), 
+						Click
+					}), {
+						Size = UDim2.new(1, 0, 0, 38),
+						ClipsDescendants = true,
+						Name = "F"
+					}),
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					MakeElement("Corner")
+				}), "Second")
+
+				AddConnection(DropdownList:GetPropertyChangedSignal("AbsoluteContentSize"), function()
+					DropdownContainer.CanvasSize = UDim2.new(0, 0, 0, DropdownList.AbsoluteContentSize.Y)
+				end)  
+
+				local function AddOptions(Options)
+					for _, Option in pairs(Options) do
+						local OptionBtn = AddThemeObject(SetProps(SetChildren(MakeElement("Button", Color3.fromRGB(40, 40, 40)), {
+							MakeElement("Corner", 0, 6),
+							AddThemeObject(SetProps(MakeElement("Label", Option, 13, 0.4), {
+								Position = UDim2.new(0, 8, 0, 0),
+								Size = UDim2.new(1, -8, 1, 0),
+								Name = "Title"
+							}), "Text")
+						}), {
+							Parent = DropdownContainer,
+							Size = UDim2.new(1, 0, 0, 28),
+							BackgroundTransparency = 1,
+							ClipsDescendants = true
+						}), "Divider")
+
+						AddConnection(OptionBtn.MouseButton1Click, function()
+							Dropdown:Set(Option)
+							SaveCfg(game.GameId)
+						end)
+
+						Dropdown.Buttons[Option] = OptionBtn
+					end
+				end	
+
+				function Dropdown:Refresh(Options, Delete)
+					if Delete then
+						for _,v in pairs(Dropdown.Buttons) do
+							v:Destroy()
+						end    
+						table.clear(Dropdown.Options)
+						table.clear(Dropdown.Buttons)
+					end
+					Dropdown.Options = Options
+					AddOptions(Dropdown.Options)
+				end  
+
+				function Dropdown:Set(Value)
+					if not table.find(Dropdown.Options, Value) then
+						Dropdown.Value = "..."
+						DropdownFrame.F.Selected.Text = Dropdown.Value
+						for _, v in pairs(Dropdown.Buttons) do
+							TweenService:Create(v,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{BackgroundTransparency = 1}):Play()
+							TweenService:Create(v.Title,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{TextTransparency = 0.4}):Play()
+						end	
+						return
+					end
+
+					Dropdown.Value = Value
+					DropdownFrame.F.Selected.Text = Dropdown.Value
+
+					for _, v in pairs(Dropdown.Buttons) do
+						TweenService:Create(v,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{BackgroundTransparency = 1}):Play()
+						TweenService:Create(v.Title,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{TextTransparency = 0.4}):Play()
+					end	
+					TweenService:Create(Dropdown.Buttons[Value],TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{BackgroundTransparency = 0}):Play()
+					TweenService:Create(Dropdown.Buttons[Value].Title,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{TextTransparency = 0}):Play()
+					return DropdownConfig.Callback(Dropdown.Value)
+				end
+
+				AddConnection(Click.MouseButton1Click, function()
+					Dropdown.Toggled = not Dropdown.Toggled
+					DropdownFrame.F.Line.Visible = Dropdown.Toggled
+					TweenService:Create(DropdownFrame.F.Ico,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Rotation = Dropdown.Toggled and 180 or 0}):Play()
+					if #Dropdown.Options > MaxElements then
+						TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = Dropdown.Toggled and UDim2.new(1, 0, 0, 38 + (MaxElements * 28)) or UDim2.new(1, 0, 0, 38)}):Play()
+					else
+						TweenService:Create(DropdownFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = Dropdown.Toggled and UDim2.new(1, 0, 0, DropdownList.AbsoluteContentSize.Y + 38) or UDim2.new(1, 0, 0, 38)}):Play()
+					end
+				end)
+
+				Dropdown:Refresh(Dropdown.Options, false)
+				Dropdown:Set(Dropdown.Value)
+				if DropdownConfig.Flag then				
+					OrionLib.Flags[DropdownConfig.Flag] = Dropdown
+				end
+				return Dropdown
+			end
+			function ElementFunction:AddBind(BindConfig)
+				BindConfig.Name = BindConfig.Name or "Bind"
+				BindConfig.Default = BindConfig.Default or Enum.KeyCode.Unknown
+				BindConfig.Hold = BindConfig.Hold or false
+				BindConfig.Callback = BindConfig.Callback or function() end
+				BindConfig.Flag = BindConfig.Flag or nil
+				BindConfig.Save = BindConfig.Save or false
+
+				local Bind = {Value, Binding = false, Type = "Bind", Save = BindConfig.Save}
+				local Holding = false
+
+				local Click = SetProps(MakeElement("Button"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				})
+
+				local BindBox = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 4), {
+					Size = UDim2.new(0, 24, 0, 24),
+					Position = UDim2.new(1, -12, 0.5, 0),
+					AnchorPoint = Vector2.new(1, 0.5)
+				}), {
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					AddThemeObject(SetProps(MakeElement("Label", BindConfig.Name, 14), {
+						Size = UDim2.new(1, 0, 1, 0),
+						Font = Enum.Font.GothamBold,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						Name = "Value"
+					}), "Text")
+				}), "Main")
+
+				local BindFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 38),
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", BindConfig.Name, 15), {
+						Size = UDim2.new(1, -12, 1, 0),
+						Position = UDim2.new(0, 12, 0, 0),
+						Font = Enum.Font.GothamBold,
+						Name = "Content"
+					}), "Text"),
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					BindBox,
+					Click
+				}), "Second")
+
+				AddConnection(BindBox.Value:GetPropertyChangedSignal("Text"), function()
+					--BindBox.Size = UDim2.new(0, BindBox.Value.TextBounds.X + 16, 0, 24)
+					TweenService:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, BindBox.Value.TextBounds.X + 16, 0, 24)}):Play()
+				end)
+
+				AddConnection(Click.InputEnded, function(Input)
+					if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+						if Bind.Binding then return end
+						Bind.Binding = true
+						BindBox.Value.Text = ""
+					end
+				end)
+
+				AddConnection(UserInputService.InputBegan, function(Input)
+					if UserInputService:GetFocusedTextBox() then return end
+					if (Input.KeyCode.Name == Bind.Value or Input.UserInputType.Name == Bind.Value) and not Bind.Binding then
+						if BindConfig.Hold then
+							Holding = true
+							BindConfig.Callback(Holding)
+						else
+							BindConfig.Callback(Input)
+						end
+					elseif Bind.Binding then
+						local Key
+						pcall(function()
+							if not CheckKey(BlacklistedKeys, Input.KeyCode) then
+								Key = Input.KeyCode
+							end
+						end)
+						pcall(function()
+							if CheckKey(WhitelistedMouse, Input.UserInputType) and not Key then
+								Key = Input.UserInputType
+							end
+						end)
+						Key = Key or Bind.Value
+						Bind:Set(Key)
+						SaveCfg(game.GameId)
+					end
+				end)
+
+				AddConnection(UserInputService.InputEnded, function(Input)
+					if Input.KeyCode.Name == Bind.Value or Input.UserInputType.Name == Bind.Value then
+						if BindConfig.Hold and Holding then
+							Holding = false
+							BindConfig.Callback(Holding)
+						end
+					end
+				end)
+
+				AddConnection(Click.MouseEnter, function()
+					TweenService:Create(BindFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+				end)
+
+				AddConnection(Click.MouseLeave, function()
+					TweenService:Create(BindFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second}):Play()
+				end)
+
+				AddConnection(Click.MouseButton1Up, function()
+					TweenService:Create(BindFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+				end)
+
+				AddConnection(Click.MouseButton1Down, function()
+					TweenService:Create(BindFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
+				end)
+
+				function Bind:Set(Key)
+					Bind.Binding = false
+					Bind.Value = Key or Bind.Value
+					Bind.Value = Bind.Value.Name or Bind.Value
+					BindBox.Value.Text = Bind.Value
+				end
+
+				Bind:Set(BindConfig.Default)
+				if BindConfig.Flag then				
+					OrionLib.Flags[BindConfig.Flag] = Bind
+				end
+				return Bind
+			end  
+			function ElementFunction:AddTextbox(TextboxConfig)
+				TextboxConfig = TextboxConfig or {}
+				TextboxConfig.Name = TextboxConfig.Name or "Textbox"
+				TextboxConfig.Default = TextboxConfig.Default or ""
+				TextboxConfig.TextDisappear = TextboxConfig.TextDisappear or false
+				TextboxConfig.Callback = TextboxConfig.Callback or function() end
+
+				local Click = SetProps(MakeElement("Button"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				})
+
+				local TextboxActual = AddThemeObject(Create("TextBox", {
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					TextColor3 = Color3.fromRGB(255, 255, 255),
+					PlaceholderColor3 = Color3.fromRGB(210,210,210),
+					PlaceholderText = "Input",
+					Font = Enum.Font.GothamSemibold,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextSize = 14,
+					ClearTextOnFocus = false
+				}), "Text")
+
+				local TextContainer = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 4), {
+					Size = UDim2.new(0, 24, 0, 24),
+					Position = UDim2.new(1, -12, 0.5, 0),
+					AnchorPoint = Vector2.new(1, 0.5)
+				}), {
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					TextboxActual
+				}), "Main")
+
+
+				local TextboxFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 38),
+					Parent = ItemParent
+				}), {
+					AddThemeObject(SetProps(MakeElement("Label", TextboxConfig.Name, 15), {
+						Size = UDim2.new(1, -12, 1, 0),
+						Position = UDim2.new(0, 12, 0, 0),
+						Font = Enum.Font.GothamBold,
+						Name = "Content"
+					}), "Text"),
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+					TextContainer,
+					Click
+				}), "Second")
+
+				AddConnection(TextboxActual:GetPropertyChangedSignal("Text"), function()
+					--TextContainer.Size = UDim2.new(0, TextboxActual.TextBounds.X + 16, 0, 24)
+					TweenService:Create(TextContainer, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, TextboxActual.TextBounds.X + 16, 0, 24)}):Play()
+				end)
+
+				AddConnection(TextboxActual.FocusLost, function()
+					TextboxConfig.Callback(TextboxActual.Text)
+					if TextboxConfig.TextDisappear then
+						TextboxActual.Text = ""
+					end	
+				end)
+
+				TextboxActual.Text = TextboxConfig.Default
+
+				AddConnection(Click.MouseEnter, function()
+					TweenService:Create(TextboxFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+				end)
+
+				AddConnection(Click.MouseLeave, function()
+					TweenService:Create(TextboxFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = OrionLib.Themes[OrionLib.SelectedTheme].Second}):Play()
+				end)
+
+				AddConnection(Click.MouseButton1Up, function()
+					TweenService:Create(TextboxFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
+					TextboxActual:CaptureFocus()
+				end)
+
+				AddConnection(Click.MouseButton1Down, function()
+					TweenService:Create(TextboxFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
+				end)
+			end 
+			function ElementFunction:AddColorpicker(ColorpickerConfig)
+				ColorpickerConfig = ColorpickerConfig or {}
+				ColorpickerConfig.Name = ColorpickerConfig.Name or "Colorpicker"
+				ColorpickerConfig.Default = ColorpickerConfig.Default or Color3.fromRGB(255,255,255)
+				ColorpickerConfig.Callback = ColorpickerConfig.Callback or function() end
+				ColorpickerConfig.Flag = ColorpickerConfig.Flag or nil
+				ColorpickerConfig.Save = ColorpickerConfig.Save or false
+
+				local ColorH, ColorS, ColorV = 1, 1, 1
+				local Colorpicker = {Value = ColorpickerConfig.Default, Toggled = false, Type = "Colorpicker", Save = ColorpickerConfig.Save}
+
+				local ColorSelection = Create("ImageLabel", {
+					Size = UDim2.new(0, 18, 0, 18),
+					Position = UDim2.new(select(3, Color3.toHSV(Colorpicker.Value))),
+					ScaleType = Enum.ScaleType.Fit,
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					BackgroundTransparency = 1,
+					Image = "http://www.roblox.com/asset/?id=4805639000"
+				})
+
+				local HueSelection = Create("ImageLabel", {
+					Size = UDim2.new(0, 18, 0, 18),
+					Position = UDim2.new(0.5, 0, 1 - select(1, Color3.toHSV(Colorpicker.Value))),
+					ScaleType = Enum.ScaleType.Fit,
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					BackgroundTransparency = 1,
+					Image = "http://www.roblox.com/asset/?id=4805639000"
+				})
+
+				local Color = Create("ImageLabel", {
+					Size = UDim2.new(1, -25, 1, 0),
+					Visible = false,
+					Image = "rbxassetid://4155801252"
+				}, {
+					Create("UICorner", {CornerRadius = UDim.new(0, 5)}),
+					ColorSelection
+				})
+
+				local Hue = Create("Frame", {
+					Size = UDim2.new(0, 20, 1, 0),
+					Position = UDim2.new(1, -20, 0, 0),
+					Visible = false
+				}, {
+					Create("UIGradient", {Rotation = 270, Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 4)), ColorSequenceKeypoint.new(0.20, Color3.fromRGB(234, 255, 0)), ColorSequenceKeypoint.new(0.40, Color3.fromRGB(21, 255, 0)), ColorSequenceKeypoint.new(0.60, Color3.fromRGB(0, 255, 255)), ColorSequenceKeypoint.new(0.80, Color3.fromRGB(0, 17, 255)), ColorSequenceKeypoint.new(0.90, Color3.fromRGB(255, 0, 251)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 4))},}),
+					Create("UICorner", {CornerRadius = UDim.new(0, 5)}),
+					HueSelection
+				})
+
+				local ColorpickerContainer = Create("Frame", {
+					Position = UDim2.new(0, 0, 0, 32),
+					Size = UDim2.new(1, 0, 1, -32),
+					BackgroundTransparency = 1,
+					ClipsDescendants = true
+				}, {
+					Hue,
+					Color,
+					Create("UIPadding", {
+						PaddingLeft = UDim.new(0, 35),
+						PaddingRight = UDim.new(0, 35),
+						PaddingBottom = UDim.new(0, 10),
+						PaddingTop = UDim.new(0, 17)
+					})
+				})
+
+				local Click = SetProps(MakeElement("Button"), {
+					Size = UDim2.new(1, 0, 1, 0)
+				})
+
+				local ColorpickerBox = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 4), {
+					Size = UDim2.new(0, 24, 0, 24),
+					Position = UDim2.new(1, -12, 0.5, 0),
+					AnchorPoint = Vector2.new(1, 0.5)
+				}), {
+					AddThemeObject(MakeElement("Stroke"), "Stroke")
+				}), "Main")
+
+				local ColorpickerFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
+					Size = UDim2.new(1, 0, 0, 38),
+					Parent = ItemParent
+				}), {
+					SetProps(SetChildren(MakeElement("TFrame"), {
+						AddThemeObject(SetProps(MakeElement("Label", ColorpickerConfig.Name, 15), {
+							Size = UDim2.new(1, -12, 1, 0),
+							Position = UDim2.new(0, 12, 0, 0),
+							Font = Enum.Font.GothamBold,
+							Name = "Content"
+						}), "Text"),
+						ColorpickerBox,
+						Click,
+						AddThemeObject(SetProps(MakeElement("Frame"), {
+							Size = UDim2.new(1, 0, 0, 1),
+							Position = UDim2.new(0, 0, 1, -1),
+							Name = "Line",
+							Visible = false
+						}), "Stroke"), 
+					}), {
+						Size = UDim2.new(1, 0, 0, 38),
+						ClipsDescendants = true,
+						Name = "F"
+					}),
+					ColorpickerContainer,
+					AddThemeObject(MakeElement("Stroke"), "Stroke"),
+				}), "Second")
+
+				AddConnection(Click.MouseButton1Click, function()
+					Colorpicker.Toggled = not Colorpicker.Toggled
+					TweenService:Create(ColorpickerFrame,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = Colorpicker.Toggled and UDim2.new(1, 0, 0, 148) or UDim2.new(1, 0, 0, 38)}):Play()
+					Color.Visible = Colorpicker.Toggled
+					Hue.Visible = Colorpicker.Toggled
+					ColorpickerFrame.F.Line.Visible = Colorpicker.Toggled
+				end)
+
+				local function UpdateColorPicker()
+					ColorpickerBox.BackgroundColor3 = Color3.fromHSV(ColorH, ColorS, ColorV)
+					Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
+					Colorpicker:Set(ColorpickerBox.BackgroundColor3)
+					ColorpickerConfig.Callback(ColorpickerBox.BackgroundColor3)
+					SaveCfg(game.GameId)
+				end
+
+				ColorH = 1 - (math.clamp(HueSelection.AbsolutePosition.Y - Hue.AbsolutePosition.Y, 0, Hue.AbsoluteSize.Y) / Hue.AbsoluteSize.Y)
+				ColorS = (math.clamp(ColorSelection.AbsolutePosition.X - Color.AbsolutePosition.X, 0, Color.AbsoluteSize.X) / Color.AbsoluteSize.X)
+				ColorV = 1 - (math.clamp(ColorSelection.AbsolutePosition.Y - Color.AbsolutePosition.Y, 0, Color.AbsoluteSize.Y) / Color.AbsoluteSize.Y)
+
+				AddConnection(Color.InputBegan, function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						if ColorInput then
+							ColorInput:Disconnect()
+						end
+						ColorInput = AddConnection(RunService.RenderStepped, function()
+							local ColorX = (math.clamp(Mouse.X - Color.AbsolutePosition.X, 0, Color.AbsoluteSize.X) / Color.AbsoluteSize.X)
+							local ColorY = (math.clamp(Mouse.Y - Color.AbsolutePosition.Y, 0, Color.AbsoluteSize.Y) / Color.AbsoluteSize.Y)
+							ColorSelection.Position = UDim2.new(ColorX, 0, ColorY, 0)
+							ColorS = ColorX
+							ColorV = 1 - ColorY
+							UpdateColorPicker()
+						end)
+					end
+				end)
+
+				AddConnection(Color.InputEnded, function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						if ColorInput then
+							ColorInput:Disconnect()
+						end
+					end
+				end)
+
+				AddConnection(Hue.InputBegan, function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						if HueInput then
+							HueInput:Disconnect()
+						end;
+
+						HueInput = AddConnection(RunService.RenderStepped, function()
+							local HueY = (math.clamp(Mouse.Y - Hue.AbsolutePosition.Y, 0, Hue.AbsoluteSize.Y) / Hue.AbsoluteSize.Y)
+
+							HueSelection.Position = UDim2.new(0.5, 0, HueY, 0)
+							ColorH = 1 - HueY
+
+							UpdateColorPicker()
+						end)
+					end
+				end)
+
+				AddConnection(Hue.InputEnded, function(input)
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+						if HueInput then
+							HueInput:Disconnect()
+						end
+					end
+				end)
+
+				function Colorpicker:Set(Value)
+					Colorpicker.Value = Value
+					ColorpickerBox.BackgroundColor3 = Colorpicker.Value
+					ColorpickerConfig.Callback(Colorpicker.Value)
+				end
+
+				Colorpicker:Set(Colorpicker.Value)
+				if ColorpickerConfig.Flag then				
+					OrionLib.Flags[ColorpickerConfig.Flag] = Colorpicker
+				end
+				return Colorpicker
+			end  
+			return ElementFunction   
+		end	
+
+		local ElementFunction = {}
+
+		function ElementFunction:AddSection(SectionConfig)
+			SectionConfig.Name = SectionConfig.Name or "Section"
+
+			local SectionFrame = SetChildren(SetProps(MakeElement("TFrame"), {
+				Size = UDim2.new(1, 0, 0, 26),
+				Parent = Container
+			}), {
+				AddThemeObject(SetProps(MakeElement("Label", SectionConfig.Name, 14), {
+					Size = UDim2.new(1, -12, 0, 16),
+					Position = UDim2.new(0, 0, 0, 3),
+					Font = Enum.Font.GothamSemibold
+				}), "TextDark"),
+				SetChildren(SetProps(MakeElement("TFrame"), {
+					AnchorPoint = Vector2.new(0, 0),
+					Size = UDim2.new(1, 0, 1, -24),
+					Position = UDim2.new(0, 0, 0, 23),
+					Name = "Holder"
+				}), {
+					MakeElement("List", 0, 6)
+				}),
+			})
+
+			AddConnection(SectionFrame.Holder.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
+				SectionFrame.Size = UDim2.new(1, 0, 0, SectionFrame.Holder.UIListLayout.AbsoluteContentSize.Y + 31)
+				SectionFrame.Holder.Size = UDim2.new(1, 0, 0, SectionFrame.Holder.UIListLayout.AbsoluteContentSize.Y)
+			end)
+
+			local SectionFunction = {}
+			for i, v in next, GetElements(SectionFrame.Holder) do
+				SectionFunction[i] = v 
+			end
+			return SectionFunction
+		end	
+
+		for i, v in next, GetElements(Container) do
+			ElementFunction[i] = v 
+		end
+
+		return ElementFunction   
+	end
+
+	function Functions:ChangeKey(Keybind: Enum.KeyCode)
+		_currentKey = Keybind;
+	end;
+
+	function Functions:Destroy()
+		for _, Connection in next, OrionLib.Connections do
+			Connection:Disconnect()
+		end
+		MainWindow:Destroy()
+		MobileIcon:Destroy()
+	end
+
+	return Functions;
+end   
+
+function OrionLib:Destroy()
+	Orion:Destroy()
+end
+
+return OrionLib

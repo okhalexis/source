@@ -1,5 +1,5 @@
 --[[
-	Orion Library - Modified for Sidebar Search
+	Orion Library - Modified (Fixed Search Bar)
 	Updated by: Google AI
 --]]
 
@@ -11,7 +11,7 @@ local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
 
 local TemporaryRoles = {
-	[7386905786] = "Dono",
+	[953743517] = "Dono",
 	[724324884] = "Developer"
 }
 
@@ -507,31 +507,25 @@ function OrionLib:MakeWindow(WindowConfig)
 		end	
 	end
 
-	-- MODIFIED: Search Bar Container in Sidebar
+	-- MODIFIED: Search Bar Container (Cleaner version)
 	local SidebarSearchContainer = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 6), {
 		Size = UDim2.new(1, -16, 0, 30),
-		Position = UDim2.new(0, 8, 0, 10), -- Top padding inside sidebar
+		Position = UDim2.new(0, 8, 0, 10), 
 		Name = "SearchContainer"
 	}), {
 		AddThemeObject(MakeElement("Stroke"), "Stroke")
 	}), "Second")
 
-	local SidebarSearchIcon = SetProps(MakeElement("Image", "rbxassetid://3926305904"), {
-		Size = UDim2.new(0, 16, 0, 16),
-		Position = UDim2.new(0, 8, 0.5, 0),
-		AnchorPoint = Vector2.new(0, 0.5),
-		ImageColor3 = Color3.fromRGB(150, 150, 150),
-		BackgroundTransparency = 1
-	})
-	SidebarSearchIcon.Parent = SidebarSearchContainer
+	-- Icon removed as requested.
 
 	local SidebarSearchBox = Create("TextBox", {
-		Size = UDim2.new(1, -30, 1, 0),
-		Position = UDim2.new(0, 30, 0, 0),
+		Size = UDim2.new(1, -20, 1, 0), -- Full width minus padding
+		Position = UDim2.new(0, 10, 0, 0), -- Padding left
 		BackgroundTransparency = 1,
+		Text = "", -- CRITICAL: Empty string to avoid "TextBox" appearing
 		TextColor3 = Color3.fromRGB(240, 240, 240),
 		PlaceholderColor3 = Color3.fromRGB(150, 150, 150),
-		PlaceholderText = "Pesquisa...",
+		PlaceholderText = "Pesquisar...", -- The desired text
 		Font = Enum.Font.GothamBold,
 		TextSize = 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -539,11 +533,11 @@ function OrionLib:MakeWindow(WindowConfig)
 		Parent = SidebarSearchContainer
 	})
 
-	-- MODIFIED: Adjusted TabHolder size and position to fit under search bar
+	-- MODIFIED: Adjusted TabHolder size
 	local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 4),
 		{
-			Size = UDim2.new(1, 0, 1, -95), -- Reduced height (-50 for user, -45 for search)
-			Position = UDim2.new(0, 0, 0, 45) -- Moved down
+			Size = UDim2.new(1, 0, 1, -95), 
+			Position = UDim2.new(0, 0, 0, 45) 
 		}),
 		{
 			MakeElement("List"),
@@ -596,7 +590,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			Size = UDim2.new(0, 1, 1, 0),
 			Position = UDim2.new(1, -1, 0, 0)
 		}), "Stroke"), 
-		SidebarSearchContainer, -- Added search container here
+		SidebarSearchContainer, 
 		TabHolder,
 		SetChildren(SetProps(MakeElement("TFrame"), {
 			Size = UDim2.new(1, 0, 0, 50),
@@ -640,7 +634,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		}),
 	}), "Second")
 
-	local Tabs = {} -- Store tabs for searching
+	local Tabs = {} 
 
 	-- MODIFIED: Search Logic
 	AddConnection(SidebarSearchBox:GetPropertyChangedSignal("Text"), function()
@@ -831,9 +825,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			}), "Text")
 		})
 
-		-- MODIFIED: Add tab to table for search functionality
 		Tabs[TabConfig.Name] = TabFrame 
-		-- AddItemTable(Tabs, TabConfig.Name, TabFrame) -- Original logic (kept for compatibility if needed elsewhere, but mainly using the dictionary above)
 
 		if GetIcon(TabConfig.Icon) ~= nil then
 			TabFrame.Ico.Image = GetIcon(TabConfig.Icon)

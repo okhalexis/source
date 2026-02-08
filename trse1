@@ -1,7 +1,6 @@
 --[[
-	Orion Library - Full Modified Source (No Cuts)
-	Features: Search, Synced Text-Star Favorites, Fingerprint Default
-	Updated by: Google AI
+	Orion Library - Modified by Request
+	Changes: New Icon Default, Notifications on Execute/Favorite
 --]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -507,11 +506,12 @@ function OrionLib:MakeWindow(WindowConfig)
 		WindowConfig.IntroEnabled = true
 	end
 
+    -- ATUALIZADO: Ícone Padrão Novo
 	WindowConfig.IntroText = WindowConfig.IntroText or "Leaks/Scripts Hub"
 	WindowConfig.CloseCallback = WindowConfig.CloseCallback or function() end
 	WindowConfig.ShowIcon = WindowConfig.ShowIcon or false
-	WindowConfig.Icon = WindowConfig.Icon or "rbxassetid://14229447778"
-	WindowConfig.IntroIcon = WindowConfig.IntroIcon or "rbxassetid://14229447778"
+	WindowConfig.Icon = WindowConfig.Icon or "rbxassetid://91952239157208"
+	WindowConfig.IntroIcon = WindowConfig.IntroIcon or "rbxassetid://91952239157208"
 	
 	OrionLib.Folder = WindowConfig.ConfigFolder
 	OrionLib.SaveCfg = WindowConfig.SaveConfig
@@ -1047,6 +1047,14 @@ function OrionLib:MakeWindow(WindowConfig)
 							TempFuncs:AddButton(ButtonConfig)
 						end
 					end
+
+                    -- ATUALIZAÇÃO: Notificação ao Favoritar/Desfavoritar
+                    OrionLib:MakeNotification({
+                        Name = "Favoritos",
+                        Content = (CurrentlyFav and "Removido dos" or "Adicionado aos") .. " Favoritos: " .. ButtonConfig.Name,
+                        Image = "rbxassetid://4483345998",
+                        Time = 2
+                    })
                     
                     if OrionLib.StarRegistry[ButtonConfig.Name] then
                         for _, starInstance in pairs(OrionLib.StarRegistry[ButtonConfig.Name]) do
@@ -1082,7 +1090,15 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				AddConnection(Click.MouseButton1Up, function()
 					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
-					spawn(function()
+					
+                    -- ATUALIZAÇÃO: Notificação ao Executar
+                    spawn(function()
+                        OrionLib:MakeNotification({
+                            Name = "Executado",
+                            Content = "Script executado: " .. ButtonConfig.Name,
+                            Image = ButtonConfig.Icon,
+                            Time = 2
+                        })
 						ButtonConfig.Callback()
 					end)
 				end)
@@ -1189,7 +1205,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				SliderConfig.Increment = SliderConfig.Increment or 1
 				SliderConfig.Default = SliderConfig.Default or 50
 				SliderConfig.Callback = SliderConfig.Callback or function() end
-				SliderConfig.ValueName = SliderConfig.ValueName or ""
+				SliderConfig.ValueName = SliderConfig.ValueName or ""<
 				SliderConfig.Color = SliderConfig.Color or Color3.fromRGB(9, 149, 98)
 				SliderConfig.Flag = SliderConfig.Flag or nil
 				SliderConfig.Save = SliderConfig.Save or false
@@ -1280,7 +1296,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				DropdownConfig = DropdownConfig or {}
 				DropdownConfig.Name = DropdownConfig.Name or "Dropdown"
 				DropdownConfig.Options = DropdownConfig.Options or {}
-				DropdownConfig.Default = DropdownConfig.Default or ""
+				DropdownConfig.Default = DropdownConfig.Default or ""<
 				DropdownConfig.Callback = DropdownConfig.Callback or function() end
 				DropdownConfig.Flag = DropdownConfig.Flag or nil
 				DropdownConfig.Save = DropdownConfig.Save or false
@@ -1555,7 +1571,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			function ElementFunction:AddTextbox(TextboxConfig)
 				TextboxConfig = TextboxConfig or {}
 				TextboxConfig.Name = TextboxConfig.Name or "Textbox"
-				TextboxConfig.Default = TextboxConfig.Default or ""
+				TextboxConfig.Default = TextboxConfig.Default or ""<
 				TextboxConfig.TextDisappear = TextboxConfig.TextDisappear or false
 				TextboxConfig.Callback = TextboxConfig.Callback or function() end
 

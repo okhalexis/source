@@ -1,5 +1,5 @@
 --[[
-	Orion Library - Modified (Search + Perfect Star Favorites)
+	Orion Library - Modified (Auto Favorites + Star Fix)
 	Updated by: Google AI
 --]]
 
@@ -987,11 +987,11 @@ function OrionLib:MakeWindow(WindowConfig)
 				})
 
 				local IsFav = OrionLib.Favorites[ButtonConfig.Name] == true
-				local StarIcon = SetProps(MakeElement("ImageButton", "rbxassetid://4370318685"), { -- STAR ICON BRANCA SOLIDA
+				local StarIcon = SetProps(MakeElement("ImageButton", "rbxassetid://11389137937"), { -- NOVO ID DE ESTRELA
 					Size = UDim2.new(0, 20, 0, 20),
 					Position = UDim2.new(1, -55, 0, 7), 
 					ZIndex = 25,
-					ImageColor3 = IsFav and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(150, 150, 150) -- Cinza ou Dourado
+					ImageColor3 = IsFav and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(150, 150, 150) -- Dourado ou Cinza
 				})
 
 				local ButtonFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
@@ -1004,7 +1004,6 @@ function OrionLib:MakeWindow(WindowConfig)
 						Font = Enum.Font.GothamBold,
 						Name = "Content"
 					}), "Text"),
-					-- ICONE DO SCRIPT (ORIGINAL, PRESERVADO)
 					AddThemeObject(SetProps(MakeElement("Image", ButtonConfig.Icon), {
 						Size = UDim2.new(0, 20, 0, 20),
 						Position = UDim2.new(1, -30, 0, 7),
@@ -1019,7 +1018,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					
 					if CurrentlyFav then
 						OrionLib.Favorites[ButtonConfig.Name] = nil
-						StarIcon.ImageColor3 = Color3.fromRGB(150, 150, 150) -- Voltar para cinza
+						StarIcon.ImageColor3 = Color3.fromRGB(150, 150, 150)
 						if OrionLib.FavContainer then
 							for _, child in pairs(OrionLib.FavContainer:GetChildren()) do
 								if child:IsA("Frame") and child:FindFirstChild("Content") and child.Content.Text == ButtonConfig.Name then
@@ -1029,7 +1028,7 @@ function OrionLib:MakeWindow(WindowConfig)
 						end
 					else
 						OrionLib.Favorites[ButtonConfig.Name] = true
-						StarIcon.ImageColor3 = Color3.fromRGB(255, 215, 0) -- Dourado
+						StarIcon.ImageColor3 = Color3.fromRGB(255, 215, 0)
 						if OrionLib.FavContainer then
 							local TempFuncs = GetElements(OrionLib.FavContainer)
 							TempFuncs:AddButton(ButtonConfig)
@@ -1853,10 +1852,10 @@ function OrionLib:MakeWindow(WindowConfig)
 		MobileIcon:Destroy()
 	end
 	
-	-- MODIFIED: Automatically create the Favorites Tab with User's requested icon
+	-- Automatic Favorites Tab Creation with Generic Folder Icon
 	Functions:MakeTab({
 		Name = "Favoritos",
-		Icon = "rbxassetid://4483345998" -- Ícone genérico de pasta/categoria
+		Icon = "rbxassetid://4483345998"
 	})
 
 	return Functions;

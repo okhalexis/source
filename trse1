@@ -1,5 +1,6 @@
 --[[
-	Orion Library - Modified (Search + Text Star Favorites)
+	Orion Library - Full Modified Source
+	Features: Sidebar Search, Auto-Favorites Tab, Synced Text-Star Favorites
 	Updated by: Google AI
 --]]
 
@@ -22,9 +23,11 @@ local OrionLib = {
 	ThemeObjects = {},
 	Connections = {},
 	Flags = {},
+	-- Sistema de Favoritos Interno
 	Favorites = {}, 
 	FavContainer = nil,
-	ButtonRegistry = {}, 
+	ButtonRegistry = {},
+	StarRegistry = {}, -- Para sincronizar cor das estrelas
 	Themes = {
 		Default = {
 			Main = Color3.fromRGB(25, 25, 25),
@@ -40,7 +43,7 @@ local OrionLib = {
 	SaveCfg = false
 }
 
--- Carregar Favoritos
+-- Carregar Favoritos do Arquivo
 local FavFile = "Orion_Favorites.json"
 if isfile(FavFile) then
 	pcall(function()
@@ -969,7 +972,6 @@ function OrionLib:MakeWindow(WindowConfig)
 				return ParagraphFunction
 			end
 
-			-- MODIFIED: AddButton with TEXT Star System (To prevent bugs)
 			function ElementFunction:AddButton(ButtonConfig)
 				ButtonConfig = ButtonConfig or {}
 				ButtonConfig.Name = ButtonConfig.Name or "Button"
@@ -988,7 +990,6 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				local IsFav = OrionLib.Favorites[ButtonConfig.Name] == true
 				
-				-- USANDO TEXTBUTTON PARA A ESTRELA (★)
 				local StarIcon = SetProps(MakeElement("Button"), {
 					Text = "★",
 					TextSize = 25,
@@ -1000,6 +1001,11 @@ function OrionLib:MakeWindow(WindowConfig)
 					ZIndex = 25
 				})
 
+                if not OrionLib.StarRegistry[ButtonConfig.Name] then
+                    OrionLib.StarRegistry[ButtonConfig.Name] = {}
+                end
+                table.insert(OrionLib.StarRegistry[ButtonConfig.Name], StarIcon)
+
 				local ButtonFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 33),
 					Parent = ItemParent
@@ -1010,7 +1016,6 @@ function OrionLib:MakeWindow(WindowConfig)
 						Font = Enum.Font.GothamBold,
 						Name = "Content"
 					}), "Text"),
-					-- ICONE DO SCRIPT (ORIGINAL, PRESERVADO)
 					AddThemeObject(SetProps(MakeElement("Image", ButtonConfig.Icon), {
 						Size = UDim2.new(0, 20, 0, 20),
 						Position = UDim2.new(1, -30, 0, 7),
@@ -1022,11 +1027,13 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				AddConnection(StarIcon.MouseButton1Click, function()
 					local CurrentlyFav = OrionLib.Favorites[ButtonConfig.Name]
-					
+					local NewColor
+                    
 					if CurrentlyFav then
 						OrionLib.Favorites[ButtonConfig.Name] = nil
-						StarIcon.TextColor3 = Color3.fromRGB(150, 150, 150)
-						if OrionLib.FavContainer then
+						NewColor = Color3.fromRGB(150, 150, 150) 
+						
+                        if OrionLib.FavContainer then
 							for _, child in pairs(OrionLib.FavContainer:GetChildren()) do
 								if child:IsA("Frame") and child:FindFirstChild("Content") and child.Content.Text == ButtonConfig.Name then
 									child:Destroy()
@@ -1035,12 +1042,22 @@ function OrionLib:MakeWindow(WindowConfig)
 						end
 					else
 						OrionLib.Favorites[ButtonConfig.Name] = true
-						StarIcon.TextColor3 = Color3.fromRGB(255, 215, 0)
-						if OrionLib.FavContainer then
+						NewColor = Color3.fromRGB(255, 215, 0)
+						
+                        if OrionLib.FavContainer then
 							local TempFuncs = GetElements(OrionLib.FavContainer)
 							TempFuncs:AddButton(ButtonConfig)
 						end
 					end
+                    
+                    if OrionLib.StarRegistry[ButtonConfig.Name] then
+                        for _, starInstance in pairs(OrionLib.StarRegistry[ButtonConfig.Name]) do
+                            if starInstance and starInstance.Parent then
+                                starInstance.TextColor3 = NewColor
+                            end
+                        end
+                    end
+
 					SaveFavs()
 				end)
 				
@@ -1295,7 +1312,6 @@ function OrionLib:MakeWindow(WindowConfig)
 				local DropdownFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 38),
 					Parent = ItemParent
-					-- ClipsDescendants = true -- Comentado para evitar corte
 				}), {
 					DropdownContainer,
 					SetProps(SetChildren(MakeElement("TFrame"), {
@@ -1416,8 +1432,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				end
 				return Dropdown
 			end
-			-- ... (Rest of Bind, Textbox, Colorpicker logic remains identical to standard Orion) ...
-            function ElementFunction:AddBind(BindConfig)
+			function ElementFunction:AddBind(BindConfig)
 				BindConfig.Name = BindConfig.Name or "Bind"
 				BindConfig.Default = BindConfig.Default or Enum.KeyCode.Unknown
 				BindConfig.Hold = BindConfig.Hold or false

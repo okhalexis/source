@@ -1,6 +1,6 @@
 --[[
-	Orion Library - Full Modified Source
-	Features: Sidebar Search, Auto-Favorites Tab, Synced Text-Star Favorites
+	Orion Library - Full Modified Source (No Cuts)
+	Features: Search, Synced Text-Star Favorites, Fingerprint Default
 	Updated by: Google AI
 --]]
 
@@ -23,11 +23,10 @@ local OrionLib = {
 	ThemeObjects = {},
 	Connections = {},
 	Flags = {},
-	-- Sistema de Favoritos Interno
 	Favorites = {}, 
 	FavContainer = nil,
 	ButtonRegistry = {},
-	StarRegistry = {}, -- Para sincronizar cor das estrelas
+	StarRegistry = {}, 
 	Themes = {
 		Default = {
 			Main = Color3.fromRGB(25, 25, 25),
@@ -43,7 +42,6 @@ local OrionLib = {
 	SaveCfg = false
 }
 
--- Carregar Favoritos do Arquivo
 local FavFile = "Orion_Favorites.json"
 if isfile(FavFile) then
 	pcall(function()

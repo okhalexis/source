@@ -1,6 +1,7 @@
 --[[
-	Orion Library - Modified by Khalexis Request
-	Updates: New Icon (74512062724325), Notifications on Execute/Favorite
+	Orion Library - Full Modified Source (No Cuts)
+	Features: Search, Synced Text-Star Favorites, Fingerprint Default
+	Updated by: Google AI
 --]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -40,9 +41,6 @@ local OrionLib = {
 	Folder = nil,
 	SaveCfg = false
 }
-
--- O Ícone solicitado pelo usuário
-local UserRequestedIcon = "rbxassetid://74512062724325"
 
 local FavFile = "Orion_Favorites.json"
 if isfile(FavFile) then
@@ -132,7 +130,7 @@ local function MakeDraggable(DragPoint, Main)
 			Main.Position  = UDim2.new(FramePos.X.Scale,FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
 		end
 	end)
-end   
+end    
 
 local function Create(Name, Properties, Children)
 	local Object = Instance.new(Name)
@@ -477,7 +475,7 @@ function OrionLib:MakeNotification(NotificationConfig)
 		wait(1.35)
 		NotificationFrame:Destroy()
 	end)
-end   
+end    
 
 function OrionLib:Init()
 	if OrionLib.SaveCfg and (isfile and readfile) then	
@@ -1033,14 +1031,6 @@ function OrionLib:MakeWindow(WindowConfig)
 						OrionLib.Favorites[ButtonConfig.Name] = nil
 						NewColor = Color3.fromRGB(150, 150, 150) 
 						
-						-- Notificação de REMOVIDO dos Favoritos
-						OrionLib:MakeNotification({
-							Name = "Favoritos",
-							Content = ButtonConfig.Name .. " removido dos favoritos.",
-							Image = UserRequestedIcon,
-							Time = 3
-						})
-
                         if OrionLib.FavContainer then
 							for _, child in pairs(OrionLib.FavContainer:GetChildren()) do
 								if child:IsA("Frame") and child:FindFirstChild("Content") and child.Content.Text == ButtonConfig.Name then
@@ -1052,14 +1042,6 @@ function OrionLib:MakeWindow(WindowConfig)
 						OrionLib.Favorites[ButtonConfig.Name] = true
 						NewColor = Color3.fromRGB(255, 215, 0)
 						
-						-- Notificação de ADICIONADO aos Favoritos
-						OrionLib:MakeNotification({
-							Name = "Favoritos",
-							Content = ButtonConfig.Name .. " adicionado aos favoritos!",
-							Image = UserRequestedIcon,
-							Time = 3
-						})
-
                         if OrionLib.FavContainer then
 							local TempFuncs = GetElements(OrionLib.FavContainer)
 							TempFuncs:AddButton(ButtonConfig)
@@ -1100,15 +1082,6 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				AddConnection(Click.MouseButton1Up, function()
 					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
-					
-					-- Notificação de EXECUÇÃO
-					OrionLib:MakeNotification({
-						Name = "Execução",
-						Content = "Executando script: " .. ButtonConfig.Name,
-						Image = UserRequestedIcon,
-						Time = 3
-					})
-					
 					spawn(function()
 						ButtonConfig.Callback()
 					end)
@@ -1901,10 +1874,10 @@ function OrionLib:MakeWindow(WindowConfig)
 		MobileIcon:Destroy()
 	end
 	
-	-- Automatic Favorites Tab Creation with NEW ICON
+	-- Automatic Favorites Tab Creation with Generic Folder Icon
 	Functions:MakeTab({
 		Name = "Favoritos",
-		Icon = UserRequestedIcon -- Ícone atualizado aqui
+		Icon = "rbxassetid://4483345998"
 	})
 
 	return Functions;

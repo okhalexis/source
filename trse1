@@ -1,5 +1,5 @@
 --[[
-	Orion Library - Modified (Fixed Search Bar)
+	Orion Library - Modified (Search + Favorites System inside Buttons)
 	Updated by: Google AI
 --]]
 
@@ -11,7 +11,7 @@ local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
 
 local TemporaryRoles = {
-	[953743517] = "Dono",
+	[7386905786] = "Dono",
 	[724324884] = "Developer"
 }
 
@@ -22,7 +22,10 @@ local OrionLib = {
 	ThemeObjects = {},
 	Connections = {},
 	Flags = {},
-	FavoriteEvent = Instance.new("BindableEvent"),
+	-- Sistema de Favoritos
+	Favorites = {}, 
+	FavContainer = nil, -- Onde ficam os botões favoritos
+	ButtonRegistry = {}, -- Guarda as configs dos botões para replicar
 	Themes = {
 		Default = {
 			Main = Color3.fromRGB(25, 25, 25),
@@ -37,6 +40,18 @@ local OrionLib = {
 	Folder = nil,
 	SaveCfg = false
 }
+
+-- Carregar Favoritos Salvos
+local FavFile = "Orion_Favorites.json"
+if isfile(FavFile) then
+	pcall(function()
+		OrionLib.Favorites = HttpService:JSONDecode(readfile(FavFile))
+	end)
+end
+
+local function SaveFavs()
+	writefile(FavFile, HttpService:JSONEncode(OrionLib.Favorites))
+end
 
 local Icons = {}
 
@@ -507,7 +522,6 @@ function OrionLib:MakeWindow(WindowConfig)
 		end	
 	end
 
-	-- MODIFIED: Search Bar Container (Cleaner version)
 	local SidebarSearchContainer = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 6), {
 		Size = UDim2.new(1, -16, 0, 30),
 		Position = UDim2.new(0, 8, 0, 10), 
@@ -516,16 +530,14 @@ function OrionLib:MakeWindow(WindowConfig)
 		AddThemeObject(MakeElement("Stroke"), "Stroke")
 	}), "Second")
 
-	-- Icon removed as requested.
-
 	local SidebarSearchBox = Create("TextBox", {
-		Size = UDim2.new(1, -20, 1, 0), -- Full width minus padding
-		Position = UDim2.new(0, 10, 0, 0), -- Padding left
+		Size = UDim2.new(1, -20, 1, 0),
+		Position = UDim2.new(0, 10, 0, 0),
 		BackgroundTransparency = 1,
-		Text = "", -- CRITICAL: Empty string to avoid "TextBox" appearing
+		Text = "",
 		TextColor3 = Color3.fromRGB(240, 240, 240),
 		PlaceholderColor3 = Color3.fromRGB(150, 150, 150),
-		PlaceholderText = "Pesquisar...", -- The desired text
+		PlaceholderText = "Pesquisar...",
 		Font = Enum.Font.GothamBold,
 		TextSize = 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -533,7 +545,6 @@ function OrionLib:MakeWindow(WindowConfig)
 		Parent = SidebarSearchContainer
 	})
 
-	-- MODIFIED: Adjusted TabHolder size
 	local TabHolder = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 4),
 		{
 			Size = UDim2.new(1, 0, 1, -95), 
@@ -636,7 +647,6 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local Tabs = {} 
 
-	-- MODIFIED: Search Logic
 	AddConnection(SidebarSearchBox:GetPropertyChangedSignal("Text"), function()
 		local InputText = string.lower(SidebarSearchBox.Text)
 		for TabName, TabObject in pairs(Tabs) do
@@ -646,7 +656,6 @@ function OrionLib:MakeWindow(WindowConfig)
 				TabObject.Visible = false
 			end
 		end
-		-- Refresh Layout
 		TabHolder.CanvasSize = UDim2.new(0, 0, 0, TabHolder.UIListLayout.AbsoluteContentSize.Y + 16)
 	end)
 
@@ -826,7 +835,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		})
 
 		Tabs[TabConfig.Name] = TabFrame 
-
+		
 		if GetIcon(TabConfig.Icon) ~= nil then
 			TabFrame.Ico.Image = GetIcon(TabConfig.Icon)
 		end	
@@ -841,6 +850,11 @@ function OrionLib:MakeWindow(WindowConfig)
 			MakeElement("List", 0, 6),
 			MakeElement("Padding", 15, 10, 10, 15)
 		}), "Divider")
+
+		-- MODIFIED: Check if this is the Favorites Tab
+		if TabConfig.Name == "Favoritos" then
+			OrionLib.FavContainer = Container
+		end
 
 		AddConnection(Container.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
 			Container.CanvasSize = UDim2.new(0, 0, 0, Container.UIListLayout.AbsoluteContentSize.Y + 30)
@@ -875,7 +889,8 @@ function OrionLib:MakeWindow(WindowConfig)
 
 		local function GetElements(ItemParent)
 			local ElementFunction = {}
-
+			
+			-- ... [Log, Label, Paragraph functions remain the same] ...
 			function ElementFunction:AddLog(Text)
 				local Label = MakeElement("Label", Text, 15)
 				local LogFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
@@ -957,19 +972,16 @@ function OrionLib:MakeWindow(WindowConfig)
 				return ParagraphFunction
 			end
 
+			-- MODIFIED: AddButton with Star System
 			function ElementFunction:AddButton(ButtonConfig)
 				ButtonConfig = ButtonConfig or {}
 				ButtonConfig.Name = ButtonConfig.Name or "Button"
 				ButtonConfig.Callback = ButtonConfig.Callback or function() end
 				ButtonConfig.Icon = ButtonConfig.Icon or "rbxassetid://3944703587"
-				ButtonConfig.OriginalName = ButtonConfig.OriginalName or tostring(ButtonConfig.Name or "")
-
-				local Splitted = string.split(ButtonConfig.Name, " / ")
-				local Script = Splitted and Splitted[2]
-
-				if Script then
-					ButtonConfig.Name = Script
-					ButtonConfig.CanFavorite = true
+				
+				-- Registrar botão para ser replicado nos favoritos
+				if not OrionLib.ButtonRegistry[ButtonConfig.Name] then
+					OrionLib.ButtonRegistry[ButtonConfig.Name] = ButtonConfig
 				end
 
 				local Button = {}
@@ -978,10 +990,12 @@ function OrionLib:MakeWindow(WindowConfig)
 					Size = UDim2.new(1, 0, 1, 0)
 				})
 
-				local FavoriteButton = ButtonConfig.CanFavorite and SetProps(MakeElement("ImageButton", "http://www.roblox.com/asset/?id=109586771228631"), {
+				local IsFav = OrionLib.Favorites[ButtonConfig.Name] == true
+				local StarIcon = SetProps(MakeElement("ImageButton", "rbxassetid://3944680095"), {
 					Size = UDim2.new(0, 20, 0, 20),
-					Position = UDim2.new(1, -55, 0, 7),
-					ZIndex = 25
+					Position = UDim2.new(1, -55, 0, 7), -- Ao lado do ícone original (-30 - 25 = -55)
+					ZIndex = 25,
+					ImageColor3 = IsFav and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(100, 100, 100)
 				})
 
 				local ButtonFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
@@ -994,14 +1008,60 @@ function OrionLib:MakeWindow(WindowConfig)
 						Font = Enum.Font.GothamBold,
 						Name = "Content"
 					}), "Text"),
+					-- Icone Original (Fingerprint ou o que o usuário escolheu)
 					AddThemeObject(SetProps(MakeElement("Image", ButtonConfig.Icon), {
 						Size = UDim2.new(0, 20, 0, 20),
 						Position = UDim2.new(1, -30, 0, 7),
 					}), "TextDark"),
-					ButtonConfig.CanFavorite and AddThemeObject(FavoriteButton, "TextDark") or nil,
+					-- Nossa Estrela
+					StarIcon,
 					AddThemeObject(MakeElement("Stroke"), "Stroke"),
 					Click
 				}), "Second")
+
+				-- Logica de Clicar na Estrela
+				AddConnection(StarIcon.MouseButton1Click, function()
+					local CurrentlyFav = OrionLib.Favorites[ButtonConfig.Name]
+					
+					if CurrentlyFav then
+						-- Remover dos favoritos
+						OrionLib.Favorites[ButtonConfig.Name] = nil
+						StarIcon.ImageColor3 = Color3.fromRGB(100, 100, 100)
+						-- Remover da aba
+						if OrionLib.FavContainer then
+							for _, child in pairs(OrionLib.FavContainer:GetChildren()) do
+								if child:IsA("Frame") and child:FindFirstChild("Content") and child.Content.Text == ButtonConfig.Name then
+									child:Destroy()
+								end
+							end
+						end
+					else
+						-- Adicionar aos favoritos
+						OrionLib.Favorites[ButtonConfig.Name] = true
+						StarIcon.ImageColor3 = Color3.fromRGB(255, 215, 0)
+						-- Adicionar na aba
+						if OrionLib.FavContainer then
+							local TempFuncs = GetElements(OrionLib.FavContainer)
+							TempFuncs:AddButton(ButtonConfig)
+						end
+					end
+					SaveFavs()
+				end)
+				
+				-- Se estamos criando o botão normal e ele já é favorito, cria na aba Fav também (apenas uma vez no startup)
+				if IsFav and ItemParent ~= OrionLib.FavContainer and OrionLib.FavContainer then
+					-- Verifica se já não existe lá pra evitar duplicação
+					local AlreadyInTab = false
+					for _, child in pairs(OrionLib.FavContainer:GetChildren()) do
+						if child:IsA("Frame") and child:FindFirstChild("Content") and child.Content.Text == ButtonConfig.Name then
+							AlreadyInTab = true
+						end
+					end
+					if not AlreadyInTab then
+						local TempFuncs = GetElements(OrionLib.FavContainer)
+						TempFuncs:AddButton(ButtonConfig)
+					end
+				end
 
 				AddConnection(Click.MouseEnter, function()
 					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
@@ -1022,13 +1082,6 @@ function OrionLib:MakeWindow(WindowConfig)
 					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 6, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 6)}):Play()
 				end)
 
-				--@ Favorite System
-				if FavoriteButton then
-					AddConnection(FavoriteButton.MouseButton1Down, function()
-						OrionLib.FavoriteEvent:Fire(ButtonConfig.OriginalName)
-					end)
-				end
-
 				function Button:Set(ButtonText)
 					ButtonFrame.Content.Text = ButtonText
 				end
@@ -1037,7 +1090,8 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				return Button
 			end    
-			function ElementFunction:AddToggle(ToggleConfig)
+			-- ... [Rest of functions: AddToggle, AddSlider, etc. remain the same] ...
+            function ElementFunction:AddToggle(ToggleConfig)
 				ToggleConfig = ToggleConfig or {}
 				ToggleConfig.Name = ToggleConfig.Name or "Toggle"
 				ToggleConfig.Default = ToggleConfig.Default or false
@@ -1793,6 +1847,11 @@ function OrionLib:MakeWindow(WindowConfig)
 			end
 			return SectionFunction
 		end	
+        
+        -- MODIFIED: Create the Favorites Tab automatically if it doesn't exist
+        if not OrionLib.FavContainer then
+             -- Logic happens in MakeWindow main flow below, this is just for safety
+        end
 
 		for i, v in next, GetElements(Container) do
 			ElementFunction[i] = v 
@@ -1812,6 +1871,12 @@ function OrionLib:MakeWindow(WindowConfig)
 		MainWindow:Destroy()
 		MobileIcon:Destroy()
 	end
+	
+	-- MODIFIED: Automatically create the Favorites Tab
+	Functions:MakeTab({
+		Name = "Favoritos",
+		Icon = "rbxassetid://3944680095"
+	})
 
 	return Functions;
 end   

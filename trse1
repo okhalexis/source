@@ -1873,12 +1873,6 @@ function OrionLib:MakeWindow(WindowConfig)
 		MainWindow:Destroy()
 		MobileIcon:Destroy()
 	end
-	
-	-- Automatic Favorites Tab Creation with Generic Folder Icon
-	Functions:MakeTab({
-		Name = "Favoritos",
-		Icon = "rbxassetid://4483345998"
-	})
 
 	return Functions;
 end   

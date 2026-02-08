@@ -10,18 +10,19 @@ local LocalPlayer = game:GetService("Players").LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
 
+local TemporaryRoles = {
+	[953743517] = "Dono",
+	[724324884] = "Developer"
+}
+
+local PARENT = game:GetService("CoreGui")
+
 local OrionLib = {
 	Elements = {},
 	ThemeObjects = {},
 	Connections = {},
 	Flags = {},
-	Folder = "Orion_Configs", -- Pasta padrão
-	SaveCfg = true,
-	-- [SISTEMA DE FAVORITOS G3P]
-	Favorites = {},     -- Armazena os NOMES dos scripts favoritados (salva no JSON)
-	Registry = {},      -- Armazena as FUNÇÕES (callbacks) vinculadas aos nomes
 	FavoriteEvent = Instance.new("BindableEvent"),
-	-- [FIM DO SISTEMA]
 	Themes = {
 		Default = {
 			Main = Color3.fromRGB(25, 25, 25),
@@ -32,28 +33,9 @@ local OrionLib = {
 			TextDark = Color3.fromRGB(150, 150, 150)
 		}
 	},
-	SelectedTheme = "Default"
-}
-
--- [FUNÇÕES DE PERSISTÊNCIA DE FAVORITOS]
-local function SaveFavorites()
-    if writefile then
-        local success, err = pcall(function()
-            writefile(OrionLib.Folder .. "/Favorites.json", HttpService:JSONEncode(OrionLib.Favorites))
-        end)
-    end
-end
-
-local function LoadFavorites()
-    if isfile and isfile(OrionLib.Folder .. "/Favorites.json") then
-        local success, data = pcall(function()
-            return HttpService:JSONDecode(readfile(OrionLib.Folder .. "/Favorites.json"))
-        end)
-        if success then OrionLib.Favorites = data end
-    else
-        OrionLib.Favorites = {}
-    end
-end
+	SelectedTheme = "Default",
+	Folder = nil,
+	SaveCfg = false
 }
 
 local Icons = {}

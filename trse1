@@ -13,7 +13,7 @@ local HttpService = game:GetService("HttpService")
 
 local TemporaryRoles = {
 	[953743517] = "Dono",
-	[] = "Developer"
+	[8484746914] = "Developer"
 }
 
 local PARENT = game:GetService("CoreGui")

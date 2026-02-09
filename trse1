@@ -713,7 +713,7 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local _currentKey = Enum.KeyCode.RightShift;
 	local isMobile = table.find({ Enum.Platform.IOS, Enum.Platform.Android }, UserInputService:GetPlatform());
-	local MobileIcon = SetChildren(SetProps(MakeElement("ImageButton", "http://www.roblox.com/asset/?id=127980026027779"), {
+	local MobileIcon = SetChildren(SetProps(MakeElement("ImageButton", "http://www.roblox.com/asset/?id=125604416614660"), {
 		Position = UDim2.new(0.25, 0, 0.1, 0);
 		Size = UDim2.new(0, 32, 0, 33);
 		Parent = Orion;

@@ -12,9 +12,8 @@ local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
 
 local TemporaryRoles = {
-	[7386905786] = "Dono",
-	[724324884] = "Developer"
-    [953743517] = "Premium"
+	[953743517] = "Dono",
+	[] = "Developer"
 }
 
 local PARENT = game:GetService("CoreGui")

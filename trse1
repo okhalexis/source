@@ -14,7 +14,7 @@ local HttpService = game:GetService("HttpService")
 local TemporaryRoles = {
 	[7386905786] = "Dono",
 	[724324884] = "Developer"
-    [8484746914] = "Premium Feioso Lixoso"
+    [953743517] = "Premium Feioso Lixoso"
 }
 
 local PARENT = game:GetService("CoreGui")

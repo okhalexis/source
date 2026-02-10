@@ -1,7 +1,6 @@
 --[[
-	Orion Library - Full Modified Source (No Cuts)
-	Features: Search, Synced Text-Star Favorites, Fingerprint Default
-    Updated: Added Favorite Notification System
+	Orion Library - Mobile Optimized Edition
+	Changes: Smaller default size, Drag-anywhere enabled, Touch support improved.
 --]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -104,10 +103,12 @@ task.spawn(function()
 	end
 end)
 
+-- SISTEMA DE DRAG OTIMIZADO PARA MOBILE (ARRASTAR EM QUALQUER LUGAR)
 local function MakeDraggable(DragPoint, Main)
 	local Dragging, DragInput, MousePos, FramePos = false
+	
 	AddConnection(DragPoint.InputBegan, function(Input)
-		if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 			Dragging = true
 			MousePos = Input.Position
 			FramePos = Main.Position
@@ -119,15 +120,17 @@ local function MakeDraggable(DragPoint, Main)
 			end)
 		end
 	end)
+	
 	AddConnection(DragPoint.InputChanged, function(Input)
-		if Input.UserInputType == Enum.UserInputType.MouseMovement then
+		if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
 			DragInput = Input
 		end
 	end)
+	
 	AddConnection(UserInputService.InputChanged, function(Input)
 		if Input == DragInput and Dragging then
 			local Delta = Input.Position - MousePos
-			Main.Position  = UDim2.new(FramePos.X.Scale,FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
+			Main.Position = UDim2.new(FramePos.X.Scale, FramePos.X.Offset + Delta.X, FramePos.Y.Scale, FramePos.Y.Offset + Delta.Y)
 		end
 	end)
 end    
@@ -671,10 +674,11 @@ function OrionLib:MakeWindow(WindowConfig)
 		Position = UDim2.new(0, 0, 1, -1)
 	}), "Stroke")
 
+    -- TAMANHO PADRÃO DA JANELA REDUZIDO PARA MOBILE (440x260)
 	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
 		Parent = Orion,
-		Position = UDim2.new(0.5, -307, 0.5, -172),
-		Size = UDim2.new(0, 615, 0, 344),
+		Position = UDim2.new(0.5, -220, 0.5, -130),
+		Size = UDim2.new(0, 440, 0, 260),
 		ClipsDescendants = true
 	}), {
 		SetChildren(SetProps(MakeElement("TFrame"), {
@@ -709,7 +713,8 @@ function OrionLib:MakeWindow(WindowConfig)
 		WindowIcon.Parent = MainWindow.TopBar
 	end
 
-	MakeDraggable(DragPoint, MainWindow)
+    -- APLICA DRAG NO MAINWINDOW (Clicar em qualquer lugar vazio move a janela)
+	MakeDraggable(MainWindow, MainWindow)
 
 	local _currentKey = Enum.KeyCode.RightShift;
 	local isMobile = table.find({ Enum.Platform.IOS, Enum.Platform.Android }, UserInputService:GetPlatform());
@@ -752,7 +757,7 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	AddConnection(MinimizeBtn.MouseButton1Up, function()
 		if Minimized then
-			TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, 615, 0, 344)}):Play()
+			TweenService:Create(MainWindow, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, 440, 0, 260)}):Play()
 			MinimizeBtn.Ico.Image = "rbxassetid://7072719338"
 			wait(.02)
 			MainWindow.ClipsDescendants = false
@@ -1042,7 +1047,6 @@ function OrionLib:MakeWindow(WindowConfig)
 						OrionLib.Favorites[ButtonConfig.Name] = true
 						NewColor = Color3.fromRGB(255, 215, 0)
 						
-						-- ADICIONADO: NOTIFICAÇÃO AO FAVORITAR
 						OrionLib:MakeNotification({
 							Name = "Favoritos",
 							Content = "O script " .. ButtonConfig.Name .. " foi favoritado.",

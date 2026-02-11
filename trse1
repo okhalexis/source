@@ -1,12 +1,11 @@
 --[[
-	Orion Library - Final Mobile Version (Clean & Optimized)
+	Orion Library - Final Perfected Mobile Version (Ultimate Polish)
 	Features: Search, Synced Text-Star Favorites, Fingerprint Default
     Updated: Added Favorite Notification System
     Modified: Reduced GUI size (~15%)
     Modified 2: Full Window Touch-Drag
     Modified 3: Notifications Overlay (ZIndex fix)
     Modified 4: Perfected Vertical Center (Raised -180 offset)
-    Cleaned: No Key Expiry/JD_EXPIRES_AT logic
 --]]
 
 local UserInputService = game:GetService("UserInputService")

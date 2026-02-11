@@ -1,10 +1,11 @@
 --[[
-	Orion Library - Final Mobile Adjustment
+	Orion Library - Final Perfected Mobile Version
 	Features: Search, Synced Text-Star Favorites, Fingerprint Default
     Updated: Added Favorite Notification System
     Modified: Reduced GUI size (~15%)
-    Modified 2: Full Window Touch-Drag & Perfect Center Position
+    Modified 2: Full Window Touch-Drag
     Modified 3: Notifications Overlay (ZIndex fix)
+    Modified 4: Perfected Vertical Center (Slightly raised)
 --]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -77,7 +78,7 @@ end
 local Orion = Instance.new("ScreenGui")
 Orion.Name = "Orion"
 Orion.Parent = PARENT
-Orion.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Garante que o ZIndex funcione corretamente
+Orion.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 for _, Interface in ipairs(PARENT:GetChildren()) do
 	if Interface.Name == Orion.Name and Interface ~= Orion then
@@ -684,7 +685,7 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
 		Parent = Orion,
-		Position = UDim2.new(0.5, -261, 0.5, -146), -- EXACT CENTER (Offset -146 is half of height 292)
+		Position = UDim2.new(0.5, -261, 0.5, -165), -- PERFECTED CENTER (Offset -165 for slightly raised feel)
 		Size = UDim2.new(0, 523, 0, 292),
 		ClipsDescendants = true,
         ZIndex = 1 -- ZINDEX BAIXO PARA O HUB

@@ -1,11 +1,11 @@
 --[[
-	Orion Library - Final Perfected Mobile Version
+	Orion Library - Final Perfected Mobile Version (Ultimate Polish)
 	Features: Search, Synced Text-Star Favorites, Fingerprint Default
     Updated: Added Favorite Notification System
     Modified: Reduced GUI size (~15%)
     Modified 2: Full Window Touch-Drag
     Modified 3: Notifications Overlay (ZIndex fix)
-    Modified 4: Perfected Vertical Center (Slightly raised)
+    Modified 4: Perfected Vertical Center (Raised -180 offset)
 --]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -685,7 +685,7 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
 		Parent = Orion,
-		Position = UDim2.new(0.5, -261, 0.5, -165), -- PERFECTED CENTER (Offset -165 for slightly raised feel)
+		Position = UDim2.new(0.5, -261, 0.5, -180), -- PERFECTED CENTER (Offset -180)
 		Size = UDim2.new(0, 523, 0, 292),
 		ClipsDescendants = true,
         ZIndex = 1 -- ZINDEX BAIXO PARA O HUB

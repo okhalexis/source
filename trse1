@@ -1,9 +1,10 @@
 --[[
-	Orion Library - Full Modified Source (No Cuts)
+	Orion Library - Final Mobile Adjustment
 	Features: Search, Synced Text-Star Favorites, Fingerprint Default
     Updated: Added Favorite Notification System
-    Modified: Reduced GUI size by ~15% for Mobile compatibility
-    Modified 2: Moved GUI upwards & Added Full Window Touch-Drag
+    Modified: Reduced GUI size (~15%)
+    Modified 2: Full Window Touch-Drag & Perfect Center Position
+    Modified 3: Notifications Overlay (ZIndex fix)
 --]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -76,6 +77,7 @@ end
 local Orion = Instance.new("ScreenGui")
 Orion.Name = "Orion"
 Orion.Parent = PARENT
+Orion.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Garante que o ZIndex funcione corretamente
 
 for _, Interface in ipairs(PARENT:GetChildren()) do
 	if Interface.Name == Orion.Name and Interface ~= Orion then
@@ -415,7 +417,8 @@ local NotificationHolder = SetProps(SetChildren(MakeElement("TFrame"), {
 	Position = UDim2.new(1, -25, 1, -25),
 	Size = UDim2.new(0, 300, 1, -25),
 	AnchorPoint = Vector2.new(1, 1),
-	Parent = Orion
+	Parent = Orion,
+    ZIndex = 100 -- FORÇA O CONTAINER DE NOTIFICAÇÃO PARA CIMA
 })
 
 function OrionLib:MakeNotification(NotificationConfig)
@@ -428,7 +431,8 @@ function OrionLib:MakeNotification(NotificationConfig)
 		local NotificationParent = SetProps(MakeElement("TFrame"), {
 			Size = UDim2.new(1, 0, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
-			Parent = NotificationHolder
+			Parent = NotificationHolder,
+            ZIndex = 101 -- FORÇA A NOTIFICAÇÃO EM SI PARA CIMA
 		})
 
 		local NotificationFrame = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(25, 25, 25), 0, 10), {
@@ -436,20 +440,23 @@ function OrionLib:MakeNotification(NotificationConfig)
 			Size = UDim2.new(1, 0, 0, 0),
 			Position = UDim2.new(1, -55, 0, 0),
 			BackgroundTransparency = 0,
-			AutomaticSize = Enum.AutomaticSize.Y
+			AutomaticSize = Enum.AutomaticSize.Y,
+            ZIndex = 102 -- GARANTE VISIBILIDADE
 		}), {
 			MakeElement("Stroke", Color3.fromRGB(93, 93, 93), 1.2),
 			MakeElement("Padding", 12, 12, 12, 12),
 			SetProps(MakeElement("Image", NotificationConfig.Image), {
 				Size = UDim2.new(0, 20, 0, 20),
 				ImageColor3 = Color3.fromRGB(240, 240, 240),
-				Name = "Icon"
+				Name = "Icon",
+                ZIndex = 103
 			}),
 			SetProps(MakeElement("Label", NotificationConfig.Name, 15), {
 				Size = UDim2.new(1, -30, 0, 20),
 				Position = UDim2.new(0, 30, 0, 0),
 				Font = Enum.Font.GothamBold,
-				Name = "Title"
+				Name = "Title",
+                ZIndex = 103
 			}),
 			SetProps(MakeElement("Label", NotificationConfig.Content, 14), {
 				Size = UDim2.new(1, 0, 0, 0),
@@ -459,7 +466,8 @@ function OrionLib:MakeNotification(NotificationConfig)
 				RichText = true,
 				AutomaticSize = Enum.AutomaticSize.Y,
 				TextColor3 = Color3.fromRGB(200, 200, 200),
-				TextWrapped = true
+				TextWrapped = true,
+                ZIndex = 103
 			})
 		})
 
@@ -676,9 +684,10 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
 		Parent = Orion,
-		Position = UDim2.new(0.5, -261, 0.5, -196), -- MOVED UP BY 50PX (Offset -196)
+		Position = UDim2.new(0.5, -261, 0.5, -146), -- EXACT CENTER (Offset -146 is half of height 292)
 		Size = UDim2.new(0, 523, 0, 292),
-		ClipsDescendants = true
+		ClipsDescendants = true,
+        ZIndex = 1 -- ZINDEX BAIXO PARA O HUB
 	}), {
 		SetChildren(SetProps(MakeElement("TFrame"), {
 			Size = UDim2.new(1, 0, 0, 50),
@@ -722,6 +731,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		Size = UDim2.new(0, 32, 0, 33);
 		Parent = Orion;
 		Visible = false;
+        ZIndex = 200 -- Mobile Icon Above All
 	}), { MakeElement("Corner", 1, 0) });
 
 	MakeDraggable(MobileIcon, MobileIcon)

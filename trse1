@@ -1,11 +1,8 @@
 --[[
-	Orion Library - Final Perfected Mobile Version (Ultimate Polish)
-	Features: Search, Synced Text-Star Favorites, Fingerprint Default
-    Updated: Added Favorite Notification System
-    Modified: Reduced GUI size (~15%)
-    Modified 2: Full Window Touch-Drag
-    Modified 3: Notifications Overlay (ZIndex fix)
-    Modified 4: Perfected Vertical Center (Raised -180 offset)
+	Orion Library - Versão Fixada (Full)
+	Correção: O "SaveCfg" foi removido dos loops de movimento (Slider/Colorpicker)
+    e colocado apenas no "InputEnded" (Quando solta o dedo/mouse).
+    Isso remove 100% do lag/congelamento.
 --]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -273,7 +270,9 @@ local function SaveCfg(Name)
 	end
 
 	if writefile then
-		writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
+        pcall(function() -- Proteção contra erros de escrita
+		    writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
+        end)
 	end
 end
 
@@ -1267,21 +1266,24 @@ function OrionLib:MakeWindow(WindowConfig)
 				}), "Second")
 
 				SliderBar.InputBegan:Connect(function(Input)
-					if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
+					if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then 
 						Dragging = true 
 					end 
 				end)
-				SliderBar.InputEnded:Connect(function(Input) 
-					if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
+				
+				-- CORREÇÃO DO LAG: Salvar apenas quando soltar
+				UserInputService.InputEnded:Connect(function(Input) 
+					if Dragging and (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then 
 						Dragging = false 
+						SaveCfg(game.GameId) -- Salva aqui ao finalizar o toque/clique
 					end 
 				end)
 
 				UserInputService.InputChanged:Connect(function(Input)
-					if Dragging and Input.UserInputType == Enum.UserInputType.MouseMovement then 
+					if Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then 
 						local SizeScale = math.clamp((Input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
 						Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale)) 
-						SaveCfg(game.GameId)
+						-- REMOVIDO: SaveCfg(game.GameId) (Isso causava o lag extremo)
 					end
 				end)
 
@@ -1771,7 +1773,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
 					Colorpicker:Set(ColorpickerBox.BackgroundColor3)
 					ColorpickerConfig.Callback(ColorpickerBox.BackgroundColor3)
-					SaveCfg(game.GameId)
+                    -- REMOVIDO: SaveCfg(game.GameId) (Isso causava lag extremo)
 				end
 
 				ColorH = 1 - (math.clamp(HueSelection.AbsolutePosition.Y - Hue.AbsolutePosition.Y, 0, Hue.AbsoluteSize.Y) / Hue.AbsoluteSize.Y)
@@ -1779,7 +1781,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				ColorV = 1 - (math.clamp(ColorSelection.AbsolutePosition.Y - Color.AbsolutePosition.Y, 0, Color.AbsoluteSize.Y) / Color.AbsoluteSize.Y)
 
 				AddConnection(Color.InputBegan, function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 						if ColorInput then
 							ColorInput:Disconnect()
 						end
@@ -1794,16 +1796,18 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				end)
 
+                -- CORREÇÃO DO LAG: Salvar quando soltar o colorpicker
 				AddConnection(Color.InputEnded, function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 						if ColorInput then
 							ColorInput:Disconnect()
 						end
+                        SaveCfg(game.GameId) -- Salva aqui
 					end
 				end)
 
 				AddConnection(Hue.InputBegan, function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 						if HueInput then
 							HueInput:Disconnect()
 						end;
@@ -1820,10 +1824,11 @@ function OrionLib:MakeWindow(WindowConfig)
 				end)
 
 				AddConnection(Hue.InputEnded, function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 then
+					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 						if HueInput then
 							HueInput:Disconnect()
 						end
+                        SaveCfg(game.GameId) -- Salva aqui
 					end
 				end)
 

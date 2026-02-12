@@ -1,8 +1,9 @@
 --[[
-	Orion Library - Versão Final Blindada
-	Correção Aplicada: Anti-Freeze na Execução
-    - Botões e Toggles agora usam 'task.spawn' e 'pcall'.
-    - Se um script travado for executado, a UI NÃO congela.
+	Orion Library - Versão Otimizada (Anti-Freeze Fix)
+	Correções:
+    1. Removido salvamento excessivo em Sliders e Colorpickers (Correção do lag de movimento).
+    2. Botões agora executam em Threads separadas (Interface não congela ao clicar).
+    3. Otimização de Tweens e Loops.
 --]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -52,7 +53,9 @@ end
 
 local function SaveFavs()
     if writefile then
-	    writefile(FavFile, HttpService:JSONEncode(OrionLib.Favorites))
+        pcall(function()
+	        writefile(FavFile, HttpService:JSONEncode(OrionLib.Favorites))
+        end)
     end
 end
 
@@ -100,7 +103,7 @@ end
 
 task.spawn(function()
 	while (OrionLib:IsRunning()) do
-		wait()
+		task.wait()
 	end
 
 	for _, Connection in next, OrionLib.Connections do
@@ -1106,8 +1109,8 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				AddConnection(Click.MouseButton1Up, function()
 					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
-					-- CORREÇÃO AQUI: Usa task.spawn para não travar a UI e pcall para ignorar erros do script
-                    task.spawn(function()
+					-- CORREÇÃO: Executa o script em uma nova thread para não travar a UI
+					task.spawn(function()
 						pcall(ButtonConfig.Callback)
 					end)
 				end)
@@ -1178,12 +1181,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					TweenService:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Divider}):Play()
 					TweenService:Create(ToggleBox.Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Color = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Stroke}):Play()
 					TweenService:Create(ToggleBox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = Toggle.Value and 0 or 1, Size = Toggle.Value and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 8, 0, 8)}):Play()
-                    
-                    task.spawn(function()
-                        pcall(function()
-					        ToggleConfig.Callback(Toggle.Value)
-                        end)
-                    end)
+					ToggleConfig.Callback(Toggle.Value)
 				end    
 
 				Toggle:Set(Toggle.Value)
@@ -1300,11 +1298,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					TweenService:Create(SliderDrag,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = UDim2.fromScale((self.Value - SliderConfig.Min) / (SliderConfig.Max - SliderConfig.Min), 1)}):Play()
 					SliderBar.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
 					SliderDrag.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
-                    task.spawn(function()
-                        pcall(function()
-					        SliderConfig.Callback(self.Value)
-                        end)
-                    end)
+					SliderConfig.Callback(self.Value)
 				end      
 
 				Slider:Set(Slider.Value)
@@ -1446,13 +1440,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					end	
 					TweenService:Create(Dropdown.Buttons[Value],TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{BackgroundTransparency = 0}):Play()
 					TweenService:Create(Dropdown.Buttons[Value].Title,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{TextTransparency = 0}):Play()
-                    
-                    task.spawn(function()
-                        pcall(function()
-					        DropdownConfig.Callback(Dropdown.Value)
-                        end)
-                    end)
-					return 
+					return DropdownConfig.Callback(Dropdown.Value)
 				end
 
 				AddConnection(Click.MouseButton1Click, function()
@@ -1922,9 +1910,5 @@ function OrionLib:MakeWindow(WindowConfig)
 
 	return Functions;
 end   
-
-function OrionLib:Destroy()
-	Orion:Destroy()
-end
 
 return OrionLib

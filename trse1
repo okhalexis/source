@@ -1,9 +1,11 @@
 --[[
-	Orion Library - VERSÃO FINAL COMPLETA (FULL FIX)
-    - Correção de Touch/Clique (ZIndex Global + Active = true)
-    - Correção de Congelamento (SaveCfg removido de loops)
-    - Correção de Execução (Task.spawn + pcall nos botões)
-    - TODOS OS ELEMENTOS INCLUÍDOS (Colorpicker, Bind, etc.)
+	Orion Library - Final Perfected Mobile Version (Ultimate Polish)
+	Features: Search, Synced Text-Star Favorites, Fingerprint Default
+    Updated: Added Favorite Notification System
+    Modified: Reduced GUI size (~15%)
+    Modified 2: Full Window Touch-Drag
+    Modified 3: Notifications Overlay (ZIndex fix)
+    Modified 4: Perfected Vertical Center (Raised -180 offset)
 --]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -52,11 +54,7 @@ if isfile(FavFile) then
 end
 
 local function SaveFavs()
-    if writefile then
-        pcall(function()
-	        writefile(FavFile, HttpService:JSONEncode(OrionLib.Favorites))
-        end)
-    end
+	writefile(FavFile, HttpService:JSONEncode(OrionLib.Favorites))
 end
 
 local Icons = {}
@@ -80,8 +78,7 @@ end
 local Orion = Instance.new("ScreenGui")
 Orion.Name = "Orion"
 Orion.Parent = PARENT
-Orion.ZIndexBehavior = Enum.ZIndexBehavior.Global -- IMPORTANTE: Global para sobrepor tudo
-Orion.DisplayOrder = 10000 -- Garante que fica na frente
+Orion.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 for _, Interface in ipairs(PARENT:GetChildren()) do
 	if Interface.Name == Orion.Name and Interface ~= Orion then
@@ -104,7 +101,7 @@ end
 
 task.spawn(function()
 	while (OrionLib:IsRunning()) do
-		task.wait()
+		wait()
 	end
 
 	for _, Connection in next, OrionLib.Connections do
@@ -112,7 +109,7 @@ task.spawn(function()
 	end
 end)
 
--- SISTEMA DE DRAG (CORRIGIDO PARA NÃO BLOQUEAR CLIQUES)
+-- UPDATED DRAGGABLE FUNCTION FOR MOBILE TOUCH
 local function MakeDraggable(DragPoint, Main)
 	local Dragging, DragInput, MousePos, FramePos = false
 	AddConnection(DragPoint.InputBegan, function(Input)
@@ -157,6 +154,19 @@ local function CreateElement(ElementName, ElementFunction)
 		return ElementFunction(...)
 	end
 end
+
+local function AddItemTable(Table, Item, Value)
+	local Item = tostring(Item)
+	local Count = 1
+
+	while Table[Item] do
+		Count = Count + 1
+		Item = string.format('%s-%d', Item, Count)
+	end
+
+	Table[Item] = Value
+end
+
 
 local function MakeElement(ElementName, ...)
 	local NewElement = OrionLib.Elements[ElementName](...)
@@ -237,13 +247,15 @@ local function LoadCfg(Config)
 	local Data = HttpService:JSONDecode(Config)
 	table.foreach(Data, function(a,b)
 		if OrionLib.Flags[a] then
-			task.spawn(function() 
+			spawn(function() 
 				if OrionLib.Flags[a].Type == "Colorpicker" then
 					OrionLib.Flags[a]:Set(UnpackColor(b))
 				else
 					OrionLib.Flags[a]:Set(b)
 				end    
 			end)
+		else
+			warn("Orion Library Config Loader - Could not find ", a ,b)
 		end
 	end)
 end
@@ -261,9 +273,7 @@ local function SaveCfg(Name)
 	end
 
 	if writefile then
-        pcall(function()
-		    writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
-        end)
+		writefile(OrionLib.Folder .. "/" .. Name .. ".txt", tostring(HttpService:JSONEncode(Data)))
 	end
 end
 
@@ -343,8 +353,7 @@ CreateElement("Button", function()
 		Text = "",
 		AutoButtonColor = false,
 		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-        Active = true -- Essencial para mobile
+		BorderSizePixel = 0
 	})
 	return Button
 end)
@@ -379,8 +388,7 @@ end)
 CreateElement("ImageButton", function(ImageID)
 	local Image = Create("ImageButton", {
 		Image = ImageID,
-		BackgroundTransparency = 1,
-        Active = true -- Essencial para mobile
+		BackgroundTransparency = 1
 	})
 	return Image
 end)
@@ -411,11 +419,11 @@ local NotificationHolder = SetProps(SetChildren(MakeElement("TFrame"), {
 	Size = UDim2.new(0, 300, 1, -25),
 	AnchorPoint = Vector2.new(1, 1),
 	Parent = Orion,
-    ZIndex = 6000 -- ZIndex extremo para ficar acima da janela
+    ZIndex = 100 -- FORÇA O CONTAINER DE NOTIFICAÇÃO PARA CIMA
 })
 
 function OrionLib:MakeNotification(NotificationConfig)
-	task.spawn(function()
+	spawn(function()
 		NotificationConfig.Name = NotificationConfig.Name or "Notification"
 		NotificationConfig.Content = NotificationConfig.Content or "Test"
 		NotificationConfig.Image = NotificationConfig.Image
@@ -425,7 +433,7 @@ function OrionLib:MakeNotification(NotificationConfig)
 			Size = UDim2.new(1, 0, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Parent = NotificationHolder,
-            ZIndex = 6001
+            ZIndex = 101 -- FORÇA A NOTIFICAÇÃO EM SI PARA CIMA
 		})
 
 		local NotificationFrame = SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(25, 25, 25), 0, 10), {
@@ -434,7 +442,7 @@ function OrionLib:MakeNotification(NotificationConfig)
 			Position = UDim2.new(1, -55, 0, 0),
 			BackgroundTransparency = 0,
 			AutomaticSize = Enum.AutomaticSize.Y,
-            ZIndex = 6002
+            ZIndex = 102 -- GARANTE VISIBILIDADE
 		}), {
 			MakeElement("Stroke", Color3.fromRGB(93, 93, 93), 1.2),
 			MakeElement("Padding", 12, 12, 12, 12),
@@ -442,14 +450,14 @@ function OrionLib:MakeNotification(NotificationConfig)
 				Size = UDim2.new(0, 20, 0, 20),
 				ImageColor3 = Color3.fromRGB(240, 240, 240),
 				Name = "Icon",
-                ZIndex = 6003
+                ZIndex = 103
 			}),
 			SetProps(MakeElement("Label", NotificationConfig.Name, 15), {
 				Size = UDim2.new(1, -30, 0, 20),
 				Position = UDim2.new(0, 30, 0, 0),
 				Font = Enum.Font.GothamBold,
 				Name = "Title",
-                ZIndex = 6003
+                ZIndex = 103
 			}),
 			SetProps(MakeElement("Label", NotificationConfig.Content, 14), {
 				Size = UDim2.new(1, 0, 0, 0),
@@ -460,29 +468,24 @@ function OrionLib:MakeNotification(NotificationConfig)
 				AutomaticSize = Enum.AutomaticSize.Y,
 				TextColor3 = Color3.fromRGB(200, 200, 200),
 				TextWrapped = true,
-                ZIndex = 6003
+                ZIndex = 103
 			})
 		})
 
 		TweenService:Create(NotificationFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(0, 0, 0, 0)}):Play()
 
 		wait(NotificationConfig.Time - 0.88)
-        
-        if NotificationFrame then
-		    TweenService:Create(NotificationFrame.Icon, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
-		    TweenService:Create(NotificationFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint), {BackgroundTransparency = 0.6}):Play()
-		    wait(0.3)
-            if NotificationFrame then
-		        TweenService:Create(NotificationFrame.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {Transparency = 0.9}):Play()
-		        TweenService:Create(NotificationFrame.Title, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.4}):Play()
-		        TweenService:Create(NotificationFrame.Content, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.5}):Play()
-		        wait(0.05)
+		TweenService:Create(NotificationFrame.Icon, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {ImageTransparency = 1}):Play()
+		TweenService:Create(NotificationFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint), {BackgroundTransparency = 0.6}):Play()
+		wait(0.3)
+		TweenService:Create(NotificationFrame.UIStroke, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {Transparency = 0.9}):Play()
+		TweenService:Create(NotificationFrame.Title, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.4}):Play()
+		TweenService:Create(NotificationFrame.Content, TweenInfo.new(0.6, Enum.EasingStyle.Quint), {TextTransparency = 0.5}):Play()
+		wait(0.05)
 
-		        NotificationFrame:TweenPosition(UDim2.new(1, 20, 0, 0),'In','Quint',0.8,true)
-		        wait(1.35)
-		        NotificationFrame:Destroy()
-            end
-        end
+		NotificationFrame:TweenPosition(UDim2.new(1, 20, 0, 0),'In','Quint',0.8,true)
+		wait(1.35)
+		NotificationFrame:Destroy()
 	end)
 end    
 
@@ -590,11 +593,8 @@ function OrionLib:MakeWindow(WindowConfig)
 		}), "Text")
 	})
 
-    -- PONTO DE ARRASTAR ESPECÍFICO (PARA NÃO BLOQUEAR CLIQUES NA TELA)
 	local DragPoint = SetProps(MakeElement("TFrame"), {
-		Size = UDim2.new(1, 0, 0, 50),
-        Name = "DragPoint",
-        BackgroundTransparency = 1
+		Size = UDim2.new(1, 0, 0, 50)
 	})
 
 	local WindowStuff = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
@@ -683,13 +683,12 @@ function OrionLib:MakeWindow(WindowConfig)
 		Position = UDim2.new(0, 0, 1, -1)
 	}), "Stroke")
 
-    -- ZINDEX AUMENTADO PARA 5000 (CORREÇÃO DE SOBREPOSIÇÃO)
 	local MainWindow = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
 		Parent = Orion,
-		Position = UDim2.new(0.5, -261, 0.5, -180),
+		Position = UDim2.new(0.5, -261, 0.5, -180), -- PERFECTED CENTER (Offset -180)
 		Size = UDim2.new(0, 523, 0, 292),
 		ClipsDescendants = true,
-        ZIndex = 5000 
+        ZIndex = 1 -- ZINDEX BAIXO PARA O HUB
 	}), {
 		SetChildren(SetProps(MakeElement("TFrame"), {
 			Size = UDim2.new(1, 0, 0, 50),
@@ -710,7 +709,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				MinimizeBtn
 			}), "Second"), 
 		}),
-		DragPoint, -- ADICIONADO AQUI
+		DragPoint,
 		WindowStuff
 	}), "Main")
 
@@ -723,8 +722,8 @@ function OrionLib:MakeWindow(WindowConfig)
 		WindowIcon.Parent = MainWindow.TopBar
 	end
 
-    -- MAKE WINDOW DRAGGABLE ONLY FROM TOPBAR
-	MakeDraggable(DragPoint, MainWindow)
+    -- MAKE WINDOW DRAGGABLE FROM ANYWHERE
+	MakeDraggable(MainWindow, MainWindow)
 
 	local _currentKey = Enum.KeyCode.RightShift;
 	local isMobile = table.find({ Enum.Platform.IOS, Enum.Platform.Android }, UserInputService:GetPlatform());
@@ -733,7 +732,7 @@ function OrionLib:MakeWindow(WindowConfig)
 		Size = UDim2.new(0, 32, 0, 33);
 		Parent = Orion;
 		Visible = false;
-        ZIndex = 6000 -- Mobile Icon Above All
+        ZIndex = 200 -- Mobile Icon Above All
 	}), { MakeElement("Corner", 1, 0) });
 
 	MakeDraggable(MobileIcon, MobileIcon)
@@ -794,8 +793,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			Position = UDim2.new(0.5, 0, 0.4, 0),
 			Size = UDim2.new(0, 28, 0, 28),
 			ImageColor3 = Color3.fromRGB(255, 255, 255),
-			ImageTransparency = 1,
-            ZIndex = 6000
+			ImageTransparency = 1
 		})
 
 		local LoadSequenceText = SetProps(MakeElement("Label", WindowConfig.IntroText, 14), {
@@ -805,8 +803,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			Position = UDim2.new(0.5, 19, 0.5, 0),
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Font = Enum.Font.GothamBold,
-			TextTransparency = 1,
-            ZIndex = 6000
+			TextTransparency = 1
 		})
 
 		TweenService:Create(LoadSequenceLogo, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {ImageTransparency = 0, Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
@@ -863,8 +860,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			Position = UDim2.new(0, 150, 0, 50),
 			Parent = MainWindow,
 			Visible = false,
-			Name = "ItemContainer",
-            ZIndex = 5002
+			Name = "ItemContainer"
 		}), {
 			MakeElement("List", 0, 6),
 			MakeElement("Padding", 15, 10, 10, 15)
@@ -932,15 +928,13 @@ function OrionLib:MakeWindow(WindowConfig)
 				local LabelFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 30),
 					BackgroundTransparency = 0.7,
-					Parent = ItemParent,
-                    ZIndex = 5004
+					Parent = ItemParent
 				}), {
 					AddThemeObject(SetProps(MakeElement("Label", Text, 15), {
 						Size = UDim2.new(1, -12, 1, 0),
 						Position = UDim2.new(0, 12, 0, 0),
 						Font = Enum.Font.GothamBold,
-						Name = "Content",
-                        ZIndex = 5005
+						Name = "Content"
 					}), "Text"),
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
 				}), "Second")
@@ -959,23 +953,20 @@ function OrionLib:MakeWindow(WindowConfig)
 				local ParagraphFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 30),
 					BackgroundTransparency = 0.7,
-					Parent = ItemParent,
-                    ZIndex = 5004
+					Parent = ItemParent
 				}), {
 					AddThemeObject(SetProps(MakeElement("Label", Text, 15), {
 						Size = UDim2.new(1, -12, 0, 14),
 						Position = UDim2.new(0, 12, 0, 10),
 						Font = Enum.Font.GothamBold,
-						Name = "Title",
-                        ZIndex = 5005
+						Name = "Title"
 					}), "Text"),
 					AddThemeObject(SetProps(MakeElement("Label", "", 13), {
 						Size = UDim2.new(1, -24, 0, 0),
 						Position = UDim2.new(0, 12, 0, 26),
 						Font = Enum.Font.GothamSemibold,
 						Name = "Content",
-						TextWrapped = true,
-                        ZIndex = 5005
+						TextWrapped = true
 					}), "TextDark"),
 					AddThemeObject(MakeElement("Stroke"), "Stroke")
 				}), "Second")
@@ -1007,9 +998,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				local Button = {}
 
 				local Click = SetProps(MakeElement("Button"), {
-					Size = UDim2.new(1, 0, 1, 0),
-                    ZIndex = 5005,
-                    Active = true
+					Size = UDim2.new(1, 0, 1, 0)
 				})
 
 				local IsFav = OrionLib.Favorites[ButtonConfig.Name] == true
@@ -1022,8 +1011,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					BackgroundTransparency = 1,
 					Size = UDim2.new(0, 20, 0, 20),
 					Position = UDim2.new(1, -55, 0, 7), 
-					ZIndex = 5006,
-                    Active = true
+					ZIndex = 25
 				})
 
                 if not OrionLib.StarRegistry[ButtonConfig.Name] then
@@ -1033,20 +1021,17 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				local ButtonFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 33),
-					Parent = ItemParent,
-                    ZIndex = 5004
+					Parent = ItemParent
 				}), {
 					AddThemeObject(SetProps(MakeElement("Label", ButtonConfig.Name, 15), {
 						Size = UDim2.new(1, -12, 1, 0),
 						Position = UDim2.new(0, 12, 0, 0),
 						Font = Enum.Font.GothamBold,
-						Name = "Content",
-                        ZIndex = 5005
+						Name = "Content"
 					}), "Text"),
 					AddThemeObject(SetProps(MakeElement("Image", ButtonConfig.Icon), {
 						Size = UDim2.new(0, 20, 0, 20),
 						Position = UDim2.new(1, -30, 0, 7),
-                        ZIndex = 5005
 					}), "TextDark"),
 					StarIcon,
 					AddThemeObject(MakeElement("Stroke"), "Stroke"),
@@ -1120,11 +1105,8 @@ function OrionLib:MakeWindow(WindowConfig)
 
 				AddConnection(Click.MouseButton1Up, function()
 					TweenService:Create(ButtonFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(OrionLib.Themes[OrionLib.SelectedTheme].Second.R * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.G * 255 + 3, OrionLib.Themes[OrionLib.SelectedTheme].Second.B * 255 + 3)}):Play()
-                    -- CORREÇÃO: Executa em thread separada
-					task.spawn(function()
-                        pcall(function()
-						    ButtonConfig.Callback()
-                        end)
+					spawn(function()
+						ButtonConfig.Callback()
 					end)
 				end)
 
@@ -1152,16 +1134,13 @@ function OrionLib:MakeWindow(WindowConfig)
 				local Toggle = {Value = ToggleConfig.Default, Save = ToggleConfig.Save}
 
 				local Click = SetProps(MakeElement("Button"), {
-					Size = UDim2.new(1, 0, 1, 0),
-                    ZIndex = 5005,
-                    Active = true
+					Size = UDim2.new(1, 0, 1, 0)
 				})
 
 				local ToggleBox = SetChildren(SetProps(MakeElement("RoundFrame", ToggleConfig.Color, 0, 4), {
 					Size = UDim2.new(0, 24, 0, 24),
 					Position = UDim2.new(1, -24, 0.5, 0),
-					AnchorPoint = Vector2.new(0.5, 0.5),
-                    ZIndex = 5005
+					AnchorPoint = Vector2.new(0.5, 0.5)
 				}), {
 					SetProps(MakeElement("Stroke"), {
 						Color = ToggleConfig.Color,
@@ -1173,22 +1152,19 @@ function OrionLib:MakeWindow(WindowConfig)
 						AnchorPoint = Vector2.new(0.5, 0.5),
 						Position = UDim2.new(0.5, 0, 0.5, 0),
 						ImageColor3 = Color3.fromRGB(255, 255, 255),
-						Name = "Ico",
-                        ZIndex = 5006
+						Name = "Ico"
 					}),
 				})
 
 				local ToggleFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
 					Size = UDim2.new(1, 0, 0, 38),
-					Parent = ItemParent,
-                    ZIndex = 5004
+					Parent = ItemParent
 				}), {
 					AddThemeObject(SetProps(MakeElement("Label", ToggleConfig.Name, 15), {
 						Size = UDim2.new(1, -12, 1, 0),
 						Position = UDim2.new(0, 12, 0, 0),
 						Font = Enum.Font.GothamBold,
-						Name = "Content",
-                        ZIndex = 5005
+						Name = "Content"
 					}), "Text"),
 					AddThemeObject(MakeElement("Stroke"), "Stroke"),
 					ToggleBox,
@@ -1200,12 +1176,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					TweenService:Create(ToggleBox, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {BackgroundColor3 = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Divider}):Play()
 					TweenService:Create(ToggleBox.Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Color = Toggle.Value and ToggleConfig.Color or OrionLib.Themes.Default.Stroke}):Play()
 					TweenService:Create(ToggleBox.Ico, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {ImageTransparency = Toggle.Value and 0 or 1, Size = Toggle.Value and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 8, 0, 8)}):Play()
-                    
-                    task.spawn(function()
-                        pcall(function()
-					        ToggleConfig.Callback(Toggle.Value)
-                        end)
-                    end)
+					ToggleConfig.Callback(Toggle.Value)
 				end    
 
 				Toggle:Set(Toggle.Value)
@@ -1296,24 +1267,21 @@ function OrionLib:MakeWindow(WindowConfig)
 				}), "Second")
 
 				SliderBar.InputBegan:Connect(function(Input)
-					if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then 
+					if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
 						Dragging = true 
 					end 
 				end)
-				
-				-- CORREÇÃO DO LAG: Salvar apenas quando soltar
-				UserInputService.InputEnded:Connect(function(Input) 
-					if Dragging and (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then 
+				SliderBar.InputEnded:Connect(function(Input) 
+					if Input.UserInputType == Enum.UserInputType.MouseButton1 then 
 						Dragging = false 
-						SaveCfg(game.GameId) -- Salva aqui ao finalizar o toque/clique
 					end 
 				end)
 
 				UserInputService.InputChanged:Connect(function(Input)
-					if Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then 
+					if Dragging and Input.UserInputType == Enum.UserInputType.MouseMovement then 
 						local SizeScale = math.clamp((Input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
 						Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale)) 
-						-- REMOVIDO: SaveCfg(game.GameId) (Isso causava o lag extremo)
+						SaveCfg(game.GameId)
 					end
 				end)
 
@@ -1322,11 +1290,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					TweenService:Create(SliderDrag,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Size = UDim2.fromScale((self.Value - SliderConfig.Min) / (SliderConfig.Max - SliderConfig.Min), 1)}):Play()
 					SliderBar.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
 					SliderDrag.Value.Text = tostring(self.Value) .. " " .. SliderConfig.ValueName
-                    task.spawn(function()
-                        pcall(function()
-					        SliderConfig.Callback(self.Value)
-                        end)
-                    end)
+					SliderConfig.Callback(self.Value)
 				end      
 
 				Slider:Set(Slider.Value)
@@ -1468,13 +1432,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					end	
 					TweenService:Create(Dropdown.Buttons[Value],TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{BackgroundTransparency = 0}):Play()
 					TweenService:Create(Dropdown.Buttons[Value].Title,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{TextTransparency = 0}):Play()
-                    
-                    task.spawn(function()
-                        pcall(function()
-					        DropdownConfig.Callback(Dropdown.Value)
-                        end)
-                    end)
-					return 
+					return DropdownConfig.Callback(Dropdown.Value)
 				end
 
 				AddConnection(Click.MouseButton1Click, function()
@@ -1813,7 +1771,7 @@ function OrionLib:MakeWindow(WindowConfig)
 					Color.BackgroundColor3 = Color3.fromHSV(ColorH, 1, 1)
 					Colorpicker:Set(ColorpickerBox.BackgroundColor3)
 					ColorpickerConfig.Callback(ColorpickerBox.BackgroundColor3)
-                    -- REMOVIDO: SaveCfg(game.GameId) (Isso causava lag extremo)
+					SaveCfg(game.GameId)
 				end
 
 				ColorH = 1 - (math.clamp(HueSelection.AbsolutePosition.Y - Hue.AbsolutePosition.Y, 0, Hue.AbsoluteSize.Y) / Hue.AbsoluteSize.Y)
@@ -1821,7 +1779,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				ColorV = 1 - (math.clamp(ColorSelection.AbsolutePosition.Y - Color.AbsolutePosition.Y, 0, Color.AbsoluteSize.Y) / Color.AbsoluteSize.Y)
 
 				AddConnection(Color.InputBegan, function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
 						if ColorInput then
 							ColorInput:Disconnect()
 						end
@@ -1836,18 +1794,16 @@ function OrionLib:MakeWindow(WindowConfig)
 					end
 				end)
 
-                -- CORREÇÃO DO LAG: Salvar quando soltar o colorpicker
 				AddConnection(Color.InputEnded, function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
 						if ColorInput then
 							ColorInput:Disconnect()
 						end
-                        SaveCfg(game.GameId) -- Salva aqui
 					end
 				end)
 
 				AddConnection(Hue.InputBegan, function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
 						if HueInput then
 							HueInput:Disconnect()
 						end;
@@ -1864,11 +1820,10 @@ function OrionLib:MakeWindow(WindowConfig)
 				end)
 
 				AddConnection(Hue.InputEnded, function(input)
-					if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					if input.UserInputType == Enum.UserInputType.MouseButton1 then
 						if HueInput then
 							HueInput:Disconnect()
 						end
-                        SaveCfg(game.GameId) -- Salva aqui
 					end
 				end)
 
